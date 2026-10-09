@@ -1,0 +1,54 @@
+spring:
+  datasource:
+    url: ${DB_JDBC_URL:jdbc:postgresql://localhost:5432/schoolshop}
+    username: ${DB_USERNAME:shop_runtime}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 5
+      connection-timeout: 5000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: shop
+        jdbc.time_zone: UTC
+  flyway:
+    enabled: ${MIGRATIONS_ENABLED:false}
+    url: ${MIGRATION_DB_URL:${DB_JDBC_URL:jdbc:postgresql://localhost:5432/schoolshop}}
+    user: ${MIGRATION_DB_USERNAME:shop_migration}
+    password: ${MIGRATION_DB_PASSWORD:}
+    default-schema: shop
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+server:
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+management:
+  endpoints.web.exposure.include: health,info
+  endpoint.health:
+    show-details: never
+    probes.enabled: true
+app:
+  shop-id: ${APP_SHOP_ID:00000000-0000-0000-0000-000000000001}
+  issuer: ${JWT_ISSUER_URI}
+  jwks: ${JWT_JWK_SET_URI}
+  audience: ${JWT_EXPECTED_AUDIENCE:authenticated}
+  cors-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  cookie-secure: ${COOKIE_SECURE:true}
+  encryption-key: ${IDEMPOTENCY_ENCRYPTION_KEY}
+  signing-key: ${GUEST_SESSION_SIGNING_KEY}
+  pending-ttl-hours: ${PENDING_ORDER_TTL_HOURS:24}
+  guest-ttl-days: ${GUEST_TOKEN_TTL_DAYS:90}
+  supabase-url: ${SUPABASE_URL}
+  storage-key: ${SUPABASE_BACKEND_SECRET_KEY:}
+  product-bucket: ${PUBLIC_PRODUCT_BUCKET:product-images}
+  payment-bucket: ${PRIVATE_PAYMENT_BUCKET:payment-qr}
