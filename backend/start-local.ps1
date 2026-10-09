@@ -10,11 +10,7 @@ Get-Content -LiteralPath $envPath | ForEach-Object {
 }
 Push-Location $PSScriptRoot
 try {
-    if (Get-Command mvn.cmd -ErrorAction SilentlyContinue) {
-        & mvn.cmd -B -ntp spring-boot:run
-    } else {
-        & .\mvnw.cmd spring-boot:run
-    }
+    npm run dev
     if ($LASTEXITCODE -ne 0) { throw "Backend exited with code $LASTEXITCODE." }
 } finally {
     Pop-Location

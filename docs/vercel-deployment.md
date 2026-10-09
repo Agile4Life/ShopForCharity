@@ -1,72 +1,77 @@
-# Triển khai Vercel + Spring Boot + Supabase
+# Deploy Node.js và React/Vite lên Vercel
 
-Đã chuẩn bị cấu hình, chưa publish lên tài khoản hay tạo hạ tầng. Xem [test và trạng thái trước deploy](./predeploy-readiness.md).
+Runtime: Node.js 24. Entry serverless: `api/index.js`; `backend/src/server.js` chỉ dùng khi chạy server thông thường.
 
-## Kiến trúc deploy
+## Monorepo: một Vercel project
 
-Vercel build/host FE React/Vite. Request `/api/v1/*` trên domain Vercel được rewrite tới Spring Boot HTTPS. BE chạy dưới dạng JVM/container liên tục và kết nối Supabase PostgreSQL/Auth/Storage. Cookie guest được cấp qua proxy trên domain website, HttpOnly/Secure/SameSite=Lax, path `/api/v1`; tránh gọi API khác site trực tiếp khiến cookie guest không được gửi.
+Import repo, Root Directory là root, Framework Preset Vite. `vercel.mjs` cài dependency cả frontend/backend bằng lockfile, build frontend, route `/api/*` và `/actuator/*` tới backend và đóng gói CA certificate.
 
-Vercel Functions không có runtime Java trực tiếp. Tài liệu hiện tại có Container runtime beta, nhưng phương án đó dùng container và cần đánh giá scheduler/lifecycle riêng. Nếu giữ Spring Boot/JUnit và không dùng container, backend chạy Java JAR trên host JVM riêng; Vercel host frontend. Supabase cung cấp PostgreSQL/Auth/Storage, không host Spring Boot. Cấu hình trong repo là phương án Vercel frontend + backend HTTPS riêng, **không phải toàn bộ frontend/backend trên Vercel**. Tham khảo [Vercel runtimes](https://vercel.com/docs/functions/runtimes), [external rewrites](https://vercel.com/docs/routing/rewrites), [programmatic config](https://vercel.com/docs/project-configuration/vercel-ts).
+Đặt biến môi trường theo từng Preview/Production:
 
-## 1. Chạy backend trước
-
-Backend có thể deploy trực tiếp bằng Java 21, không cần Docker. Từ thư mục `backend/`:
-
-```sh
-sh mvnw -B -ntp package
-java -jar target/backend-0.1.0.jar
-```
-
-Windows: `.\mvnw.cmd -B -ntp package`, sau đó chạy cùng lệnh `java -jar`. JAR build chạy unit test nhưng chưa chạy PostgreSQL integration; CI phải pass `verify` trước release. Host chạy Java bằng user không phải root và inject env; Spring không tự đọc `.env`. `PORT` mặc định 8080, có thể do host cấp. Host phải cung cấp HTTPS public origin, health check `/actuator/health/readiness`, và process chạy liên tục để scheduler hoạt động. Thiết lập một replica ban đầu, pool tối đa 5; đo memory trên staging. Dùng service manager của host để restart sau reboot/crash.
-
-Inject toàn bộ env trong [backend/.env.example](../backend/.env.example) tại host BE. Production: `COOKIE_SECURE=true`, `MIGRATIONS_ENABLED=false`, `CORS_ALLOWED_ORIGINS=https://<domain-website-thật>`. Mỗi origin đầy đủ, phân cách bằng dấu phẩy, không có dấu `/` cuối, không wildcard. BE vẫn kiểm tra Origin gốc từ browser sau Vercel proxy. Không tin X-Forwarded-* làm identity; không bật forwarded-header parsing chỉ vì có proxy.
-
-Chạy migrations với credential riêng và cấp quyền runtime theo [backend README](../backend/README.md) trước khi mở service phục vụ đơn. Không chạy migration bằng runtime user và không để schema owner credential ở FE/Vercel. Kết nối Supabase dev và cấu hình thực tế phải được xác nhận trước release.
-
-## 2. Import repo vào Vercel
-
-Chọn **Root Directory = repo root** (để trống hoặc `.`), không chọn `frontend/`. Framework Vite. Config ở `vercel.mjs` tự đặt:
-
-| Mục | Giá trị |
+| Biến | Giá trị |
 | --- | --- |
-| Install | `npm --prefix frontend ci` |
-| Build | `npm --prefix frontend run build` |
-| Output | `frontend/dist` |
-| API route | `/api/:path*` → `<BACKEND_ORIGIN>/api/:path*` |
-| SPA fallback | các route giao diện → `/index.html`; không biến API hoặc assets thiếu thành HTML |
+| SERVERLESS_BACKEND | true |
+| VITE_API_BASE_URL | /api/v1 |
+| VITE_SUPABASE_URL | HTTPS origin project Supabase |
+| VITE_SUPABASE_PUBLISHABLE_KEY | Publishable/anon key; không dùng service key |
+| DATABASE_URL | PostgreSQL runtime URL; dùng transaction pooler cho serverless |
+| DB_SSL_CA | CA PEM override, newline thật hoặc escaped \n |
+| DB_POOL_MAX | 3 mặc định mỗi instance |
+| GUEST_SESSION_SIGNING_KEY | Base64 của 32 byte ngẫu nhiên |
+| IDEMPOTENCY_ENCRYPTION_KEY | Base64 của 32 byte ngẫu nhiên khác signing key |
+| CRON_SECRET | Secret ngẫu nhiên riêng |
+| SUPABASE_URL | HTTPS origin project Supabase |
+| SUPABASE_BACKEND_SECRET_KEY | Credential backend dùng Storage |
+| JWT_ISSUER_URI | https://<project>.supabase.co/auth/v1 |
+| JWT_JWK_SET_URI | https://<project>.supabase.co/auth/v1/.well-known/jwks.json |
+| JWT_EXPECTED_AUDIENCE | authenticated, khớp Auth |
+| APP_SHOP_ID | UUID tồn tại; seed: 00000000-0000-0000-0000-000000000001 |
+| PUBLIC_PRODUCT_BUCKET | product-images hoặc bucket public thật |
+| PRIVATE_PAYMENT_BUCKET | payment-qr hoặc bucket private thật |
+| CORS_ALLOWED_ORIGINS | Chính xác HTTPS origin frontend; phân cách dấu phẩy |
+| COOKIE_SECURE | true |
+| MIGRATIONS_ENABLED | false trên Vercel |
 
-Vercel đọc file config programmatic ở root. Dùng một file config này, không thêm `vercel.json` cạnh nó. Config sẽ từ chối deploy nếu BACKEND_ORIGIN thiếu/sai, thiếu Supabase public config, key là secret/service key, hoặc FE gọi API khác origin. Không có URL giả hardcode.
+Không đưa secret vào VITE_*. Trên Vercel app không đọc .env. Cấu hình Auth redirect URL và deny browser upload vào các bucket.
 
-## 3. Vercel environment variables
+## TLS
 
-| Biến trên Vercel | Giá trị |
-| --- | --- |
-| `BACKEND_ORIGIN` | Origin HTTPS thật của BE, ví dụ định dạng `https://<backend-host>`, không thêm `/api/v1`, query hay key |
-| `VITE_API_BASE_URL` | `/api/v1` |
-| `VITE_SUPABASE_URL` | URL project Supabase đúng môi trường |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Publishable/public client key cho Auth |
+CA người dùng tải từ Supabase Dashboard nằm trong `backend/certs/supabase-ca.crt`; endpoint Supabase tự dùng file này nếu không có override. Khi rotate CA, cập nhật file hoặc đặt DB_SSL_CA mới. Local có thể dùng DB_SSL_CA_PATH. Backend giữ xác minh certificate; URL sslmode không được ghi đè CA.
 
-DB password, service/secret key Storage, key ký cookie và key mã hóa idempotency chỉ đặt trên host BE. Vercel FE không cần những key đó. `BACKEND_ORIGIN` không phải secret, được đọc khi tạo route config.
+[Supabase SSL configuration](https://supabase.com/docs/guides/platform/ssl-enforcement).
 
-Tách Production/Preview. Preview dùng backend và Supabase dev, với domain preview ổn định được thêm vào CORS; không cho tất cả `*.vercel.app`. Nếu muốn mỗi preview có domain riêng, thêm chính xác origin đó vào backend dev trước khi kiểm thử guest. Không dùng preview để thao tác DB production.
+## Migration
 
-Supabase Auth: thêm production domain vào Site URL và allowlist redirect URLs thực tế (`/auth/callback`, `/reset-password` và các redirect của FE). Domain preview chỉ nằm trong project dev. Kiểm tra FE redirect thực tế khi agent FE cập nhật. Sau thay đổi Vite env, cần redeploy vì biến VITE được nhúng lúc build.
+Dùng MIGRATION_DATABASE_URL hoặc MIGRATION_DB_URL cùng MIGRATION_DB_USERNAME/PASSWORD cho owner credential riêng. MIGRATION_DB_SSL_CA/PATH override CA runtime. Không dùng runtime account cho DDL.
 
-## 4. Smoke test sau deploy
+DB mới: `npm.cmd --prefix backend run migrate`. Runner tạo schema trước history, dùng transaction/advisory lock và SHA-256 checksum.
 
-1. BE readiness 200 trước khi cấu hình Vercel BACKEND_ORIGIN.
-2. `https://<website>/api/v1/shop` trả JSON, không HTML; response API có no-store, không có CDN cache hit dữ liệu riêng tư.
-3. Mở trực tiếp `/checkout`, `/guest-order`, `/seller/orders` và refresh: SPA được tải; `/api/v1/khong-ton-tai` không trả index.html.
-4. Guest tạo session qua `/api/v1/checkout/session`; kiểm tra Set-Cookie Secure/HttpOnly/Lax và cookie được gửi cùng origin tới `/orders`. Nếu Origin bị proxy thay đổi, sửa routing/deployment; không bỏ Origin protection.
-5. Đặt đơn guest → lưu khóa chủ động → lookup → seller contact/accept/payment/complete → kiểm tra tồn/audit. Lặp lại account order và reject/refund trên dev.
-6. Upload ảnh/QR thật trên dev; QR private có signed URL, không lộ qua public shop endpoint.
+DB Java/Flyway hiện có: `npm.cmd --prefix backend run migrate:upgrade-node`. Script kiểm tra CRC32 theo [thuật toán Flyway](https://github.com/flyway/flyway/blob/main/flyway-core/src/main/java/org/flywaydb/core/internal/resolver/ChecksumCalculator.java), baseline migration đã khớp, thêm V4 và cấp quyền trên bảng rate limit cho runtime role. Không chạy lại V1–V3. Migration lạ/failed/checksum sai sẽ dừng. Chỉ chạy trên DB đã được phép nâng cấp.
 
-Kiểm tra config local không cần tài khoản hoặc key:
+Node history cũ thiếu checksum cần đối chiếu riêng; không tự gán checksum chưa xác minh. Provision shop_runtime và chạy `backend/deployment/runtime-grants.sql` bằng owner sau migrations cho DB mới. Runtime không được sửa history hay UPDATE/DELETE audit/payment append-only. Không expose schema shop qua Data API. Seed đóng nhận đơn; chỉ mở sau khi có dữ liệu/config thật.
 
-```sh
-node --test deployment/vercel-config.test.mjs
-```
+## Cron
 
-Các mục chưa xác nhận: backend host/domain, Supabase cấu hình live, Vercel project/env và health/cookie/proxy thực tế. PostgreSQL integration chưa pass tại máy này vì Docker engine chưa chạy; có thể chạy trong CI. Không coi những mục đó là đã deploy/test thành công.
+GET có `Authorization: Bearer <CRON_SECRET>`:
+- /api/v1/cron/expire: trả stock cho pending unpaid orders hết TTL, mặc định 24h.
+- /api/v1/cron/cleanup: dọn asset, idempotency và rate-limit records cũ.
 
-Kiểm tra và kết quả mới nhất nằm trong [predeploy-readiness.md](./predeploy-readiness.md). Deploy Java JAR không cần build Docker image. Yêu cầu toàn bộ frontend/backend trên Vercel trong khi giữ Java và không dùng container chưa được giải quyết bằng cấu hình này.
+Vercel gửi Bearer khi CRON_SECRET đã được cấu hình. Token sai trả 401; thiếu secret trả 503; không gọi DB.
+
+Daily mặc định cho Hobby: expire 00:00 UTC (07:00 Việt Nam), cleanup 01:00 UTC (08:00 Việt Nam). Trả stock có thể chậm thêm gần một ngày cộng độ trễ lịch nền tảng. Với gói hỗ trợ lịch thường xuyên, đặt VERCEL_CRON_FREQUENT=true: expire mỗi phút, cleanup mỗi giờ. Hoặc scheduler ngoài gọi GET cùng secret.
+
+[Cron và giới hạn gói](https://vercel.com/docs/cron-jobs/manage-cron-jobs). Cron tự chạy trên production; preview cần request thủ công.
+
+## Hai project riêng
+
+Backend: Root Directory backend, Framework Other, dùng backend/vercel.json. Đặt biến backend, CRON_SECRET và CA; lịch mặc định daily, sửa theo gói nếu cần.
+
+Frontend: Root Directory root, SERVERLESS_BACKEND=false, BACKEND_ORIGIN=https://<backend>.vercel.app. FE vẫn gọi /api/v1 qua proxy cùng origin cho guest cookie. Backend CORS allowlist dùng origin frontend.
+
+## Verification
+
+Upload FE/BE tối đa 4 MiB, multipart fields bị giới hạn để chừa khoảng trống dưới [Vercel payload cap 4.5 MB](https://vercel.com/docs/functions/limitations).
+
+Chạy `npm.cmd test` và `npm.cmd --prefix frontend run build`. Tests dùng fixture/DB embedded, không đọc .env hay dùng DB shop. Embedded không thay thế TLS/Auth/Storage/network hoặc concurrency nhiều connection thật.
+
+Sau khi link Vercel project: vercel pull --environment=preview, vercel build rồi tạo preview. Smoke test health, guest cookies, Auth/seller authorization, quote/order/stock/payment và upload. Chỉ chạy cron hợp lệ trên DB test khi kiểm tra.

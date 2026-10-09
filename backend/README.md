@@ -1,4 +1,20 @@
-# School Shop backend
+# School Shop backend Node.js
+
+Runtime: Node.js 24, Express, PostgreSQL, Supabase Auth/Storage. See [Vercel deployment](../docs/vercel-deployment.md) and [test readiness](../docs/node-vercel-readiness.md).
+
+```powershell
+npm.cmd ci --workspaces=false
+npm.cmd test
+npm.cmd run dev
+```
+
+Copy .env.example to .env for local development. Vercel uses Environment Variables. Tests use fixture keys and an isolated embedded PostgreSQL database.
+
+Run migrations separately with MIGRATION_DATABASE_URL or MIGRATION_DB_URL and owner credentials. Runtime credentials are separate. Keep MIGRATIONS_ENABLED=false on Vercel. Existing Flyway databases can use the explicit migrate:upgrade-node command after checksum verification and approval to change the database.
+
+## Legacy Java backend
+
+The Java files and instructions below are retained for the Spring Boot version; they are not Node startup instructions.
 
 For Vercel frontend deployment with a separate Java JAR backend, see [deployment guide](../docs/vercel-deployment.md). The Vercel project uses repository-root `vercel.mjs` and same-origin API proxy. See [current test readiness](../docs/predeploy-readiness.md).
 

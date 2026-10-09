@@ -1,0 +1,32 @@
+{
+  "name": "shop-for-charity",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build",
+    "start:backend": "npm --prefix backend start",
+    "test": "npm --prefix backend test && node --test deployment/vercel-config.test.mjs",
+    "test:backend": "npm --prefix backend test",
+    "test:vercel": "node --test deployment/vercel-config.test.mjs"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jose": "^5.9.6",
+    "multer": "^2.0.2",
+    "pg": "^8.13.1",
+    "sharp": "^0.35.5"
+  },
+  "engines": {
+    "node": "24.x"
+  }
+}

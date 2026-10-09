@@ -13,12 +13,13 @@ test('proxy preserves /api/v1 and precedes SPA fallback', () => {
     source: '/api/:path*', destination: 'https://api.example.com/api/:path*',
   });
   assert.equal(config.outputDirectory, 'frontend/dist');
-  assert.equal(config.installCommand, 'npm --prefix frontend ci');
-  const spa = new RegExp(`^${config.rewrites[1].source}$`);
+  assert.equal(config.installCommand, 'npm --prefix frontend ci --workspaces=false && npm --prefix backend ci --workspaces=false');
+  assert.deepEqual(config.rewrites[1], { source: '/actuator/:path*', destination: 'https://api.example.com/actuator/:path*' });
+  const spa = new RegExp(`^${config.rewrites[2].source}$`);
   for (const path of ['/checkout', '/guest-order', '/seller/orders/123', '/']) {
     assert.ok(spa.test(path), path);
   }
-  for (const path of ['/api', '/api/v1/orders', '/assets/app.js', '/assets']) {
+  for (const path of ['/api', '/api/v1/orders', '/assets/app.js', '/assets', '/actuator/health/readiness']) {
     assert.equal(spa.test(path), false, path);
   }
   assert.ok(config.headers[0].headers.every(header => header.value.includes('no-store')));
@@ -50,4 +51,23 @@ test('missing Auth config and backend secrets cannot enter the FE deployment', (
   }
   const anon = `header.${Buffer.from(JSON.stringify({ role: 'anon' })).toString('base64url')}.signature`;
   assert.doesNotThrow(() => createVercelConfig({ ...backend, ...authEnv, VITE_SUPABASE_PUBLISHABLE_KEY: anon }));
+});
+
+test('serverless backend config routes /api to /api/index.js without requiring BACKEND_ORIGIN', () => {
+  const config = createVercelConfig({
+    ...authEnv,
+    SERVERLESS_BACKEND: 'true',
+  });
+  assert.equal(config.rewrites[0].destination, '/api/index.js');
+  assert.equal(config.rewrites[1].destination, '/api/index.js');
+  assert.deepEqual(config.crons, [
+    { path: '/api/v1/cron/expire', schedule: '0 0 * * *' },
+    { path: '/api/v1/cron/cleanup', schedule: '0 1 * * *' },
+  ]);
+});
+
+test('frequent cron schedule is opt-in for eligible plans', () => {
+  const config = createVercelConfig({ ...authEnv, SERVERLESS_BACKEND: 'true', VERCEL_CRON_FREQUENT: 'true' });
+  assert.equal(config.crons[0].schedule, '* * * * *');
+  assert.equal(config.crons[1].schedule, '0 * * * *');
 });

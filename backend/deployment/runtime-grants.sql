@@ -5,5 +5,12 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA shop TO shop_runtim
 REVOKE UPDATE, DELETE ON shop.audit_logs, shop.inventory_movements,
  shop.payment_events, shop.order_status_history, shop.order_contact_attempts,
  shop.payment_settings_versions FROM shop_runtime;
-REVOKE ALL ON shop.flyway_schema_history FROM shop_runtime;
+DO $$ BEGIN
+ IF to_regclass('shop.flyway_schema_history') IS NOT NULL THEN
+   REVOKE ALL ON shop.flyway_schema_history FROM shop_runtime;
+ END IF;
+ IF to_regclass('shop.schema_migrations') IS NOT NULL THEN
+   REVOKE ALL ON shop.schema_migrations FROM shop_runtime;
+ END IF;
+END $$;
 REVOKE CREATE ON SCHEMA public FROM shop_runtime;

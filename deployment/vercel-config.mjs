@@ -1,21 +1,24 @@
 /** Vercel build-time config, shared with offline deployment contract checks. */
 export function createVercelConfig(env) {
-  if (!env.BACKEND_ORIGIN) {
-    throw new Error('Set BACKEND_ORIGIN to the HTTPS origin of the Spring Boot service.');
-  }
-  let backend;
-  try {
-    backend = new URL(env.BACKEND_ORIGIN);
-  } catch {
-    throw new Error('BACKEND_ORIGIN must be an HTTPS origin, without a path or credentials.');
-  }
-  if (
-    backend.protocol !== 'https:' ||
-    backend.username || backend.password || backend.search || backend.hash ||
-    backend.pathname !== '/' || backend.hostname === 'localhost' ||
-    backend.hostname === '127.0.0.1' || backend.hostname === '[::1]'
-  ) {
-    throw new Error('BACKEND_ORIGIN must be a public HTTPS origin, without a path or credentials.');
+  const isServerless = env.SERVERLESS_BACKEND === 'true';
+  let backend = null;
+  if (!isServerless) {
+    if (!env.BACKEND_ORIGIN) {
+      throw new Error('Set BACKEND_ORIGIN to the HTTPS origin of the Spring Boot service.');
+    }
+    try {
+      backend = new URL(env.BACKEND_ORIGIN);
+    } catch {
+      throw new Error('BACKEND_ORIGIN must be an HTTPS origin, without a path or credentials.');
+    }
+    if (
+      backend.protocol !== 'https:' ||
+      backend.username || backend.password || backend.search || backend.hash ||
+      backend.pathname !== '/' || backend.hostname === 'localhost' ||
+      backend.hostname === '127.0.0.1' || backend.hostname === '[::1]'
+    ) {
+      throw new Error('BACKEND_ORIGIN must be a public HTTPS origin, without a path or credentials.');
+    }
   }
   if (env.VITE_API_BASE_URL && env.VITE_API_BASE_URL !== '/api/v1') {
     throw new Error('For Vercel guest-cookie routing, set VITE_API_BASE_URL=/api/v1.');
@@ -42,12 +45,21 @@ export function createVercelConfig(env) {
   }
   return {
     framework: 'vite',
-    installCommand: 'npm --prefix frontend ci',
+    installCommand: 'npm --prefix frontend ci --workspaces=false && npm --prefix backend ci --workspaces=false',
     buildCommand: 'npm --prefix frontend run build',
     outputDirectory: 'frontend/dist',
+    functions: { 'api/index.js': { includeFiles: 'backend/certs/**' } },
+    ...(isServerless ? { crons: [
+      { path: '/api/v1/cron/expire', schedule: env.VERCEL_CRON_FREQUENT === 'true' ? '* * * * *' : '0 0 * * *' },
+      { path: '/api/v1/cron/cleanup', schedule: env.VERCEL_CRON_FREQUENT === 'true' ? '0 * * * *' : '0 1 * * *' },
+    ] } : {}),
     rewrites: [
-      { source: '/api/:path*', destination: `${backend.origin}/api/:path*` },
-      { source: '/((?!api(?:/|$)|assets(?:/|$)).*)', destination: '/index.html' },
+      {
+        source: '/api/:path*',
+        destination: isServerless ? '/api/index.js' : `${backend.origin}/api/:path*`,
+      },
+      { source: '/actuator/:path*', destination: isServerless ? '/api/index.js' : `${backend.origin}/actuator/:path*` },
+      { source: '/((?!api(?:/|$)|actuator(?:/|$)|assets(?:/|$)).*)', destination: '/index.html' },
     ],
     headers: [
       {

@@ -15,4 +15,6 @@ frontend/.env.*
 **/.npm-cache/
 **/.browsers/
 !frontend/.env.example
+!backend/.env.example
+**/.vercel/
 

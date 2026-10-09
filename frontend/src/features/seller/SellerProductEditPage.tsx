@@ -58,8 +58,8 @@ export const SellerProductEditPage: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      notify("Kích thước ảnh tối đa là 5MB!");
+    if (file.size > 4 * 1024 * 1024) {
+      notify("Kích thước ảnh tối đa là 4 MiB!");
       return;
     }
 
@@ -148,7 +148,7 @@ export const SellerProductEditPage: React.FC = () => {
               className="form-label"
               htmlFor="sellerproducteditpage-field-1"
             >
-              Hình ảnh sản phẩm (JPEG, PNG, WebP tối đa 5MB):
+              Hình ảnh sản phẩm (JPEG, PNG, WebP tối đa 4 MiB):
             </label>
             <div className="image-upload-box flex items-center gap-4">
               <div className="preview-wrap">
