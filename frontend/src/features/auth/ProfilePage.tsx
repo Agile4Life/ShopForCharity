@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { User, Shield } from 'lucide-react';
-import { useAuth } from './auth-context';
-import { apiFetch } from '../../lib/api-client';
-import { ErrorMessage } from '../../components/ErrorMessage';
+import React, { useState } from "react";
+import { User, Shield } from "lucide-react";
+import { useAuth } from "./auth-context";
+import { apiFetch } from "../../lib/api-client";
+import { ErrorMessage } from "../../components/ErrorMessage";
 
 export const ProfilePage: React.FC = () => {
   const { profile, refreshProfile } = useAuth();
-  const [fullName, setFullName] = useState(profile?.fullName || '');
-  const [phone, setPhone] = useState(profile?.phone || '');
+  const [fullName, setFullName] = useState(profile?.fullName || "");
+  const [phone, setPhone] = useState(profile?.phone || "");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -18,14 +18,14 @@ export const ProfilePage: React.FC = () => {
     setMessage(null);
     setErrorMsg(null);
     try {
-      await apiFetch('/me', {
-        method: 'PATCH',
+      await apiFetch("/me", {
+        method: "PATCH",
         body: { fullName, phone, expectedVersion: profile?.version ?? 0 },
       });
       await refreshProfile();
-      setMessage('Cập nhật thông tin thành công!');
+      setMessage("Đã lưu thông tin.");
     } catch (err: any) {
-      setErrorMsg(err.message || 'Lỗi cập nhật hồ sơ');
+      setErrorMsg(err.message || "Lỗi cập nhật hồ sơ");
     } finally {
       setLoading(false);
     }
@@ -39,16 +39,23 @@ export const ProfilePage: React.FC = () => {
             <User size={32} />
           </div>
           <div>
-            <h1 className="text-xl font-bold">{profile?.fullName || 'Người dùng'}</h1>
+            <h1 className="text-xl font-bold">
+              {profile?.fullName || "Người dùng"}
+            </h1>
             <div className="flex items-center gap-2 mt-1">
               <span className="badge badge-blue flex items-center gap-1">
-                <Shield size={12} /> {profile?.role === 'SELLER' ? 'Người bán (SELLER)' : 'Khách hàng (CUSTOMER)'}
+                <Shield size={12} />{" "}
+                {profile?.role === "SELLER" ? "Người bán" : "Khách hàng"}
               </span>
             </div>
           </div>
         </div>
 
-        {message && <div className="alert-box alert-success mb-4 text-sm">{message}</div>}
+        {message && (
+          <div className="alert-box alert-success mb-4 text-sm" role="status">
+            {message}
+          </div>
+        )}
         {errorMsg && (
           <div className="mb-4">
             <ErrorMessage error={new Error(errorMsg)} />
@@ -62,6 +69,9 @@ export const ProfilePage: React.FC = () => {
             </label>
             <input
               id="profName"
+              autoComplete="name"
+              minLength={2}
+              maxLength={100}
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
@@ -76,6 +86,9 @@ export const ProfilePage: React.FC = () => {
             </label>
             <input
               id="profPhone"
+              autoComplete="tel"
+              inputMode="tel"
+              pattern="(0|\+84)[35789][0-9]{8}"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -91,15 +104,19 @@ export const ProfilePage: React.FC = () => {
             <input
               id="profEmail"
               type="email"
-              value={profile?.email || ''}
+              value={profile?.email || ""}
               disabled
               className="input-field input-disabled"
             />
-            <span className="text-xs text-muted">Email gắn liền với phiên Supabase Auth</span>
+            <span className="text-xs text-muted">Email đăng nhập</span>
           </div>
 
-          <button type="submit" disabled={loading} className="btn-primary full-width mt-4">
-            {loading ? 'Đang lưu...' : 'Lưu thông tin'}
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary full-width mt-4"
+          >
+            {loading ? "Đang lưu..." : "Lưu thông tin"}
           </button>
         </form>
       </div>

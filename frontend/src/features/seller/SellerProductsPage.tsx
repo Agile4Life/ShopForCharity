@@ -1,15 +1,20 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Package, Plus, Edit, Sliders, Archive, CheckCircle } from 'lucide-react';
+import { notifyError as notify } from "../../components/Usability";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  useSellerProducts,
-  useSellerProductMutations,
-} from './api';
-import { ProductStatusBadge } from '../../components/StatusBadge';
-import { Modal } from '../../components/Modal';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { ErrorMessage } from '../../components/ErrorMessage';
-import type { ProductSummary } from '../../types/api';
+  Package,
+  Plus,
+  Edit,
+  Sliders,
+  Archive,
+  CheckCircle,
+} from "lucide-react";
+import { useSellerProducts, useSellerProductMutations } from "./api";
+import { ProductStatusBadge } from "../../components/StatusBadge";
+import { Modal } from "../../components/Modal";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { ErrorMessage } from "../../components/ErrorMessage";
+import type { ProductSummary } from "../../types/api";
 
 export const SellerProductsPage: React.FC = () => {
   const [page, setPage] = useState(0);
@@ -18,16 +23,18 @@ export const SellerProductsPage: React.FC = () => {
 
   // Stock Adjustment Modal state
   const [adjustModalOpen, setAdjustModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<ProductSummary | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductSummary | null>(
+    null,
+  );
   const [deltaOnHand, setDeltaOnHand] = useState<number>(0);
-  const [adjustReason, setAdjustReason] = useState<string>('');
+  const [adjustReason, setAdjustReason] = useState<string>("");
 
   const products = data?.content || [];
 
   const handleOpenAdjust = (prod: ProductSummary) => {
     setSelectedProduct(prod);
     setDeltaOnHand(0);
-    setAdjustReason('');
+    setAdjustReason("");
     setAdjustModalOpen(true);
   };
 
@@ -35,27 +42,44 @@ export const SellerProductsPage: React.FC = () => {
     e.preventDefault();
     if (!selectedProduct) return;
     if (deltaOnHand === 0) {
-      alert('Thay đổi tồn kho phải khác 0 (+ hoặc -)');
+      notify("Thay đổi tồn kho phải khác 0 (+ hoặc -)");
       return;
     }
     if (!adjustReason.trim()) {
-      alert('Vui lòng nhập lý do điều chỉnh tồn kho');
+      notify("Vui lòng nhập lý do điều chỉnh tồn kho");
       return;
     }
 
-    await mutations.adjustStock.mutateAsync({
-      id: selectedProduct.id,
-      data: {
-        deltaOnHand,
-        reason: adjustReason.trim(),
-        expectedVersion: selectedProduct.inventoryVersion ?? selectedProduct.version ?? 0,
-      },
-    });
+    try {
+      await mutations.adjustStock.mutateAsync({
+        id: selectedProduct.id,
+        data: {
+          deltaOnHand,
+          reason: adjustReason.trim(),
+          expectedVersion:
+            selectedProduct.inventoryVersion ?? selectedProduct.version ?? 0,
+        },
+      });
+    } catch (error) {
+      notify(
+        error instanceof Error
+          ? error.message
+          : "Chưa lưu được thay đổi. Thử lại sau.",
+      );
+      return;
+    }
     setAdjustModalOpen(false);
   };
 
   return (
     <div className="seller-products-page container">
+      {Object.values(mutations).find((mutation) => mutation.error)?.error && (
+        <ErrorMessage
+          error={
+            Object.values(mutations).find((mutation) => mutation.error)?.error
+          }
+        />
+      )}
       <div className="flex-between mb-4">
         <div>
           <h1 className="page-title">
@@ -94,26 +118,40 @@ export const SellerProductsPage: React.FC = () => {
                     <td>
                       <div className="flex items-center gap-3">
                         {p.imageUrl ? (
-                          <img src={p.imageUrl} alt={p.name} className="table-thumb" />
+                          <img
+                            src={p.imageUrl}
+                            alt={p.name}
+                            className="table-thumb"
+                          />
                         ) : (
                           <div className="table-thumb-placeholder">Món</div>
                         )}
                         <div>
                           <strong>{p.name}</strong>
-                          <span className="block text-xs text-muted">{p.slug}</span>
+                          <span className="block text-xs text-muted">
+                            {p.slug}
+                          </span>
                         </div>
                       </div>
                     </td>
-                    <td>{p.categoryName || 'Mặc định'}</td>
-                    <td className="text-right font-medium">
-                      {p.price.toLocaleString('vi-VN')} đ
+                    <td data-label="Danh mục">
+                      {p.categoryName || "Mặc định"}
                     </td>
-                    <td className="text-center">
-                      <span className={p.availableStock > 0 ? 'text-green font-bold' : 'text-red font-bold'}>
+                    <td className="text-right font-medium" data-label="Giá">
+                      {p.price.toLocaleString("vi-VN")} đ
+                    </td>
+                    <td className="text-center" data-label="Có thể bán">
+                      <span
+                        className={
+                          p.availableStock > 0
+                            ? "text-green font-bold"
+                            : "text-red font-bold"
+                        }
+                      >
                         {p.availableStock}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Trạng thái">
                       <ProductStatusBadge status={p.status} />
                     </td>
                     <td className="text-right">
@@ -135,10 +173,18 @@ export const SellerProductsPage: React.FC = () => {
                           <Edit size={14} /> Sửa
                         </Link>
 
-                        {p.status === 'ACTIVE' ? (
+                        {p.status === "ACTIVE" ? (
                           <button
                             type="button"
-                            onClick={() => mutations.archiveProduct.mutate({ id: p.id, expectedVersion: p.version ?? 0 })}
+                            onClick={() =>
+                              mutations.archiveProduct.mutate({
+                                id: p.id,
+                                expectedVersion: p.version ?? 0,
+                              })
+                            }
+                            disabled={Object.values(mutations).some(
+                              (mutation) => mutation.isPending,
+                            )}
                             className="btn-danger-xs"
                             title="Ẩn sản phẩm"
                           >
@@ -147,7 +193,15 @@ export const SellerProductsPage: React.FC = () => {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => mutations.activateProduct.mutate({ id: p.id, expectedVersion: p.version ?? 0 })}
+                            onClick={() =>
+                              mutations.activateProduct.mutate({
+                                id: p.id,
+                                expectedVersion: p.version ?? 0,
+                              })
+                            }
+                            disabled={Object.values(mutations).some(
+                              (mutation) => mutation.isPending,
+                            )}
                             className="btn-primary-xs"
                             title="Mở bán sản phẩm"
                           >
@@ -177,7 +231,9 @@ export const SellerProductsPage: React.FC = () => {
               </span>
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.min(data.totalPages - 1, p + 1))}
+                onClick={() =>
+                  setPage((p) => Math.min(data.totalPages - 1, p + 1))
+                }
                 disabled={page >= data.totalPages - 1}
                 className="btn-secondary-sm"
               >
@@ -196,10 +252,11 @@ export const SellerProductsPage: React.FC = () => {
       >
         <form onSubmit={handleConfirmAdjust}>
           <div className="form-group">
-            <label className="form-label">
+            <label className="form-label" htmlFor="sellerproductspage-field-1">
               Số lượng điều chỉnh (nhập số dương để tăng, số âm để giảm):
             </label>
             <input
+              id="sellerproductspage-field-1"
               type="number"
               value={deltaOnHand}
               onChange={(e) => setDeltaOnHand(Number(e.target.value))}
@@ -208,13 +265,17 @@ export const SellerProductsPage: React.FC = () => {
               required
             />
             <span className="text-xs text-muted">
-              Tồn khả dụng hiện tại: <strong>{selectedProduct?.availableStock}</strong>
+              Tồn khả dụng hiện tại:{" "}
+              <strong>{selectedProduct?.availableStock}</strong>
             </span>
           </div>
 
           <div className="form-group">
-            <label className="form-label">Lý do điều chỉnh (bắt buộc):</label>
+            <label className="form-label" htmlFor="sellerproductspage-field-2">
+              Lý do điều chỉnh (bắt buộc):
+            </label>
             <textarea
+              id="sellerproductspage-field-2"
               rows={2}
               value={adjustReason}
               onChange={(e) => setAdjustReason(e.target.value)}
@@ -225,7 +286,11 @@ export const SellerProductsPage: React.FC = () => {
           </div>
 
           <div className="modal-actions">
-            <button type="button" onClick={() => setAdjustModalOpen(false)} className="btn-secondary">
+            <button
+              type="button"
+              onClick={() => setAdjustModalOpen(false)}
+              className="btn-secondary"
+            >
               Đóng
             </button>
             <button
@@ -233,7 +298,9 @@ export const SellerProductsPage: React.FC = () => {
               disabled={mutations.adjustStock.isPending}
               className="btn-primary"
             >
-              {mutations.adjustStock.isPending ? 'Đang cập nhật...' : 'Lưu điều chỉnh'}
+              {mutations.adjustStock.isPending
+                ? "Đang cập nhật..."
+                : "Lưu điều chỉnh"}
             </button>
           </div>
         </form>

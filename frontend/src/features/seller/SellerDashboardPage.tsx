@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { Link } from "react-router-dom";
 import {
   ShoppingBag,
   Clock,
@@ -10,17 +10,22 @@ import {
   Settings,
   FileText,
   Bell,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   useSellerDashboard,
   useSellerNotifications,
   useMarkNotificationRead,
-} from './api';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { ErrorMessage } from '../../components/ErrorMessage';
+} from "./api";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { ErrorMessage } from "../../components/ErrorMessage";
 
 export const SellerDashboardPage: React.FC = () => {
-  const { data: stats, isLoading: statsLoading, error: statsError, refetch } = useSellerDashboard();
+  const {
+    data: stats,
+    isLoading: statsLoading,
+    error: statsError,
+    refetch,
+  } = useSellerDashboard();
   const { data: notifications = [] } = useSellerNotifications();
   const markReadMutation = useMarkNotificationRead();
 
@@ -42,9 +47,10 @@ export const SellerDashboardPage: React.FC = () => {
     <div className="seller-dashboard-page container">
       <div className="dashboard-header flex-between mb-4">
         <div>
-          <h1 className="page-title">Bảng điều khiển Người bán</h1>
+          <h1 className="page-title">Tổng quan</h1>
           <p className="text-muted text-sm">
-            Theo dõi tổng quan đơn hàng, doanh thu và thông báo mới nhất của Shop
+            Theo dõi tổng quan đơn hàng, doanh thu và thông báo mới nhất của
+            Shop
           </p>
         </div>
         <div className="quick-links flex gap-2">
@@ -83,7 +89,7 @@ export const SellerDashboardPage: React.FC = () => {
           <div className="metric-data">
             <span className="metric-label">Doanh thu hoàn tất</span>
             <strong className="metric-val">
-              {(stats?.completedRevenue ?? 0).toLocaleString('vi-VN')} đ
+              {(stats?.completedRevenue ?? 0).toLocaleString("vi-VN")} đ
             </strong>
           </div>
         </div>
@@ -95,7 +101,7 @@ export const SellerDashboardPage: React.FC = () => {
           <div className="metric-data">
             <span className="metric-label">Doanh thu đơn đang xử lý</span>
             <strong className="metric-val">
-              {(stats?.pendingRevenue ?? 0).toLocaleString('vi-VN')} đ
+              {(stats?.pendingRevenue ?? 0).toLocaleString("vi-VN")} đ
             </strong>
           </div>
         </div>
@@ -104,13 +110,15 @@ export const SellerDashboardPage: React.FC = () => {
       <div className="dashboard-sections-grid mt-4">
         {/* Quick Management Shortcuts */}
         <div className="card">
-          <h2 className="section-subtitle">Chức năng quản trị</h2>
+          <h2 className="section-subtitle">Sắp xếp gian hàng</h2>
           <div className="shortcuts-grid mt-3">
             <Link to="/seller/orders" className="shortcut-card">
               <ShoppingBag size={24} className="text-primary" />
               <div>
                 <strong>Đơn hàng</strong>
-                <p className="text-xs text-muted">Xử lý liên hệ, duyệt đơn, thanh toán</p>
+                <p className="text-xs text-muted">
+                  Xử lý liên hệ, duyệt đơn, thanh toán
+                </p>
               </div>
             </Link>
 
@@ -118,7 +126,9 @@ export const SellerDashboardPage: React.FC = () => {
               <Package size={24} className="text-primary" />
               <div>
                 <strong>Sản phẩm</strong>
-                <p className="text-xs text-muted">Thêm món, sửa giá, điều chỉnh tồn kho</p>
+                <p className="text-xs text-muted">
+                  Thêm món, sửa giá, điều chỉnh tồn kho
+                </p>
               </div>
             </Link>
 
@@ -126,7 +136,9 @@ export const SellerDashboardPage: React.FC = () => {
               <Layers size={24} className="text-primary" />
               <div>
                 <strong>Combo món</strong>
-                <p className="text-xs text-muted">Thiết lập combo tiết kiệm cho học sinh</p>
+                <p className="text-xs text-muted">
+                  Thiết lập combo tiết kiệm cho học sinh
+                </p>
               </div>
             </Link>
 
@@ -134,7 +146,9 @@ export const SellerDashboardPage: React.FC = () => {
               <Settings size={24} className="text-primary" />
               <div>
                 <strong>Cấu hình shop</strong>
-                <p className="text-xs text-muted">Bật/tắt nhận đơn, tài khoản ngân hàng & QR</p>
+                <p className="text-xs text-muted">
+                  Bật/tắt nhận đơn, tài khoản ngân hàng & QR
+                </p>
               </div>
             </Link>
 
@@ -142,7 +156,9 @@ export const SellerDashboardPage: React.FC = () => {
               <FileText size={24} className="text-primary" />
               <div>
                 <strong>Audit Log</strong>
-                <p className="text-xs text-muted">Xem nhật ký thay đổi và kiểm toán</p>
+                <p className="text-xs text-muted">
+                  Xem nhật ký thay đổi và kiểm toán
+                </p>
               </div>
             </Link>
           </div>
@@ -157,21 +173,28 @@ export const SellerDashboardPage: React.FC = () => {
           </div>
 
           {notifications.length === 0 ? (
-            <p className="text-muted text-sm py-4 text-center">Chưa có thông báo nào.</p>
+            <p className="text-muted text-sm py-4 text-center">
+              Chưa có thông báo nào.
+            </p>
           ) : (
             <div className="notifications-list">
               {notifications.slice(0, 8).map((notif) => (
                 <div
                   key={notif.id}
-                  className={`notification-item ${!notif.isRead ? 'unread' : ''}`}
+                  className={`notification-item ${!notif.isRead ? "unread" : ""}`}
                 >
                   <div className="notif-content">
-                    <span className="notif-type badge badge-blue text-xs">{notif.type}</span>
+                    <span className="notif-type badge badge-blue text-xs">
+                      {notif.type}
+                    </span>
                     <span className="notif-time text-xs text-muted ml-2">
-                      {new Date(notif.createdAt).toLocaleTimeString('vi-VN')}
+                      {new Date(notif.createdAt).toLocaleTimeString("vi-VN")}
                     </span>
                     {notif.orderId && (
-                      <Link to={`/seller/orders/${notif.orderId}`} className="notif-link block text-sm mt-1">
+                      <Link
+                        to={`/seller/orders/${notif.orderId}`}
+                        className="notif-link block text-sm mt-1"
+                      >
                         Xem đơn hàng #{notif.orderId.substring(0, 8)}
                       </Link>
                     )}

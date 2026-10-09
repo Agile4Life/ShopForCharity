@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Lock } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { ErrorMessage } from '../../components/ErrorMessage';
+import { PasswordField } from "../../components/Usability";
+import { AuthCompanion } from "../../components/PageExperience";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Lock } from "lucide-react";
+import { supabase } from "../../lib/supabase";
+import { ErrorMessage } from "../../components/ErrorMessage";
 
 export const ResetPasswordPage: React.FC = () => {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -15,11 +17,11 @@ export const ResetPasswordPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      setErrorMsg('Mật khẩu xác nhận không khớp');
+      setErrorMsg("Mật khẩu xác nhận không khớp");
       return;
     }
     if (password.length < 6) {
-      setErrorMsg('Mật khẩu tối thiểu 6 ký tự');
+      setErrorMsg("Mật khẩu tối thiểu 6 ký tự");
       return;
     }
 
@@ -31,10 +33,10 @@ export const ResetPasswordPage: React.FC = () => {
         setErrorMsg(error.message);
       } else {
         setSuccess(true);
-        setTimeout(() => navigate('/login'), 2000);
+        setTimeout(() => navigate("/login"), 2000);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Lỗi đặt lại mật khẩu');
+      setErrorMsg(err.message || "Lỗi đặt lại mật khẩu");
     } finally {
       setLoading(false);
     }
@@ -42,6 +44,7 @@ export const ResetPasswordPage: React.FC = () => {
 
   return (
     <div className="auth-page container">
+      <AuthCompanion />
       <div className="auth-card card max-w-md mx-auto">
         <div className="auth-header text-center">
           <Lock size={36} className="text-primary mb-2" />
@@ -64,9 +67,8 @@ export const ResetPasswordPage: React.FC = () => {
               <label htmlFor="newPass" className="form-label">
                 Mật khẩu mới * (Tối thiểu 6 ký tự)
               </label>
-              <input
+              <PasswordField
                 id="newPass"
-                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input-field"
@@ -78,9 +80,8 @@ export const ResetPasswordPage: React.FC = () => {
               <label htmlFor="confirmPass" className="form-label">
                 Xác nhận mật khẩu mới *
               </label>
-              <input
+              <PasswordField
                 id="confirmPass"
-                type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="input-field"
@@ -93,7 +94,7 @@ export const ResetPasswordPage: React.FC = () => {
               disabled={loading}
               className="btn-primary full-width mt-4"
             >
-              {loading ? 'Đang cập nhật...' : 'Lưu mật khẩu mới'}
+              {loading ? "Đang cập nhật..." : "Lưu mật khẩu mới"}
             </button>
           </form>
         )}

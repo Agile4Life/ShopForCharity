@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { apiFetch } from '../../lib/api-client';
-import { POLL_INTERVAL_CATALOG } from '../../lib/query-client';
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { apiFetch } from "../../lib/api-client";
+import { POLL_INTERVAL_CATALOG } from "../../lib/query-client";
 import type {
   ShopInfo,
   Category,
@@ -9,14 +9,14 @@ import type {
   ComboSummary,
   ComboDetail,
   PageResponse,
-} from '../../types/api';
+} from "../../types/api";
 
 export async function getShopInfo(): Promise<ShopInfo> {
-  return apiFetch<ShopInfo>('/shop', { skipIdempotency: true });
+  return apiFetch<ShopInfo>("/shop", { skipIdempotency: true });
 }
 
 export async function getCategories(): Promise<Category[]> {
-  return apiFetch<Category[]>('/categories', { skipIdempotency: true });
+  return apiFetch<Category[]>("/categories", { skipIdempotency: true });
 }
 
 export interface ProductQueryParams {
@@ -27,8 +27,10 @@ export interface ProductQueryParams {
   size?: number;
 }
 
-export async function getProducts(params: ProductQueryParams = {}): Promise<PageResponse<ProductSummary>> {
-  return apiFetch<PageResponse<ProductSummary>>('/products', {
+export async function getProducts(
+  params: ProductQueryParams = {},
+): Promise<PageResponse<ProductSummary>> {
+  return apiFetch<PageResponse<ProductSummary>>("/products", {
     params: {
       q: params.q,
       category: params.category,
@@ -40,12 +42,19 @@ export async function getProducts(params: ProductQueryParams = {}): Promise<Page
   });
 }
 
-export async function getProductDetail(idOrSlug: string): Promise<ProductDetail> {
-  return apiFetch<ProductDetail>(`/products/${idOrSlug}`, { skipIdempotency: true });
+export async function getProductDetail(
+  idOrSlug: string,
+): Promise<ProductDetail> {
+  return apiFetch<ProductDetail>(`/products/${idOrSlug}`, {
+    skipIdempotency: true,
+  });
 }
 
 export async function getCombos(): Promise<ComboSummary[]> {
-  const res = await apiFetch<PageResponse<ComboSummary> | ComboSummary[]>('/combos', { skipIdempotency: true });
+  const res = await apiFetch<PageResponse<ComboSummary> | ComboSummary[]>(
+    "/combos",
+    { skipIdempotency: true },
+  );
   if (Array.isArray(res)) {
     return res;
   }
@@ -53,14 +62,16 @@ export async function getCombos(): Promise<ComboSummary[]> {
 }
 
 export async function getComboDetail(idOrSlug: string): Promise<ComboDetail> {
-  return apiFetch<ComboDetail>(`/combos/${idOrSlug}`, { skipIdempotency: true });
+  return apiFetch<ComboDetail>(`/combos/${idOrSlug}`, {
+    skipIdempotency: true,
+  });
 }
 
 // React Query Hooks (15s Polling as required by Section 10)
 
 export function useShopInfo() {
   return useQuery({
-    queryKey: ['shop'],
+    queryKey: ["shop"],
     queryFn: getShopInfo,
     refetchInterval: POLL_INTERVAL_CATALOG,
   });
@@ -68,7 +79,7 @@ export function useShopInfo() {
 
 export function useCategories() {
   return useQuery({
-    queryKey: ['categories'],
+    queryKey: ["categories"],
     queryFn: getCategories,
     staleTime: 60000,
   });
@@ -76,7 +87,8 @@ export function useCategories() {
 
 export function useProducts(params: ProductQueryParams = {}) {
   return useQuery({
-    queryKey: ['products', params],
+    queryKey: ["products", params],
+    placeholderData: keepPreviousData,
     queryFn: () => getProducts(params),
     refetchInterval: POLL_INTERVAL_CATALOG,
   });
@@ -84,7 +96,7 @@ export function useProducts(params: ProductQueryParams = {}) {
 
 export function useProductDetail(idOrSlug: string) {
   return useQuery({
-    queryKey: ['product', idOrSlug],
+    queryKey: ["product", idOrSlug],
     queryFn: () => getProductDetail(idOrSlug),
     enabled: !!idOrSlug,
     refetchInterval: POLL_INTERVAL_CATALOG,
@@ -93,7 +105,7 @@ export function useProductDetail(idOrSlug: string) {
 
 export function useCombos() {
   return useQuery({
-    queryKey: ['combos'],
+    queryKey: ["combos"],
     queryFn: getCombos,
     refetchInterval: POLL_INTERVAL_CATALOG,
   });
@@ -101,7 +113,7 @@ export function useCombos() {
 
 export function useComboDetail(idOrSlug: string) {
   return useQuery({
-    queryKey: ['combo', idOrSlug],
+    queryKey: ["combo", idOrSlug],
     queryFn: () => getComboDetail(idOrSlug),
     enabled: !!idOrSlug,
     refetchInterval: POLL_INTERVAL_CATALOG,

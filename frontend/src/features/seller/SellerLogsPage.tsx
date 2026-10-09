@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { FileText } from 'lucide-react';
-import { useSellerAuditLogs } from './api';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { ErrorMessage } from '../../components/ErrorMessage';
-import { EmptyState } from '../../components/EmptyState';
+import React, { useState } from "react";
+import { FileText } from "lucide-react";
+import { useSellerAuditLogs } from "./api";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { ErrorMessage } from "../../components/ErrorMessage";
+import { EmptyState } from "../../components/EmptyState";
 
 export const SellerLogsPage: React.FC = () => {
-  const [actionFilter, setActionFilter] = useState('');
-  const [entityFilter, setEntityFilter] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
+  const [actionFilter, setActionFilter] = useState("");
+  const [entityFilter, setEntityFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
   const [page, setPage] = useState(0);
 
   const { data, isLoading, error, refetch } = useSellerAuditLogs({
@@ -26,10 +26,11 @@ export const SellerLogsPage: React.FC = () => {
       <div className="flex-between mb-4">
         <div>
           <h1 className="page-title flex items-center gap-2">
-            <FileText size={24} /> Nhật ký kiểm toán (Audit Logs)
+            <FileText size={24} /> Nhật ký
           </h1>
           <p className="text-muted text-sm">
-            Hệ thống ghi nhận bất biến các thao tác nghiệp vụ quan trọng (chỉ đọc)
+            Hệ thống ghi nhận bất biến các thao tác nghiệp vụ quan trọng (chỉ
+            đọc)
           </p>
         </div>
       </div>
@@ -39,6 +40,7 @@ export const SellerLogsPage: React.FC = () => {
         <div className="filter-grid">
           <input
             type="text"
+            aria-label="Lọc theo hành động"
             placeholder="Lọc theo hành động (VD: ORDER_CREATED, STOCK_ADJUSTED...)"
             value={actionFilter}
             onChange={(e) => {
@@ -50,6 +52,7 @@ export const SellerLogsPage: React.FC = () => {
 
           <input
             type="text"
+            aria-label="Loại đối tượng"
             placeholder="Loại đối tượng (ORDER, PRODUCT, COMBO...)"
             value={entityFilter}
             onChange={(e) => {
@@ -61,6 +64,7 @@ export const SellerLogsPage: React.FC = () => {
 
           <input
             type="date"
+            aria-label="Ngày ghi nhật ký"
             value={dateFilter}
             onChange={(e) => {
               setDateFilter(e.target.value);
@@ -97,22 +101,33 @@ export const SellerLogsPage: React.FC = () => {
               <tbody>
                 {logs.map((log) => (
                   <tr key={log.id}>
-                    <td className="text-xs text-muted whitespace-nowrap">
-                      {new Date(log.createdAt).toLocaleString('vi-VN')}
+                    <td
+                      className="text-xs text-muted whitespace-nowrap"
+                      data-label="Thời gian"
+                    >
+                      {new Date(log.createdAt).toLocaleString("vi-VN")}
                     </td>
-                    <td>
-                      <span className="badge badge-gray text-xs">{log.actorType}</span>
+                    <td data-label="Người thực hiện">
+                      <span className="badge badge-gray text-xs">
+                        {log.actorType}
+                      </span>
                     </td>
-                    <td>
-                      <strong className="text-xs text-primary">{log.action}</strong>
+                    <td data-label="Hành động">
+                      <strong className="text-xs text-primary">
+                        {log.action}
+                      </strong>
                     </td>
-                    <td className="text-xs">
-                      {log.entityType} ({log.entityId ? log.entityId.substring(0, 8) : '-'})
+                    <td className="text-xs" data-label="Đối tượng">
+                      {log.entityType} (
+                      {log.entityId ? log.entityId.substring(0, 8) : "-"})
                     </td>
-                    <td className="text-xs text-muted font-mono">
-                      {log.requestId ? log.requestId.substring(0, 8) : '-'}
+                    <td
+                      className="text-xs text-muted font-mono"
+                      data-label="Mã hỗ trợ"
+                    >
+                      {log.requestId ? log.requestId.substring(0, 8) : "-"}
                     </td>
-                    <td className="text-xs">
+                    <td className="text-xs" data-label="Chi tiết">
                       {log.safeAfter && (
                         <code className="text-xs bg-gray-100 p-1 rounded block max-w-xs truncate">
                           {log.safeAfter}
@@ -140,7 +155,9 @@ export const SellerLogsPage: React.FC = () => {
               </span>
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.min(data.totalPages - 1, p + 1))}
+                onClick={() =>
+                  setPage((p) => Math.min(data.totalPages - 1, p + 1))
+                }
                 disabled={page >= data.totalPages - 1}
                 className="btn-secondary-sm"
               >

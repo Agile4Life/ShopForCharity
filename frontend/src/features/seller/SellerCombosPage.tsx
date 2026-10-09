@@ -1,10 +1,10 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { Layers, Plus, Edit, Archive, CheckCircle } from 'lucide-react';
-import { useSellerCombos, useSellerComboMutations } from './api';
-import { ProductStatusBadge } from '../../components/StatusBadge';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { ErrorMessage } from '../../components/ErrorMessage';
+import React from "react";
+import { Link } from "react-router-dom";
+import { Layers, Plus, Edit, Archive, CheckCircle } from "lucide-react";
+import { useSellerCombos, useSellerComboMutations } from "./api";
+import { ProductStatusBadge } from "../../components/StatusBadge";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { ErrorMessage } from "../../components/ErrorMessage";
 
 export const SellerCombosPage: React.FC = () => {
   const { data: combos = [], isLoading, error, refetch } = useSellerCombos();
@@ -12,14 +12,18 @@ export const SellerCombosPage: React.FC = () => {
 
   return (
     <div className="seller-combos-page container">
+      {Object.values(mutations).find((mutation) => mutation.error)?.error && (
+        <ErrorMessage
+          error={
+            Object.values(mutations).find((mutation) => mutation.error)?.error
+          }
+        />
+      )}
       <div className="flex-between mb-4">
         <div>
           <h1 className="page-title">
-            <Layers size={24} /> Quản lý Gói Combo
+            <Layers size={24} /> Combo
           </h1>
-          <p className="text-muted text-sm">
-            Tạo các combo gồm nhiều món ăn vặt & quà lưu niệm để kích cầu mua sắm
-          </p>
         </div>
         <Link to="/seller/combos/new" className="btn-primary">
           <Plus size={16} /> Tạo Combo mới
@@ -32,7 +36,9 @@ export const SellerCombosPage: React.FC = () => {
         <ErrorMessage error={error} onRetry={refetch} />
       ) : combos.length === 0 ? (
         <div className="card text-center py-6">
-          <p className="text-muted mb-3">Hiện chưa có gói combo nào được tạo.</p>
+          <p className="text-muted mb-3">
+            Hiện chưa có gói combo nào được tạo.
+          </p>
           <Link to="/seller/combos/new" className="btn-primary-sm">
             <Plus size={14} /> Tạo gói combo đầu tiên
           </Link>
@@ -57,17 +63,23 @@ export const SellerCombosPage: React.FC = () => {
                     <td>
                       <div className="flex items-center gap-3">
                         {c.imageUrl ? (
-                          <img src={c.imageUrl} alt={c.name} className="table-thumb" />
+                          <img
+                            src={c.imageUrl}
+                            alt={c.name}
+                            className="table-thumb"
+                          />
                         ) : (
                           <div className="table-thumb-placeholder">Combo</div>
                         )}
                         <div>
                           <strong>{c.name}</strong>
-                          <span className="block text-xs text-muted">{c.slug}</span>
+                          <span className="block text-xs text-muted">
+                            {c.slug}
+                          </span>
                         </div>
                       </div>
                     </td>
-                    <td>
+                    <td data-label="Trong combo">
                       <ul className="text-xs list-disc pl-4">
                         {c.items.map((i) => (
                           <li key={i.productId}>
@@ -76,15 +88,21 @@ export const SellerCombosPage: React.FC = () => {
                         ))}
                       </ul>
                     </td>
-                    <td className="text-right font-medium">
-                      {c.price.toLocaleString('vi-VN')} đ
+                    <td className="text-right font-medium" data-label="Giá">
+                      {c.price.toLocaleString("vi-VN")} đ
                     </td>
-                    <td className="text-center">
-                      <span className={c.availableStock > 0 ? 'text-green font-bold' : 'text-red font-bold'}>
+                    <td className="text-center" data-label="Có thể bán">
+                      <span
+                        className={
+                          c.availableStock > 0
+                            ? "text-green font-bold"
+                            : "text-red font-bold"
+                        }
+                      >
                         {c.availableStock}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Trạng thái">
                       <ProductStatusBadge status={c.status} />
                     </td>
                     <td className="text-right">
@@ -97,10 +115,18 @@ export const SellerCombosPage: React.FC = () => {
                           <Edit size={14} /> Sửa
                         </Link>
 
-                        {c.status === 'ACTIVE' ? (
+                        {c.status === "ACTIVE" ? (
                           <button
                             type="button"
-                            onClick={() => mutations.archiveCombo.mutate({ id: c.id, expectedVersion: c.version ?? 0 })}
+                            onClick={() =>
+                              mutations.archiveCombo.mutate({
+                                id: c.id,
+                                expectedVersion: c.version ?? 0,
+                              })
+                            }
+                            disabled={Object.values(mutations).some(
+                              (mutation) => mutation.isPending,
+                            )}
                             className="btn-danger-xs"
                             title="Ẩn combo"
                           >
@@ -109,7 +135,15 @@ export const SellerCombosPage: React.FC = () => {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => mutations.activateCombo.mutate({ id: c.id, expectedVersion: c.version ?? 0 })}
+                            onClick={() =>
+                              mutations.activateCombo.mutate({
+                                id: c.id,
+                                expectedVersion: c.version ?? 0,
+                              })
+                            }
+                            disabled={Object.values(mutations).some(
+                              (mutation) => mutation.isPending,
+                            )}
                             className="btn-primary-xs"
                             title="Mở bán combo"
                           >

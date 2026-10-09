@@ -1,8 +1,20 @@
-import React, { useState } from 'react';
-import { useLocation, Link, Navigate } from 'react-router-dom';
-import { CheckCircle2, Copy, Check, Key, ArrowRight, Home } from 'lucide-react';
-import type { CreateOrderResponse } from '../../types/api';
-import { OrderStatusBadge, PaymentStatusBadge } from '../../components/StatusBadge';
+import React, { useState } from "react";
+import { useLocation, Link, Navigate } from "react-router-dom";
+import {
+  CheckCircle2,
+  Copy,
+  Check,
+  Key,
+  ArrowRight,
+  Home,
+  Download,
+} from "lucide-react";
+import { PurchaseSteps, notify } from "../../components/Usability";
+import type { CreateOrderResponse } from "../../types/api";
+import {
+  OrderStatusBadge,
+  PaymentStatusBadge,
+} from "../../components/StatusBadge";
 
 export const OrderSuccessPage: React.FC = () => {
   const location = useLocation();
@@ -23,34 +35,60 @@ export const OrderSuccessPage: React.FC = () => {
 
   const handleCopyCredentials = () => {
     if (!order.guestAccessToken) return;
-    const textToCopy = `Mã đơn hàng: ${order.orderCode}\nKhóa truy cập đơn guest: ${order.guestAccessToken}\nWebsite: ${window.location.origin}/guest-order`;
-    navigator.clipboard.writeText(textToCopy).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
-    });
+    const textToCopy = `Mã đơn hàng: ${order.orderCode}\nKhóa truy cập: ${order.guestAccessToken}\nWebsite: ${window.location.origin}/guest-order`;
+    navigator.clipboard
+      .writeText(textToCopy)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      })
+      .catch(() =>
+        notify("Chưa sao chép được. Bạn có thể tải thông tin về máy.", {
+          tone: "error",
+        }),
+      );
+  };
+  const downloadCredentials = () => {
+    const blob = new Blob(
+      [
+        `Gói Ấm Cho Em\nMã đơn: ${order.orderCode}\nKhóa truy cập: ${order.guestAccessToken}\nTra cứu: ${window.location.origin}/guest-order`,
+      ],
+      { type: "text/plain;charset=utf-8" },
+    );
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `don-hang-${order.orderCode}.txt`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   return (
     <div className="order-success-page container">
+      <PurchaseSteps step={3} />
       <div className="success-card card">
         <div className="success-icon-wrap">
           <CheckCircle2 size={56} className="text-green" />
         </div>
 
-        <h1 className="success-title">Đặt hàng thành công!</h1>
+        <h1 className="success-title">Đã nhận đơn hàng</h1>
         <p className="success-subtitle">
-          Cảm ơn bạn. Đơn hàng của bạn đã được ghi nhận vào hệ thống và đang chờ người bán liên hệ xác nhận.
+          Người bán sẽ liên hệ xác nhận thời gian nhận.
         </p>
 
         <div className="order-summary-box">
           <div className="summary-field">
             <span className="field-label">Mã đơn hàng:</span>
-            <strong className="field-value order-code-highlight">{order.orderCode}</strong>
+            <strong className="field-value order-code-highlight">
+              {order.orderCode}
+            </strong>
           </div>
 
           <div className="summary-field">
             <span className="field-label">Tổng tiền đơn hàng:</span>
-            <span className="field-value">{order.total.toLocaleString('vi-VN')} đ</span>
+            <span className="field-value">
+              {order.total.toLocaleString("vi-VN")} đ
+            </span>
           </div>
 
           <div className="summary-field">
@@ -76,10 +114,10 @@ export const OrderSuccessPage: React.FC = () => {
           <div className="guest-credentials-box">
             <div className="credentials-header">
               <Key size={20} className="text-amber" />
-              <h3 className="credentials-title">Khóa truy cập cho đơn hàng Guest</h3>
+              <h2 className="credentials-title">Lưu thông tin tra cứu</h2>
             </div>
             <p className="credentials-desc">
-              Bạn đang đặt hàng không qua tài khoản. Hãy sao chép và lưu lại <strong>Mã đơn hàng</strong> và <strong>Khóa truy cập</strong> dưới đây để có thể tra cứu đơn hàng bất cứ lúc nào!
+              Giữ mã đơn và khóa truy cập để xem đơn sau khi đóng trang.
             </p>
 
             <div className="credential-row">
@@ -94,7 +132,7 @@ export const OrderSuccessPage: React.FC = () => {
             >
               {copied ? (
                 <>
-                  <Check size={16} /> Đã sao chép vào bộ nhớ tạm!
+                  <Check size={16} /> Đã sao chép
                 </>
               ) : (
                 <>
@@ -102,31 +140,51 @@ export const OrderSuccessPage: React.FC = () => {
                 </>
               )}
             </button>
+            <button
+              type="button"
+              onClick={downloadCredentials}
+              className="btn-text-sm full-width mt-2"
+            >
+              <Download size={17} aria-hidden="true" /> Tải thông tin về máy
+            </button>
           </div>
         )}
 
         {/* Next Steps Guidance */}
         <div className="next-steps-card">
-          <h4>Quy trình tiếp theo:</h4>
+          <h2>Thanh toán</h2>
           <ol className="next-steps-list">
-            <li>Người bán sẽ gọi điện hoặc gửi email cho bạn để xác nhận đơn và hẹn giờ nhận hàng cụ thể.</li>
             <li>
-              {state.paymentMethod === 'BANK_TRANSFER' ? (
+              {state.paymentMethod === "BANK_TRANSFER" ? (
                 <span>
-                  <strong>Đối với chuyển khoản:</strong> Sau khi người bán chấp nhận đơn, bạn mở trang tra cứu đơn để lấy mã QR và quét chuyển khoản. Nhấn nút "Tôi đã chuyển khoản" sau khi chuyển.
+                  Mở đơn để lấy mã QR sau khi shop xác nhận. Chuyển xong, nhấn
+                  “Tôi đã chuyển khoản”.
                 </span>
               ) : (
-                <span>
-                  <strong>Đối với tiền mặt:</strong> Bạn sẽ thanh toán trực tiếp cho người bán khi nhận hàng tại điểm hẹn.
-                </span>
+                <span>Trả tiền mặt khi nhận hàng.</span>
               )}
             </li>
           </ol>
         </div>
 
         <div className="success-actions mt-4">
-          <Link to={`/guest-order`} className="btn-primary">
-            Tra cứu đơn hàng <ArrowRight size={16} />
+          <Link
+            to={
+              order.guestAccessToken
+                ? "/guest-order"
+                : `/account/orders/${order.orderId}`
+            }
+            state={
+              order.guestAccessToken
+                ? {
+                    orderCode: order.orderCode,
+                    guestToken: order.guestAccessToken,
+                  }
+                : undefined
+            }
+            className="btn-primary"
+          >
+            Xem đơn hàng <ArrowRight size={16} />
           </Link>
           <Link to="/" className="btn-secondary">
             <Home size={16} /> Về trang chủ

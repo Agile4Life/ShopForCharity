@@ -1,22 +1,32 @@
-import React from 'react';
-
-export const Footer: React.FC = () => {
+import { Link } from "react-router-dom";
+import { ArrowUpRight } from "lucide-react";
+import { BrandMark } from "./BrandMark";
+const currentYear = new Date().getFullYear();
+export function Footer() {
   return (
     <footer className="footer-wrapper">
       <div className="footer-container">
-        <div className="footer-info">
-          <h4>Website Bán Hàng Học Đường - School Shop</h4>
-          <p>
-            Đồ ăn vặt, quà lưu niệm học đường. Đặt đơn online, nhận hàng trực tiếp tại các điểm hẹn trong trường.
-          </p>
+        <div className="footer-brand">
+          <Link to="/" className="navbar-brand">
+            <BrandMark className="brand-icon" />
+            <span className="brand-text brand-name">Gói Ấm Cho Em</span>
+          </Link>
         </div>
-        <div className="footer-notice">
-          <p className="notice-text">
-            Thanh toán tiền mặt hoặc chuyển khoản QR an toàn sau khi người bán xác nhận đơn.
-          </p>
-          <p className="copyright">© 2026 School Shop. All rights reserved.</p>
+        <div className="footer-links">
+          <Link to="/#catalog">
+            Gian hàng <ArrowUpRight size={16} aria-hidden="true" />
+          </Link>
+          <Link to="/guest-order">
+            Tra cứu đơn hàng <ArrowUpRight size={16} aria-hidden="true" />
+          </Link>
+          <Link to="/account/orders">
+            Đơn hàng của tôi <ArrowUpRight size={16} aria-hidden="true" />
+          </Link>
         </div>
+      </div>
+      <div className="footer-bottom">
+        <span>© {currentYear} Gói Ấm Cho Em</span>
       </div>
     </footer>
   );
-};
+}

@@ -1,30 +1,34 @@
-import { useMutation } from '@tanstack/react-query';
-import { apiFetch } from '../../lib/api-client';
+import { useMutation } from "@tanstack/react-query";
+import { apiFetch } from "../../lib/api-client";
 import type {
   QuoteRequest,
   QuoteResponse,
   CreateOrderRequest,
   CreateOrderResponse,
-} from '../../types/api';
+} from "../../types/api";
 
 export async function createGuestSession(): Promise<{ sessionId: string }> {
-  return apiFetch<{ sessionId: string }>('/checkout/session', {
-    method: 'POST',
+  return apiFetch<{ sessionId: string }>("/checkout/session", {
+    method: "POST",
     skipIdempotency: false,
   });
 }
 
-export async function getCheckoutQuote(data: QuoteRequest): Promise<QuoteResponse> {
-  return apiFetch<QuoteResponse>('/checkout/quote', {
-    method: 'POST',
+export async function getCheckoutQuote(
+  data: QuoteRequest,
+): Promise<QuoteResponse> {
+  return apiFetch<QuoteResponse>("/checkout/quote", {
+    method: "POST",
     body: data,
     skipIdempotency: true,
   });
 }
 
-export async function createOrder(data: CreateOrderRequest): Promise<CreateOrderResponse> {
-  return apiFetch<CreateOrderResponse>('/orders', {
-    method: 'POST',
+export async function createOrder(
+  data: CreateOrderRequest,
+): Promise<CreateOrderResponse> {
+  return apiFetch<CreateOrderResponse>("/orders", {
+    method: "POST",
     body: data,
     skipIdempotency: false, // Must generate Idempotency-Key
   });

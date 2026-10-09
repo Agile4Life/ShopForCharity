@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { KeyRound, ArrowLeft } from 'lucide-react';
-import { useAuth } from './auth-context';
-import { ErrorMessage } from '../../components/ErrorMessage';
+import { AuthCompanion } from "../../components/PageExperience";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { KeyRound, ArrowLeft } from "lucide-react";
+import { useAuth } from "./auth-context";
+import { ErrorMessage } from "../../components/ErrorMessage";
 
 export const ForgotPasswordPage: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -23,10 +24,10 @@ export const ForgotPasswordPage: React.FC = () => {
       if (res.success) {
         setSent(true);
       } else {
-        setErrorMsg(res.error || 'Gửi yêu cầu không thành công');
+        setErrorMsg(res.error || "Gửi yêu cầu không thành công");
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Lỗi gửi yêu cầu khôi phục mật khẩu');
+      setErrorMsg(err.message || "Lỗi gửi yêu cầu khôi phục mật khẩu");
     } finally {
       setLoading(false);
     }
@@ -34,6 +35,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
   return (
     <div className="auth-page container">
+      <AuthCompanion />
       <div className="auth-card card max-w-md mx-auto">
         <Link to="/login" className="btn-back mb-3">
           <ArrowLeft size={16} /> Quay lại đăng nhập
@@ -43,7 +45,7 @@ export const ForgotPasswordPage: React.FC = () => {
           <KeyRound size={36} className="text-primary mb-2" />
           <h1 className="auth-title">Quên mật khẩu</h1>
           <p className="auth-subtitle text-muted text-sm">
-            Nhập email của bạn để nhận liên kết khôi phục mật khẩu từ Supabase Auth
+            Nhập email để nhận liên kết đặt lại mật khẩu.
           </p>
         </div>
 
@@ -55,7 +57,8 @@ export const ForgotPasswordPage: React.FC = () => {
 
         {sent ? (
           <div className="alert-box alert-success my-4 text-sm">
-            Đã gửi liên kết khôi phục mật khẩu tới email <strong>{email}</strong>. Vui lòng kiểm tra hòm thư của bạn!
+            Đã gửi liên kết khôi phục mật khẩu tới email{" "}
+            <strong>{email}</strong>. Vui lòng kiểm tra hòm thư của bạn!
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="auth-form mt-4">
@@ -66,7 +69,7 @@ export const ForgotPasswordPage: React.FC = () => {
               <input
                 id="forgotEmail"
                 type="email"
-                placeholder="hocsinh@gmail.com"
+                placeholder="ban@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input-field"
@@ -79,7 +82,7 @@ export const ForgotPasswordPage: React.FC = () => {
               disabled={loading}
               className="btn-primary full-width mt-4"
             >
-              {loading ? 'Đang gửi...' : 'Gửi liên kết khôi phục'}
+              {loading ? "Đang gửi..." : "Gửi liên kết khôi phục"}
             </button>
           </form>
         )}

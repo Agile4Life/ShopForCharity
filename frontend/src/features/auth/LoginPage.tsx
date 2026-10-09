@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LogIn } from 'lucide-react';
-import { useAuth } from './auth-context';
-import { ErrorMessage } from '../../components/ErrorMessage';
+import { PasswordField } from "../../components/Usability";
+import { AuthCompanion } from "../../components/PageExperience";
+import React, { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { LogIn } from "lucide-react";
+import { useAuth } from "./auth-context";
+import { ErrorMessage } from "../../components/ErrorMessage";
 
 export const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -14,12 +16,12 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as any)?.from?.pathname || '/';
+  const from = (location.state as any)?.from?.pathname || "/";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) {
-      setErrorMsg('Vui lòng điền đầy đủ email và mật khẩu');
+      setErrorMsg("Vui lòng điền đầy đủ email và mật khẩu");
       return;
     }
 
@@ -30,10 +32,10 @@ export const LoginPage: React.FC = () => {
       if (res.success) {
         navigate(from, { replace: true });
       } else {
-        setErrorMsg(res.error || 'Email hoặc mật khẩu không chính xác');
+        setErrorMsg(res.error || "Email hoặc mật khẩu không chính xác");
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Đăng nhập không thành công');
+      setErrorMsg(err.message || "Đăng nhập không thành công");
     } finally {
       setLoading(false);
     }
@@ -41,13 +43,11 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="auth-page container">
+      <AuthCompanion />
       <div className="auth-card card max-w-md mx-auto">
         <div className="auth-header text-center">
           <LogIn size={36} className="text-primary mb-2" />
-          <h1 className="auth-title">Đăng nhập tài khoản</h1>
-          <p className="auth-subtitle text-muted text-sm">
-            Đăng nhập để theo dõi lịch sử đơn hàng và lưu thông tin nhận hàng
-          </p>
+          <h1 className="auth-title">Đăng nhập</h1>
         </div>
 
         {errorMsg && (
@@ -64,7 +64,8 @@ export const LoginPage: React.FC = () => {
             <input
               id="loginEmail"
               type="email"
-              placeholder="hocsinh@gmail.com"
+              autoComplete="email"
+              placeholder="ban@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="input-field"
@@ -81,9 +82,9 @@ export const LoginPage: React.FC = () => {
                 Quên mật khẩu?
               </Link>
             </div>
-            <input
+            <PasswordField
               id="loginPass"
-              type="password"
+              autoComplete="current-password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -97,12 +98,12 @@ export const LoginPage: React.FC = () => {
             disabled={loading}
             className="btn-primary full-width mt-4"
           >
-            {loading ? 'Đang xác thực...' : 'Đăng nhập'}
+            {loading ? "Đang xác thực..." : "Đăng nhập"}
           </button>
         </form>
 
         <div className="auth-footer text-center mt-4 text-sm text-muted">
-          Chưa có tài khoản?{' '}
+          Chưa có tài khoản?{" "}
           <Link to="/register" className="text-primary font-bold">
             Đăng ký ngay
           </Link>

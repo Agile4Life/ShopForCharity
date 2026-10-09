@@ -1,81 +1,99 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Upload, Layers } from 'lucide-react';
+import { notifyError as notify } from "../../components/Usability";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { ArrowLeft, Plus, Trash2, Upload, Layers } from "lucide-react";
 import {
   useSellerComboDetail,
   useSellerComboMutations,
   useSellerProducts,
   uploadAsset,
-} from './api';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { ErrorMessage } from '../../components/ErrorMessage';
+} from "./api";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { ErrorMessage } from "../../components/ErrorMessage";
 
 export const SellerComboEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const isEditing = !!id && id !== 'new';
+  const isEditing = !!id && id !== "new";
   const navigate = useNavigate();
 
-  const { data: existingCombo, isLoading: loadingCombo } = useSellerComboDetail(id || '');
+  const { data: existingCombo, isLoading: loadingCombo } = useSellerComboDetail(
+    id || "",
+  );
   const { data: productsData } = useSellerProducts(0, 100);
   const mutations = useSellerComboMutations();
 
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number>(20000);
   const [imageAssetId, setImageAssetId] = useState<string | undefined>();
   const [imageUrl, setImageUrl] = useState<string | undefined>();
-  const [items, setItems] = useState<Array<{ productId: string; quantity: number }>>([
-    { productId: '', quantity: 1 },
-    { productId: '', quantity: 1 },
+  const [items, setItems] = useState<
+    Array<{ productId: string; quantity: number }>
+  >([
+    { productId: "", quantity: 1 },
+    { productId: "", quantity: 1 },
   ]);
 
   const [uploadingImage, setUploadingImage] = useState(false);
   const [submitError, setSubmitError] = useState<unknown | null>(null);
 
-  const availableProducts = (productsData?.content || []).filter((p) => p.status === 'ACTIVE');
+  const availableProducts = (productsData?.content || []).filter(
+    (p) => p.status === "ACTIVE",
+  );
 
   useEffect(() => {
     if (existingCombo) {
-      setName(existingCombo.name || '');
-      setDescription(existingCombo.description || '');
+      setName(existingCombo.name || "");
+      setDescription(existingCombo.description || "");
       setPrice(existingCombo.price || 0);
       setImageAssetId(existingCombo.imageAssetId);
       setImageUrl(existingCombo.imageUrl);
       if (existingCombo.items && existingCombo.items.length > 0) {
-        setItems(existingCombo.items.map((i) => ({ productId: i.productId, quantity: i.quantity })));
+        setItems(
+          existingCombo.items.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+          })),
+        );
       }
     }
   }, [existingCombo]);
 
-  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploadingImage(true);
     try {
-      const res = await uploadAsset(file, 'PRODUCT_IMAGE');
+      const res = await uploadAsset(file, "PRODUCT_IMAGE");
       setImageAssetId(res.assetId);
       setImageUrl(res.url);
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi tải ảnh lên');
+      notify(err.message || "Lỗi khi tải ảnh lên");
     } finally {
       setUploadingImage(false);
     }
   };
 
   const handleAddItem = () => {
-    setItems([...items, { productId: '', quantity: 1 }]);
+    setItems([...items, { productId: "", quantity: 1 }]);
   };
 
   const handleRemoveItem = (index: number) => {
     if (items.length <= 2) {
-      alert('Một gói combo cần tối thiểu ít nhất 2 sản phẩm thành phần!');
+      notify("Một gói combo cần tối thiểu ít nhất 2 sản phẩm thành phần!");
       return;
     }
     setItems(items.filter((_, idx) => idx !== index));
   };
 
-  const handleItemChange = (index: number, field: 'productId' | 'quantity', value: any) => {
+  const handleItemChange = (
+    index: number,
+    field: "productId" | "quantity",
+    value: any,
+  ) => {
     const updated = [...items];
     updated[index] = { ...updated[index], [field]: value };
     setItems(updated);
@@ -86,13 +104,13 @@ export const SellerComboEditPage: React.FC = () => {
 
     // Validation according to Spec 5.2
     if (!name.trim() || price <= 0) {
-      alert('Vui lòng nhập tên và giá combo hợp lệ!');
+      notify("Vui lòng nhập tên và giá combo hợp lệ!");
       return;
     }
 
     const validItems = items.filter((i) => i.productId && i.quantity > 0);
     if (validItems.length < 2) {
-      alert('Combo phải chứa từ 2 sản phẩm thành phần trở lên!');
+      notify("Combo phải chứa từ 2 sản phẩm thành phần trở lên!");
       return;
     }
 
@@ -101,13 +119,15 @@ export const SellerComboEditPage: React.FC = () => {
     for (const it of validItems) {
       itemMap.set(it.productId, (itemMap.get(it.productId) || 0) + it.quantity);
     }
-    const mergedItems = Array.from(itemMap.entries()).map(([productId, quantity]) => ({
-      productId,
-      quantity,
-    }));
+    const mergedItems = Array.from(itemMap.entries()).map(
+      ([productId, quantity]) => ({
+        productId,
+        quantity,
+      }),
+    );
 
     if (mergedItems.length < 2) {
-      alert('Combo phải chứa từ 2 sản phẩm KHÁC NHAU trở lên!');
+      notify("Combo phải chứa từ 2 sản phẩm KHÁC NHAU trở lên!");
       return;
     }
 
@@ -134,7 +154,7 @@ export const SellerComboEditPage: React.FC = () => {
           items: mergedItems,
         });
       }
-      navigate('/seller/combos');
+      navigate("/seller/combos");
     } catch (err) {
       setSubmitError(err);
     }
@@ -152,7 +172,7 @@ export const SellerComboEditPage: React.FC = () => {
 
       <div className="card">
         <h1 className="page-title mb-4">
-          {isEditing ? 'Chỉnh sửa Combo' : 'Tạo Gói Combo Mới'}
+          {isEditing ? "Chỉnh sửa Combo" : "Tạo Gói Combo Mới"}
         </h1>
 
         {submitError != null && (
@@ -164,11 +184,17 @@ export const SellerComboEditPage: React.FC = () => {
         <form onSubmit={handleSubmit}>
           {/* Image */}
           <div className="form-group mb-4">
-            <label className="form-label">Hình ảnh đại diện combo:</label>
+            <label className="form-label" htmlFor="sellercomboeditpage-field-1">
+              Hình ảnh đại diện combo:
+            </label>
             <div className="flex items-center gap-4">
               <div className="preview-wrap">
                 {imageUrl ? (
-                  <img src={imageUrl} alt="Combo Preview" className="upload-preview-img" />
+                  <img
+                    src={imageUrl}
+                    alt="Combo Preview"
+                    className="upload-preview-img"
+                  />
                 ) : (
                   <div className="upload-placeholder">
                     <Layers size={32} />
@@ -177,7 +203,8 @@ export const SellerComboEditPage: React.FC = () => {
                 )}
               </div>
               <label className="btn-secondary-sm cursor-pointer">
-                <Upload size={14} /> {uploadingImage ? 'Đang tải...' : 'Tải ảnh combo'}
+                <Upload size={14} />{" "}
+                {uploadingImage ? "Đang tải..." : "Tải ảnh combo"}
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
@@ -192,6 +219,7 @@ export const SellerComboEditPage: React.FC = () => {
           <div className="form-group">
             <label className="form-label">Tên gói combo *:</label>
             <input
+              id="sellercomboeditpage-field-1"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -202,8 +230,11 @@ export const SellerComboEditPage: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Giá bán combo (VND) *:</label>
+            <label className="form-label" htmlFor="sellercomboeditpage-field-2">
+              Giá bán combo (VND) *:
+            </label>
             <input
+              id="sellercomboeditpage-field-2"
               type="number"
               value={price}
               onChange={(e) => setPrice(Number(e.target.value))}
@@ -215,8 +246,11 @@ export const SellerComboEditPage: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Mô tả combo:</label>
+            <label className="form-label" htmlFor="sellercomboeditpage-field-3">
+              Mô tả combo:
+            </label>
             <textarea
+              id="sellercomboeditpage-field-3"
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -228,7 +262,9 @@ export const SellerComboEditPage: React.FC = () => {
           {/* Component Items Selector */}
           <div className="combo-items-editor card bg-gray-subtle mt-4 mb-4">
             <div className="flex-between mb-2">
-              <h3 className="text-sm font-bold">Thành phần món trong combo (tối thiểu 2 món khác nhau):</h3>
+              <h3 className="text-sm font-bold">
+                Thành phần món trong combo (tối thiểu 2 món khác nhau):
+              </h3>
               <button
                 type="button"
                 onClick={handleAddItem}
@@ -240,17 +276,24 @@ export const SellerComboEditPage: React.FC = () => {
 
             <div className="combo-item-rows-list">
               {items.map((row, idx) => (
-                <div key={idx} className="combo-item-editor-row flex items-center gap-2 mb-2">
+                <div
+                  key={idx}
+                  className="combo-item-editor-row flex items-center gap-2 mb-2"
+                >
                   <select
                     value={row.productId}
-                    onChange={(e) => handleItemChange(idx, 'productId', e.target.value)}
+                    onChange={(e) =>
+                      handleItemChange(idx, "productId", e.target.value)
+                    }
                     className="select-field flex-1"
+                    aria-label={`Sản phẩm thành phần ${idx + 1}`}
                     required
                   >
                     <option value="">-- Chọn sản phẩm thành phần --</option>
                     {availableProducts.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} (Đơn giá: {p.price.toLocaleString('vi-VN')} đ | Tồn: {p.availableStock})
+                        {p.name} (Đơn giá: {p.price.toLocaleString("vi-VN")} đ |
+                        Tồn: {p.availableStock})
                       </option>
                     ))}
                   </select>
@@ -258,7 +301,13 @@ export const SellerComboEditPage: React.FC = () => {
                   <input
                     type="number"
                     value={row.quantity}
-                    onChange={(e) => handleItemChange(idx, 'quantity', Math.max(1, Number(e.target.value)))}
+                    onChange={(e) =>
+                      handleItemChange(
+                        idx,
+                        "quantity",
+                        Math.max(1, Number(e.target.value)),
+                      )
+                    }
                     min={1}
                     className="input-field w-20 text-center"
                     placeholder="SL"
@@ -280,14 +329,16 @@ export const SellerComboEditPage: React.FC = () => {
 
           <button
             type="submit"
-            disabled={mutations.createCombo.isPending || mutations.updateCombo.isPending}
+            disabled={
+              mutations.createCombo.isPending || mutations.updateCombo.isPending
+            }
             className="btn-primary full-width mt-4"
           >
             {mutations.createCombo.isPending || mutations.updateCombo.isPending
-              ? 'Đang lưu combo...'
+              ? "Đang lưu combo..."
               : isEditing
-              ? 'Cập nhật Combo'
-              : 'Tạo gói Combo'}
+                ? "Cập nhật Combo"
+                : "Tạo gói Combo"}
           </button>
         </form>
       </div>

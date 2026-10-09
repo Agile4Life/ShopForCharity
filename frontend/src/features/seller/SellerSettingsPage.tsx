@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { notifyError as notify } from "../../components/Usability";
+import React, { useState, useEffect } from "react";
 import {
   Settings,
   CreditCard,
@@ -6,17 +7,17 @@ import {
   MapPin,
   Plus,
   Upload,
-} from 'lucide-react';
+} from "lucide-react";
 import {
   useSellerShopSettings,
   useUpdateShopSettings,
   useSellerPickupPoints,
   useSellerPickupPointMutations,
   uploadAsset,
-} from './api';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { ErrorMessage } from '../../components/ErrorMessage';
-import { Modal } from '../../components/Modal';
+} from "./api";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { ErrorMessage } from "../../components/ErrorMessage";
+import { Modal } from "../../components/Modal";
 
 export const SellerSettingsPage: React.FC = () => {
   const { data: settings, isLoading, error, refetch } = useSellerShopSettings();
@@ -26,15 +27,15 @@ export const SellerSettingsPage: React.FC = () => {
   const pointMutations = useSellerPickupPointMutations();
 
   // Settings form states
-  const [shopName, setShopName] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
+  const [shopName, setShopName] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
   const [acceptingOrders, setAcceptingOrders] = useState(true);
 
   // Bank & QR states
-  const [bankName, setBankName] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
-  const [accountHolder, setAccountHolder] = useState('');
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [accountHolder, setAccountHolder] = useState("");
   const [qrAssetId, setQrAssetId] = useState<string | undefined>();
   const [qrUrl, setQrUrl] = useState<string | undefined>();
   const [uploadingQr, setUploadingQr] = useState(false);
@@ -43,18 +44,18 @@ export const SellerSettingsPage: React.FC = () => {
 
   // Pickup Point modal
   const [pointModalOpen, setPointModalOpen] = useState(false);
-  const [newPointName, setNewPointName] = useState('');
-  const [newPointInstructions, setNewPointInstructions] = useState('');
+  const [newPointName, setNewPointName] = useState("");
+  const [newPointInstructions, setNewPointInstructions] = useState("");
 
   useEffect(() => {
     if (settings) {
-      setShopName(settings.name || '');
-      setContactPhone(settings.contactPhone || '');
-      setContactEmail(settings.contactEmail || '');
+      setShopName(settings.name || "");
+      setContactPhone(settings.contactPhone || "");
+      setContactEmail(settings.contactEmail || "");
       setAcceptingOrders(settings.acceptingOrders);
-      setBankName(settings.bankName || '');
-      setAccountNumber(settings.accountNumber || '');
-      setAccountHolder(settings.accountHolder || '');
+      setBankName(settings.bankName || "");
+      setAccountNumber(settings.accountNumber || "");
+      setAccountHolder(settings.accountHolder || "");
       setQrAssetId(settings.qrAssetId);
       setQrUrl(settings.qrUrl);
     }
@@ -66,11 +67,11 @@ export const SellerSettingsPage: React.FC = () => {
 
     setUploadingQr(true);
     try {
-      const res = await uploadAsset(file, 'PAYMENT_QR');
+      const res = await uploadAsset(file, "PAYMENT_QR");
       setQrAssetId(res.assetId);
       setQrUrl(res.url);
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi tải ảnh QR lên');
+      notify(err.message || "Lỗi khi tải ảnh QR lên");
     } finally {
       setUploadingQr(false);
     }
@@ -91,10 +92,10 @@ export const SellerSettingsPage: React.FC = () => {
         qrAssetId,
         expectedVersion: settings?.version ?? 0,
       });
-      setSettingsNotice('Cập nhật cấu hình shop và ngân hàng thành công!');
+      setSettingsNotice("Cập nhật cấu hình shop và ngân hàng thành công!");
       setTimeout(() => setSettingsNotice(null), 3000);
     } catch (err: any) {
-      alert(err.message || 'Lỗi lưu cài đặt');
+      notify(err.message || "Lỗi lưu cài đặt");
     }
   };
 
@@ -102,21 +103,42 @@ export const SellerSettingsPage: React.FC = () => {
     e.preventDefault();
     if (!newPointName.trim()) return;
 
-    await pointMutations.createPickupPoint.mutateAsync({
-      name: newPointName.trim(),
-      instructions: newPointInstructions.trim(),
-      active: true,
-    });
+    try {
+      await pointMutations.createPickupPoint.mutateAsync({
+        name: newPointName.trim(),
+        instructions: newPointInstructions.trim(),
+        active: true,
+      });
+    } catch (error) {
+      notify(
+        error instanceof Error
+          ? error.message
+          : "Chưa lưu được thay đổi. Thử lại sau.",
+      );
+      return;
+    }
     setPointModalOpen(false);
-    setNewPointName('');
-    setNewPointInstructions('');
+    setNewPointName("");
+    setNewPointInstructions("");
   };
 
-  const handleTogglePointActive = async (id: string, currentActive: boolean) => {
-    await pointMutations.updatePickupPoint.mutateAsync({
-      id,
-      data: { active: !currentActive },
-    });
+  const handleTogglePointActive = async (
+    id: string,
+    currentActive: boolean,
+  ) => {
+    try {
+      await pointMutations.updatePickupPoint.mutateAsync({
+        id,
+        data: { active: !currentActive },
+      });
+    } catch (error) {
+      notify(
+        error instanceof Error
+          ? error.message
+          : "Chưa lưu được thay đổi. Thử lại sau.",
+      );
+      return;
+    }
   };
 
   if (isLoading) {
@@ -158,19 +180,27 @@ export const SellerSettingsPage: React.FC = () => {
                   className="toggle-checkbox"
                 />
                 <div>
-                  <strong>{acceptingOrders ? 'Đang mở nhận đơn' : 'Tạm dừng nhận đơn'}</strong>
+                  <strong>
+                    {acceptingOrders ? "Đang mở nhận đơn" : "Tạm dừng nhận đơn"}
+                  </strong>
                   <p className="text-xs text-muted">
                     {acceptingOrders
-                      ? 'Khách hàng có thể đặt đơn bình thường'
-                      : 'Website sẽ hiển thị thông báo tạm dừng nhận đơn mới'}
+                      ? "Khách hàng có thể đặt đơn bình thường"
+                      : "Website sẽ hiển thị thông báo tạm dừng nhận đơn mới"}
                   </p>
                 </div>
               </label>
             </div>
 
             <div className="form-group">
-              <label className="form-label">Tên cửa hàng *:</label>
+              <label
+                className="form-label"
+                htmlFor="sellersettingspage-field-1"
+              >
+                Tên cửa hàng *:
+              </label>
               <input
+                id="sellersettingspage-field-1"
                 type="text"
                 value={shopName}
                 onChange={(e) => setShopName(e.target.value)}
@@ -181,8 +211,14 @@ export const SellerSettingsPage: React.FC = () => {
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label">Số điện thoại liên hệ *:</label>
+                <label
+                  className="form-label"
+                  htmlFor="sellersettingspage-field-2"
+                >
+                  Số điện thoại liên hệ *:
+                </label>
                 <input
+                  id="sellersettingspage-field-2"
                   type="tel"
                   value={contactPhone}
                   onChange={(e) => setContactPhone(e.target.value)}
@@ -192,8 +228,14 @@ export const SellerSettingsPage: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Email hỗ trợ *:</label>
+                <label
+                  className="form-label"
+                  htmlFor="sellersettingspage-field-3"
+                >
+                  Email hỗ trợ *:
+                </label>
                 <input
+                  id="sellersettingspage-field-3"
                   type="email"
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
@@ -209,13 +251,20 @@ export const SellerSettingsPage: React.FC = () => {
               <CreditCard size={18} /> Cấu hình Chuyển khoản & Mã QR Shop
             </h2>
             <p className="text-xs text-muted mb-3">
-              Thông tin tài khoản và ảnh QR sẽ hiển thị cho khách khi đơn hàng chuyển khoản được chấp nhận.
+              Thông tin tài khoản và ảnh QR sẽ hiển thị cho khách khi đơn hàng
+              chuyển khoản được chấp nhận.
             </p>
 
             <div className="form-grid-2">
               <div className="form-group">
-                <label className="form-label">Tên Ngân hàng:</label>
+                <label
+                  className="form-label"
+                  htmlFor="sellersettingspage-field-4"
+                >
+                  Tên Ngân hàng:
+                </label>
                 <input
+                  id="sellersettingspage-field-4"
                   type="text"
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
@@ -225,8 +274,14 @@ export const SellerSettingsPage: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Số tài khoản nhận tiền:</label>
+                <label
+                  className="form-label"
+                  htmlFor="sellersettingspage-field-5"
+                >
+                  Số tài khoản nhận tiền:
+                </label>
                 <input
+                  id="sellersettingspage-field-5"
                   type="text"
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
@@ -237,8 +292,14 @@ export const SellerSettingsPage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Tên chủ tài khoản (in hoa không dấu):</label>
+              <label
+                className="form-label"
+                htmlFor="sellersettingspage-field-6"
+              >
+                Tên chủ tài khoản (in hoa không dấu):
+              </label>
               <input
+                id="sellersettingspage-field-6"
                 type="text"
                 value={accountHolder}
                 onChange={(e) => setAccountHolder(e.target.value)}
@@ -249,7 +310,12 @@ export const SellerSettingsPage: React.FC = () => {
 
             {/* QR Upload */}
             <div className="form-group mt-3">
-              <label className="form-label">Ảnh mã QR tĩnh của Shop:</label>
+              <label
+                className="form-label"
+                htmlFor="sellersettingspage-field-7"
+              >
+                Ảnh mã QR tĩnh của Shop:
+              </label>
               <div className="flex items-center gap-4">
                 <div className="qr-preview-box">
                   {qrUrl ? (
@@ -264,7 +330,8 @@ export const SellerSettingsPage: React.FC = () => {
 
                 <div>
                   <label className="btn-secondary-sm cursor-pointer">
-                    <Upload size={14} /> {uploadingQr ? 'Đang tải...' : 'Tải ảnh QR mới'}
+                    <Upload size={14} />{" "}
+                    {uploadingQr ? "Đang tải..." : "Tải ảnh QR mới"}
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
@@ -273,7 +340,11 @@ export const SellerSettingsPage: React.FC = () => {
                       disabled={uploadingQr}
                     />
                   </label>
-                  {qrAssetId && <span className="block text-xs text-green mt-1">Đã gắn Asset QR</span>}
+                  {qrAssetId && (
+                    <span className="block text-xs text-green mt-1">
+                      Đã gắn Asset QR
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -283,7 +354,9 @@ export const SellerSettingsPage: React.FC = () => {
               disabled={updateSettingsMutation.isPending}
               className="btn-primary full-width mt-4"
             >
-              {updateSettingsMutation.isPending ? 'Đang lưu...' : 'Lưu toàn bộ cài đặt'}
+              {updateSettingsMutation.isPending
+                ? "Đang lưu..."
+                : "Lưu toàn bộ cài đặt"}
             </button>
           </form>
         </div>
@@ -304,23 +377,29 @@ export const SellerSettingsPage: React.FC = () => {
           </div>
 
           <p className="text-xs text-muted mb-3">
-            Các điểm hẹn cố định trong trường học để học sinh lựa chọn khi đặt đơn.
+            Các điểm hẹn cố định trong trường học để học sinh lựa chọn khi đặt
+            đơn.
           </p>
 
           <div className="pickup-points-list">
             {pickupPoints.map((pt) => (
-              <div key={pt.id} className="pickup-point-item flex-between p-3 border rounded mb-2">
+              <div
+                key={pt.id}
+                className="pickup-point-item flex-between p-3 border rounded mb-2"
+              >
                 <div>
                   <strong>{pt.name}</strong>
-                  {pt.instructions && <p className="text-xs text-muted">{pt.instructions}</p>}
+                  {pt.instructions && (
+                    <p className="text-xs text-muted">{pt.instructions}</p>
+                  )}
                 </div>
                 <div>
                   <button
                     type="button"
                     onClick={() => handleTogglePointActive(pt.id, pt.active)}
-                    className={`btn-text-xs ${pt.active ? 'text-green' : 'text-gray'}`}
+                    className={`btn-text-xs ${pt.active ? "text-green" : "text-gray"}`}
                   >
-                    {pt.active ? 'Đang hoạt động' : 'Tạm ẩn'}
+                    {pt.active ? "Đang hoạt động" : "Tạm ẩn"}
                   </button>
                 </div>
               </div>
@@ -339,6 +418,7 @@ export const SellerSettingsPage: React.FC = () => {
           <div className="form-group">
             <label className="form-label">Tên địa điểm nhận hàng *:</label>
             <input
+              id="sellersettingspage-field-7"
               type="text"
               value={newPointName}
               onChange={(e) => setNewPointName(e.target.value)}
@@ -349,8 +429,11 @@ export const SellerSettingsPage: React.FC = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Chỉ dẫn nhận hàng:</label>
+            <label className="form-label" htmlFor="sellersettingspage-field-8">
+              Chỉ dẫn nhận hàng:
+            </label>
             <textarea
+              id="sellersettingspage-field-8"
               rows={2}
               value={newPointInstructions}
               onChange={(e) => setNewPointInstructions(e.target.value)}
@@ -360,7 +443,11 @@ export const SellerSettingsPage: React.FC = () => {
           </div>
 
           <div className="modal-actions">
-            <button type="button" onClick={() => setPointModalOpen(false)} className="btn-secondary">
+            <button
+              type="button"
+              onClick={() => setPointModalOpen(false)}
+              className="btn-secondary"
+            >
               Đóng
             </button>
             <button

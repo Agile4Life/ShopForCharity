@@ -1,5 +1,5 @@
-import { getAccessToken } from './supabase';
-import type { ApiErrorResponse, ApiErrorDetail } from '../types/api';
+import { getAccessToken } from "./supabase";
+import type { ApiErrorResponse, ApiErrorDetail } from "../types/api";
 
 export class ApiError extends Error {
   status: number;
@@ -14,10 +14,10 @@ export class ApiError extends Error {
     message: string,
     details?: ApiErrorDetail[],
     requestId?: string,
-    timestamp?: string
+    timestamp?: string,
   ) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.details = details;
@@ -26,18 +26,21 @@ export class ApiError extends Error {
   }
 }
 
-export interface RequestOptions extends Omit<RequestInit, 'body'> {
+export interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
   params?: Record<string, string | number | boolean | undefined | null>;
   skipIdempotency?: boolean;
   idempotencyKey?: string;
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
-export async function apiFetch<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+export async function apiFetch<T>(
+  endpoint: string,
+  options: RequestOptions = {},
+): Promise<T> {
   const {
-    method = 'GET',
+    method = "GET",
     body,
     params,
     headers: customHeaders = {},
@@ -46,18 +49,20 @@ export async function apiFetch<T>(endpoint: string, options: RequestOptions = {}
     ...restOptions
   } = options;
 
-  let url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  let url = endpoint.startsWith("http")
+    ? endpoint
+    : `${API_BASE}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
 
   if (params) {
     const searchParams = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
+      if (value !== undefined && value !== null && value !== "") {
         searchParams.append(key, String(value));
       }
     });
     const queryString = searchParams.toString();
     if (queryString) {
-      url += (url.includes('?') ? '&' : '?') + queryString;
+      url += (url.includes("?") ? "&" : "?") + queryString;
     }
   }
 
@@ -65,19 +70,25 @@ export async function apiFetch<T>(endpoint: string, options: RequestOptions = {}
 
   // Attach Supabase Bearer token if present
   try {
-    const token = await getAccessToken();
-    if (token && !headers.has('Authorization')) {
-      headers.set('Authorization', `Bearer ${token}`);
+    const token = headers.has("Authorization") ? null : await getAccessToken();
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
     }
   } catch (err) {
-    console.warn('Could not retrieve Supabase session token', err);
+    console.warn("Could not retrieve Supabase session token", err);
   }
 
   // Mutating requests: send Idempotency-Key if not skipped
-  const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase());
-  if (isMutation && !skipIdempotency && !headers.has('Idempotency-Key')) {
-    const key = idempotencyKey || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `idemp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
-    headers.set('Idempotency-Key', key);
+  const isMutation = ["POST", "PUT", "PATCH", "DELETE"].includes(
+    method.toUpperCase(),
+  );
+  if (isMutation && !skipIdempotency && !headers.has("Idempotency-Key")) {
+    const key =
+      idempotencyKey ||
+      (typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `idemp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+    headers.set("Idempotency-Key", key);
   }
 
   let finalBody: BodyInit | undefined;
@@ -85,8 +96,8 @@ export async function apiFetch<T>(endpoint: string, options: RequestOptions = {}
     finalBody = body;
     // Don't set Content-Type header when body is FormData; browser sets boundary automatically
   } else if (body !== undefined) {
-    if (!headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
+    if (!headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
     }
     finalBody = JSON.stringify(body);
   }
@@ -95,7 +106,7 @@ export async function apiFetch<T>(endpoint: string, options: RequestOptions = {}
     method,
     headers,
     body: finalBody,
-    credentials: 'include', // Ensure HttpOnly cookies are included for guest checkout sessions
+    credentials: "include", // Ensure HttpOnly cookies are included for guest checkout sessions
     ...restOptions,
   });
 
@@ -108,14 +119,15 @@ export async function apiFetch<T>(endpoint: string, options: RequestOptions = {}
     }
 
     const code = errorData?.code || `HTTP_${response.status}`;
-    const message = errorData?.message || response.statusText || 'Yêu cầu không thành công';
+    const message =
+      errorData?.message || response.statusText || "Yêu cầu không thành công";
     throw new ApiError(
       response.status,
       code,
       message,
       errorData?.details,
       errorData?.requestId,
-      errorData?.timestamp
+      errorData?.timestamp,
     );
   }
 
@@ -124,8 +136,8 @@ export async function apiFetch<T>(endpoint: string, options: RequestOptions = {}
     return {} as T;
   }
 
-  const contentType = response.headers.get('content-type');
-  if (contentType && contentType.includes('application/json')) {
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
     return (await response.json()) as T;
   }
 

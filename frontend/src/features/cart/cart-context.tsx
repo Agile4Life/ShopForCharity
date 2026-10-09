@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { CartItem, ItemKind } from '../../types/api';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import type { CartItem, ItemKind } from "../../types/api";
 
-const CART_STORAGE_KEY = 'school_shop_cart_v1';
+const CART_STORAGE_KEY = "school_shop_cart_v1";
 const MAX_LINES = 30;
 const MAX_QTY_PER_LINE = 20;
 const MIN_QTY_PER_LINE = 1;
@@ -17,8 +17,13 @@ interface CartContextType {
     imageUrl?: string;
     slug?: string;
   }) => { success: boolean; message?: string };
-  updateQuantity: (catalogId: string, quantity: number) => void;
-  removeItem: (catalogId: string) => void;
+  updateQuantity: (
+    catalogId: string,
+    quantity: number,
+    kind?: ItemKind,
+  ) => void;
+  removeItem: (catalogId: string, kind?: ItemKind) => void;
+  restoreItems: (items: CartItem[]) => void;
   clearCart: () => void;
   totalQuantity: number;
   estimatedSubtotal: number;
@@ -26,7 +31,9 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | null>(null);
 
-export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem(CART_STORAGE_KEY);
@@ -37,7 +44,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     } catch (e) {
-      console.error('Failed to load cart from localStorage', e);
+      console.error("Failed to load cart from localStorage", e);
     }
     return [];
   });
@@ -46,7 +53,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
     } catch (e) {
-      console.error('Failed to save cart to localStorage', e);
+      console.error("Failed to save cart to localStorage", e);
     }
   }, [items]);
 
@@ -67,7 +74,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     imageUrl?: string;
     slug?: string;
   }) => {
-    const existingIndex = items.findIndex((i) => i.catalogId === catalogId && i.kind === kind);
+    const existingIndex = items.findIndex(
+      (i) => i.catalogId === catalogId && i.kind === kind,
+    );
 
     if (existingIndex > -1) {
       const existing = items[existingIndex];
@@ -98,7 +107,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
     }
 
-    const clampedQty = Math.max(MIN_QTY_PER_LINE, Math.min(MAX_QTY_PER_LINE, quantity));
+    const clampedQty = Math.max(
+      MIN_QTY_PER_LINE,
+      Math.min(MAX_QTY_PER_LINE, quantity),
+    );
     setItems([
       ...items,
       {
@@ -114,21 +126,53 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { success: true };
   };
 
-  const updateQuantity = (catalogId: string, quantity: number) => {
+  const updateQuantity = (
+    catalogId: string,
+    quantity: number,
+    kind?: ItemKind,
+  ) => {
     if (quantity < MIN_QTY_PER_LINE) {
-      removeItem(catalogId);
+      removeItem(catalogId, kind);
       return;
     }
     const clampedQty = Math.min(MAX_QTY_PER_LINE, quantity);
     setItems((prev) =>
       prev.map((item) =>
-        item.catalogId === catalogId ? { ...item, quantity: clampedQty } : item
-      )
+        item.catalogId === catalogId && (!kind || item.kind === kind)
+          ? { ...item, quantity: clampedQty }
+          : item,
+      ),
     );
   };
 
-  const removeItem = (catalogId: string) => {
-    setItems((prev) => prev.filter((item) => item.catalogId !== catalogId));
+  const removeItem = (catalogId: string, kind?: ItemKind) => {
+    setItems((prev) =>
+      prev.filter(
+        (item) => item.catalogId !== catalogId || (kind && item.kind !== kind),
+      ),
+    );
+  };
+
+  const restoreItems = (removed: CartItem[]) => {
+    setItems((prev) => {
+      const restored = [...prev];
+      for (const item of removed) {
+        const index = restored.findIndex(
+          (current) =>
+            current.catalogId === item.catalogId && current.kind === item.kind,
+        );
+        if (index >= 0)
+          restored[index] = {
+            ...restored[index],
+            quantity: Math.min(
+              MAX_QTY_PER_LINE,
+              restored[index].quantity + item.quantity,
+            ),
+          };
+        else if (restored.length < MAX_LINES) restored.push(item);
+      }
+      return restored;
+    });
   };
 
   const clearCart = () => {
@@ -138,7 +182,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const totalQuantity = items.reduce((acc, item) => acc + item.quantity, 0);
   const estimatedSubtotal = items.reduce(
     (acc, item) => acc + (item.price || 0) * item.quantity,
-    0
+    0,
   );
 
   return (
@@ -148,6 +192,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addItem,
         updateQuantity,
         removeItem,
+        restoreItems,
         clearCart,
         totalQuantity,
         estimatedSubtotal,
@@ -161,7 +206,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export function useCart() {
   const context = useContext(CartContext);
   if (!context) {
-    throw new Error('useCart must be used within a CartProvider');
+    throw new Error("useCart must be used within a CartProvider");
   }
   return context;
 }

@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../../lib/supabase";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
 
 export const AuthCallbackPage: React.FC = () => {
   const navigate = useNavigate();
@@ -9,9 +9,9 @@ export const AuthCallbackPage: React.FC = () => {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate('/', { replace: true });
+        navigate("/", { replace: true });
       } else {
-        navigate('/login', { replace: true });
+        navigate("/login", { replace: true });
       }
     });
   }, [navigate]);

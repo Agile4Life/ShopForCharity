@@ -1,18 +1,17 @@
-import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingCart, Plus, Minus, Layers } from 'lucide-react';
-import { useComboDetail } from './api';
-import { useCart } from '../cart/cart-context';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { ErrorMessage } from '../../components/ErrorMessage';
+import { QuantityControl, notify } from "../../components/Usability";
+import React, { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { ArrowLeft, ShoppingCart, Layers } from "lucide-react";
+import { useComboDetail } from "./api";
+import { useCart } from "../cart/cart-context";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { ErrorMessage } from "../../components/ErrorMessage";
 
 export const ComboDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
-  const { data: combo, isLoading, error, refetch } = useComboDetail(slug || '');
+  const { data: combo, isLoading, error, refetch } = useComboDetail(slug || "");
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
-  const [notice, setNotice] = useState<string | null>(null);
 
   if (isLoading) {
     return <LoadingSpinner message="Đang tải thông tin combo..." />;
@@ -24,14 +23,17 @@ export const ComboDetailPage: React.FC = () => {
         <Link to="/" className="btn-back">
           <ArrowLeft size={16} /> Quay lại danh mục
         </Link>
-        <ErrorMessage error={error || new Error('Không tìm thấy combo này')} onRetry={refetch} />
+        <ErrorMessage
+          error={error || new Error("Không tìm thấy combo này")}
+          onRetry={refetch}
+        />
       </div>
     );
   }
 
   const handleAddToCart = () => {
     const res = addItem({
-      kind: 'COMBO',
+      kind: "COMBO",
       catalogId: combo.id,
       quantity,
       name: combo.name,
@@ -40,27 +42,24 @@ export const ComboDetailPage: React.FC = () => {
       slug: combo.slug,
     });
 
-    if (res.success) {
-      setNotice(`Đã thêm ${quantity} combo vào giỏ hàng!`);
-      setTimeout(() => setNotice(null), 3000);
-    } else if (res.message) {
-      alert(res.message);
-    }
+    notify(
+      res.success
+        ? `Đã thêm ${quantity} combo vào giỏ.`
+        : res.message || "Chưa thể thêm món.",
+      {
+        tone: res.success ? "success" : "error",
+        to: res.success ? "/cart" : undefined,
+      },
+    );
   };
 
   const isSoldOut = combo.isSoldOut || combo.availableStock <= 0;
 
   return (
     <div className="combo-detail-page container">
-      {notice && (
-        <div className="toast-notification" role="status">
-          {notice}
-        </div>
-      )}
-
-      <button type="button" onClick={() => navigate(-1)} className="btn-back">
-        <ArrowLeft size={16} /> Quay lại
-      </button>
+      <Link to="/#catalog" className="btn-back">
+        <ArrowLeft size={16} aria-hidden="true" /> Gian hàng
+      </Link>
 
       <div className="detail-layout">
         <div className="detail-media">
@@ -75,15 +74,19 @@ export const ComboDetailPage: React.FC = () => {
         </div>
 
         <div className="detail-info">
-          <span className="badge badge-purple">Gói Combo Tiết Kiệm</span>
+          <span className="badge badge-purple">Combo</span>
           <h1 className="detail-title">{combo.name}</h1>
-          <div className="detail-price">{combo.price.toLocaleString('vi-VN')} đ</div>
+          <div className="detail-price">
+            {combo.price.toLocaleString("vi-VN")} đ
+          </div>
 
           <div className="detail-stock-status">
             {isSoldOut ? (
               <span className="badge badge-red">Hết hàng</span>
             ) : (
-              <span className="stock-available">Khả dụng: {combo.availableStock} combo</span>
+              <span className="stock-available">
+                Còn {combo.availableStock} combo
+              </span>
             )}
           </div>
 
@@ -93,7 +96,7 @@ export const ComboDetailPage: React.FC = () => {
           </div>
 
           <div className="combo-components-box">
-            <h3>Các món thành phần trong gói combo:</h3>
+            <h3>Trong combo có</h3>
             <ul className="component-list">
               {combo.items.map((item) => (
                 <li key={item.productId} className="component-item">
@@ -106,29 +109,17 @@ export const ComboDetailPage: React.FC = () => {
 
           {!isSoldOut && (
             <div className="add-cart-section">
-              <div className="quantity-stepper">
-                <button
-                  type="button"
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  disabled={quantity <= 1}
-                  className="step-btn"
-                  aria-label="Giảm"
-                >
-                  <Minus size={16} />
-                </button>
-                <span className="quantity-val">{quantity}</span>
-                <button
-                  type="button"
-                  onClick={() => setQuantity((q) => Math.min(Math.min(20, combo.availableStock), q + 1))}
-                  disabled={quantity >= 20 || quantity >= combo.availableStock}
-                  className="step-btn"
-                  aria-label="Tăng"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
+              <QuantityControl
+                value={quantity}
+                max={Math.min(20, combo.availableStock)}
+                onChange={setQuantity}
+              />
 
-              <button type="button" onClick={handleAddToCart} className="btn-primary">
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                className="btn-primary"
+              >
                 <ShoppingCart size={18} /> Thêm combo vào giỏ
               </button>
             </div>

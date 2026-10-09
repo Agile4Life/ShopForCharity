@@ -1,19 +1,29 @@
-import React, { useState } from 'react';
-import { Search, Key, ArrowLeft } from 'lucide-react';
+import React, { useState } from "react";
+import { useLocation } from "react-router-dom";
+import { Search, Key, ArrowLeft } from "lucide-react";
 import {
   accessGuestOrder,
   useGuestOrderDetail,
   useGuestPaymentInstructions,
   useCancelGuestOrder,
   useReportGuestPayment,
-} from './api';
-import { OrderDetailView } from './OrderDetailView';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { ErrorMessage } from '../../components/ErrorMessage';
+} from "./api";
+import { OrderDetailView } from "./OrderDetailView";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { ErrorMessage } from "../../components/ErrorMessage";
 
 export const GuestOrderLookupPage: React.FC = () => {
-  const [orderCodeInput, setOrderCodeInput] = useState('');
-  const [guestTokenInput, setGuestTokenInput] = useState('');
+  const { state } = useLocation();
+  const credentials = state as {
+    orderCode?: string;
+    guestToken?: string;
+  } | null;
+  const [orderCodeInput, setOrderCodeInput] = useState(
+    credentials?.orderCode || "",
+  );
+  const [guestTokenInput, setGuestTokenInput] = useState(
+    credentials?.guestToken || "",
+  );
   const [currentOrderCode, setCurrentOrderCode] = useState<string | null>(null);
   const [accessLoading, setAccessLoading] = useState(false);
   const [accessError, setAccessError] = useState<unknown | null>(null);
@@ -23,11 +33,11 @@ export const GuestOrderLookupPage: React.FC = () => {
     isLoading: orderLoading,
     error: orderError,
     refetch: refetchOrder,
-  } = useGuestOrderDetail(currentOrderCode || '', !!currentOrderCode);
+  } = useGuestOrderDetail(currentOrderCode || "", !!currentOrderCode);
 
   const { data: paymentInstructions } = useGuestPaymentInstructions(
-    currentOrderCode || '',
-    !!currentOrderCode
+    currentOrderCode || "",
+    !!currentOrderCode,
   );
 
   const cancelMutation = useCancelGuestOrder();
@@ -36,7 +46,7 @@ export const GuestOrderLookupPage: React.FC = () => {
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orderCodeInput.trim() || !guestTokenInput.trim()) {
-      alert('Vui lòng nhập cả Mã đơn hàng và Khóa truy cập!');
+      setAccessError(new Error("Vui lòng nhập mã đơn hàng và khóa truy cập."));
       return;
     }
 
@@ -54,12 +64,19 @@ export const GuestOrderLookupPage: React.FC = () => {
 
   const handleCancel = async (reason: string, expectedVersion: number) => {
     if (!currentOrderCode) return;
-    await cancelMutation.mutateAsync({ orderCode: currentOrderCode, reason, expectedVersion });
+    await cancelMutation.mutateAsync({
+      orderCode: currentOrderCode,
+      reason,
+      expectedVersion,
+    });
   };
 
   const handleReportPayment = async (expectedVersion: number) => {
     if (!currentOrderCode) return;
-    await reportPaymentMutation.mutateAsync({ orderCode: currentOrderCode, expectedVersion });
+    await reportPaymentMutation.mutateAsync({
+      orderCode: currentOrderCode,
+      expectedVersion,
+    });
   };
 
   return (
@@ -69,9 +86,9 @@ export const GuestOrderLookupPage: React.FC = () => {
           <div className="lookup-icon-wrap">
             <Key size={36} className="text-primary" />
           </div>
-          <h1 className="lookup-title">Tra cứu đơn hàng Guest</h1>
+          <h1 className="lookup-title">Tra cứu đơn hàng</h1>
           <p className="lookup-desc text-muted text-sm">
-            Nhập Mã đơn hàng và Khóa truy cập đã nhận được khi bạn hoàn tất đặt đơn.
+            Nhập mã đơn và khóa truy cập nhận được sau khi đặt hàng.
           </p>
 
           {accessError != null && (
@@ -117,7 +134,7 @@ export const GuestOrderLookupPage: React.FC = () => {
               className="btn-primary full-width mt-4"
             >
               {accessLoading ? (
-                'Đang kiểm tra quyền truy cập...'
+                "Đang kiểm tra quyền truy cập..."
               ) : (
                 <>
                   <Search size={18} /> Tra cứu đơn hàng

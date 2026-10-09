@@ -1,6 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiFetch } from '../../lib/api-client';
-import { POLL_INTERVAL_ORDERS, POLL_INTERVAL_DASHBOARD } from '../../lib/query-client';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "../../lib/api-client";
+import {
+  POLL_INTERVAL_ORDERS,
+  POLL_INTERVAL_DASHBOARD,
+} from "../../lib/query-client";
 import type {
   SellerDashboardSummary,
   OrderDetail,
@@ -27,16 +30,18 @@ import type {
   AuditLogItem,
   AssetUploadResponse,
   AssetType,
-} from '../../types/api';
+} from "../../types/api";
 
 // --- Dashboard ---
 export async function getSellerDashboard(): Promise<SellerDashboardSummary> {
-  return apiFetch<SellerDashboardSummary>('/seller/dashboard', { skipIdempotency: true });
+  return apiFetch<SellerDashboardSummary>("/seller/dashboard", {
+    skipIdempotency: true,
+  });
 }
 
 export function useSellerDashboard() {
   return useQuery({
-    queryKey: ['seller-dashboard'],
+    queryKey: ["seller-dashboard"],
     queryFn: getSellerDashboard,
     refetchInterval: POLL_INTERVAL_DASHBOARD,
   });
@@ -52,8 +57,10 @@ export interface SellerOrderFilters {
   size?: number;
 }
 
-export async function getSellerOrders(filters: SellerOrderFilters = {}): Promise<PageResponse<OrderDetail>> {
-  return apiFetch<PageResponse<OrderDetail>>('/seller/orders', {
+export async function getSellerOrders(
+  filters: SellerOrderFilters = {},
+): Promise<PageResponse<OrderDetail>> {
+  return apiFetch<PageResponse<OrderDetail>>("/seller/orders", {
     params: {
       status: filters.status,
       paymentStatus: filters.paymentStatus,
@@ -68,19 +75,21 @@ export async function getSellerOrders(filters: SellerOrderFilters = {}): Promise
 
 export function useSellerOrders(filters: SellerOrderFilters = {}) {
   return useQuery({
-    queryKey: ['seller-orders', filters],
+    queryKey: ["seller-orders", filters],
     queryFn: () => getSellerOrders(filters),
     refetchInterval: POLL_INTERVAL_ORDERS,
   });
 }
 
 export async function getSellerOrderDetail(id: string): Promise<OrderDetail> {
-  return apiFetch<OrderDetail>(`/seller/orders/${id}`, { skipIdempotency: true });
+  return apiFetch<OrderDetail>(`/seller/orders/${id}`, {
+    skipIdempotency: true,
+  });
 }
 
 export function useSellerOrderDetail(id: string) {
   return useQuery({
-    queryKey: ['seller-order', id],
+    queryKey: ["seller-order", id],
     queryFn: () => getSellerOrderDetail(id),
     enabled: !!id,
     refetchInterval: POLL_INTERVAL_ORDERS,
@@ -92,15 +101,15 @@ export function useSellerOrderActions(orderId: string) {
   const queryClient = useQueryClient();
 
   const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ['seller-order', orderId] });
-    queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
-    queryClient.invalidateQueries({ queryKey: ['seller-dashboard'] });
+    queryClient.invalidateQueries({ queryKey: ["seller-order", orderId] });
+    queryClient.invalidateQueries({ queryKey: ["seller-orders"] });
+    queryClient.invalidateQueries({ queryKey: ["seller-dashboard"] });
   };
 
   const recordContactAttempt = useMutation({
     mutationFn: (data: RecordContactAttemptRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/contact-attempts`, {
-        method: 'POST',
+        method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
@@ -109,7 +118,7 @@ export function useSellerOrderActions(orderId: string) {
   const acceptOrder = useMutation({
     mutationFn: (data: AcceptOrderRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/accept`, {
-        method: 'POST',
+        method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
@@ -118,7 +127,7 @@ export function useSellerOrderActions(orderId: string) {
   const rejectOrder = useMutation({
     mutationFn: (data: TransitionOrderRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/reject`, {
-        method: 'POST',
+        method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
@@ -127,7 +136,7 @@ export function useSellerOrderActions(orderId: string) {
   const prepareOrder = useMutation({
     mutationFn: (data: TransitionOrderRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/prepare`, {
-        method: 'POST',
+        method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
@@ -136,7 +145,7 @@ export function useSellerOrderActions(orderId: string) {
   const readyOrder = useMutation({
     mutationFn: (data: TransitionOrderRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/ready`, {
-        method: 'POST',
+        method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
@@ -145,7 +154,7 @@ export function useSellerOrderActions(orderId: string) {
   const completeOrder = useMutation({
     mutationFn: (data: TransitionOrderRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/complete`, {
-        method: 'POST',
+        method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
@@ -154,7 +163,7 @@ export function useSellerOrderActions(orderId: string) {
   const cancelOrder = useMutation({
     mutationFn: (data: TransitionOrderRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/cancel`, {
-        method: 'POST',
+        method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
@@ -163,7 +172,7 @@ export function useSellerOrderActions(orderId: string) {
   const confirmPayment = useMutation({
     mutationFn: (data: ConfirmPaymentRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/confirm-payment`, {
-        method: 'POST',
+        method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
@@ -171,17 +180,20 @@ export function useSellerOrderActions(orderId: string) {
 
   const dismissPaymentReport = useMutation({
     mutationFn: (data: DismissPaymentReportRequest) =>
-      apiFetch<OrderDetail>(`/seller/orders/${orderId}/dismiss-payment-report`, {
-        method: 'POST',
-        body: data,
-      }),
+      apiFetch<OrderDetail>(
+        `/seller/orders/${orderId}/dismiss-payment-report`,
+        {
+          method: "POST",
+          body: data,
+        },
+      ),
     onSuccess: invalidate,
   });
 
   const confirmRefund = useMutation({
     mutationFn: (data: ConfirmRefundRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/confirm-refund`, {
-        method: 'POST',
+        method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
@@ -202,8 +214,11 @@ export function useSellerOrderActions(orderId: string) {
 }
 
 // --- Products ---
-export async function getSellerProducts(page = 0, size = 20): Promise<PageResponse<ProductSummary>> {
-  return apiFetch<PageResponse<ProductSummary>>('/seller/products', {
+export async function getSellerProducts(
+  page = 0,
+  size = 20,
+): Promise<PageResponse<ProductSummary>> {
+  return apiFetch<PageResponse<ProductSummary>>("/seller/products", {
     params: { page, size },
     skipIdempotency: true,
   });
@@ -211,18 +226,22 @@ export async function getSellerProducts(page = 0, size = 20): Promise<PageRespon
 
 export function useSellerProducts(page = 0, size = 20) {
   return useQuery({
-    queryKey: ['seller-products', page, size],
+    queryKey: ["seller-products", page, size],
     queryFn: () => getSellerProducts(page, size),
   });
 }
 
-export async function getSellerProductDetail(id: string): Promise<ProductDetail> {
-  return apiFetch<ProductDetail>(`/seller/products/${id}`, { skipIdempotency: true });
+export async function getSellerProductDetail(
+  id: string,
+): Promise<ProductDetail> {
+  return apiFetch<ProductDetail>(`/seller/products/${id}`, {
+    skipIdempotency: true,
+  });
 }
 
 export function useSellerProductDetail(id: string) {
   return useQuery({
-    queryKey: ['seller-product', id],
+    queryKey: ["seller-product", id],
     queryFn: () => getSellerProductDetail(id),
     enabled: !!id,
   });
@@ -233,52 +252,67 @@ export function useSellerProductMutations() {
 
   const createProduct = useMutation({
     mutationFn: (data: CreateProductRequest) =>
-      apiFetch<ProductDetail>('/seller/products', {
-        method: 'POST',
+      apiFetch<ProductDetail>("/seller/products", {
+        method: "POST",
         body: data,
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seller-products'] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["seller-products"] }),
   });
 
   const updateProduct = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateProductRequest }) =>
       apiFetch<ProductDetail>(`/seller/products/${id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         body: data,
       }),
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ['seller-product', id] });
-      queryClient.invalidateQueries({ queryKey: ['seller-products'] });
+      queryClient.invalidateQueries({ queryKey: ["seller-product", id] });
+      queryClient.invalidateQueries({ queryKey: ["seller-products"] });
     },
   });
 
   const archiveProduct = useMutation({
-    mutationFn: ({ id, expectedVersion }: { id: string; expectedVersion: number }) =>
+    mutationFn: ({
+      id,
+      expectedVersion,
+    }: {
+      id: string;
+      expectedVersion: number;
+    }) =>
       apiFetch<void>(`/seller/products/${id}/archive`, {
-        method: 'POST',
+        method: "POST",
         body: { expectedVersion },
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seller-products'] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["seller-products"] }),
   });
 
   const activateProduct = useMutation({
-    mutationFn: ({ id, expectedVersion }: { id: string; expectedVersion: number }) =>
+    mutationFn: ({
+      id,
+      expectedVersion,
+    }: {
+      id: string;
+      expectedVersion: number;
+    }) =>
       apiFetch<void>(`/seller/products/${id}/activate`, {
-        method: 'POST',
+        method: "POST",
         body: { expectedVersion },
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seller-products'] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["seller-products"] }),
   });
 
   const adjustStock = useMutation({
     mutationFn: ({ id, data }: { id: string; data: StockAdjustmentRequest }) =>
       apiFetch<ProductDetail>(`/seller/products/${id}/stock-adjustments`, {
-        method: 'POST',
+        method: "POST",
         body: data,
       }),
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ['seller-product', id] });
-      queryClient.invalidateQueries({ queryKey: ['seller-products'] });
+      queryClient.invalidateQueries({ queryKey: ["seller-product", id] });
+      queryClient.invalidateQueries({ queryKey: ["seller-products"] });
     },
   });
 
@@ -293,7 +327,10 @@ export function useSellerProductMutations() {
 
 // --- Combos ---
 export async function getSellerCombos(): Promise<ComboSummary[]> {
-  const res = await apiFetch<PageResponse<ComboSummary> | ComboSummary[]>('/seller/combos', { skipIdempotency: true });
+  const res = await apiFetch<PageResponse<ComboSummary> | ComboSummary[]>(
+    "/seller/combos",
+    { skipIdempotency: true },
+  );
   if (Array.isArray(res)) {
     return res;
   }
@@ -302,18 +339,20 @@ export async function getSellerCombos(): Promise<ComboSummary[]> {
 
 export function useSellerCombos() {
   return useQuery({
-    queryKey: ['seller-combos'],
+    queryKey: ["seller-combos"],
     queryFn: getSellerCombos,
   });
 }
 
 export async function getSellerComboDetail(id: string): Promise<ComboDetail> {
-  return apiFetch<ComboDetail>(`/seller/combos/${id}`, { skipIdempotency: true });
+  return apiFetch<ComboDetail>(`/seller/combos/${id}`, {
+    skipIdempotency: true,
+  });
 }
 
 export function useSellerComboDetail(id: string) {
   return useQuery({
-    queryKey: ['seller-combo', id],
+    queryKey: ["seller-combo", id],
     queryFn: () => getSellerComboDetail(id),
     enabled: !!id,
   });
@@ -324,60 +363,83 @@ export function useSellerComboMutations() {
 
   const createCombo = useMutation({
     mutationFn: (data: CreateComboRequest) =>
-      apiFetch<ComboDetail>('/seller/combos', { method: 'POST', body: data }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seller-combos'] }),
+      apiFetch<ComboDetail>("/seller/combos", { method: "POST", body: data }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["seller-combos"] }),
   });
 
   const updateCombo = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateComboRequest }) =>
-      apiFetch<ComboDetail>(`/seller/combos/${id}`, { method: 'PATCH', body: data }),
+      apiFetch<ComboDetail>(`/seller/combos/${id}`, {
+        method: "PATCH",
+        body: data,
+      }),
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: ['seller-combo', id] });
-      queryClient.invalidateQueries({ queryKey: ['seller-combos'] });
+      queryClient.invalidateQueries({ queryKey: ["seller-combo", id] });
+      queryClient.invalidateQueries({ queryKey: ["seller-combos"] });
     },
   });
 
   const archiveCombo = useMutation({
-    mutationFn: ({ id, expectedVersion }: { id: string; expectedVersion: number }) =>
+    mutationFn: ({
+      id,
+      expectedVersion,
+    }: {
+      id: string;
+      expectedVersion: number;
+    }) =>
       apiFetch<void>(`/seller/combos/${id}/archive`, {
-        method: 'POST',
+        method: "POST",
         body: { expectedVersion },
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seller-combos'] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["seller-combos"] }),
   });
 
   const activateCombo = useMutation({
-    mutationFn: ({ id, expectedVersion }: { id: string; expectedVersion: number }) =>
+    mutationFn: ({
+      id,
+      expectedVersion,
+    }: {
+      id: string;
+      expectedVersion: number;
+    }) =>
       apiFetch<void>(`/seller/combos/${id}/activate`, {
-        method: 'POST',
+        method: "POST",
         body: { expectedVersion },
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seller-combos'] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["seller-combos"] }),
   });
 
   return { createCombo, updateCombo, archiveCombo, activateCombo };
 }
 
 // --- Asset Upload ---
-export async function uploadAsset(file: File, type: AssetType): Promise<AssetUploadResponse> {
+export async function uploadAsset(
+  file: File,
+  type: AssetType,
+): Promise<AssetUploadResponse> {
   const formData = new FormData();
-  formData.append('file', file);
-  formData.append('type', type);
+  formData.append("file", file);
+  formData.append("type", type);
 
-  return apiFetch<AssetUploadResponse>('/seller/assets', {
-    method: 'POST',
+  return apiFetch<AssetUploadResponse>("/seller/assets", {
+    method: "POST",
     body: formData,
   });
 }
 
 // --- Shop Settings & Pickup Points ---
 export async function getSellerShopSettings(): Promise<ShopSettings> {
-  return apiFetch<ShopSettings>('/seller/shop-settings', { skipIdempotency: true });
+  return apiFetch<ShopSettings>("/seller/shop-settings", {
+    skipIdempotency: true,
+  });
 }
 
 export function useSellerShopSettings() {
   return useQuery({
-    queryKey: ['seller-shop-settings'],
+    queryKey: ["seller-shop-settings"],
     queryFn: getSellerShopSettings,
   });
 }
@@ -386,24 +448,26 @@ export function useUpdateShopSettings() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: UpdateShopSettingsRequest) =>
-      apiFetch<ShopSettings>('/seller/shop-settings', {
-        method: 'PATCH',
+      apiFetch<ShopSettings>("/seller/shop-settings", {
+        method: "PATCH",
         body: data,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['seller-shop-settings'] });
-      queryClient.invalidateQueries({ queryKey: ['shop'] });
+      queryClient.invalidateQueries({ queryKey: ["seller-shop-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["shop"] });
     },
   });
 }
 
 export async function getSellerPickupPoints(): Promise<PickupPoint[]> {
-  return apiFetch<PickupPoint[]>('/seller/pickup-points', { skipIdempotency: true });
+  return apiFetch<PickupPoint[]>("/seller/pickup-points", {
+    skipIdempotency: true,
+  });
 }
 
 export function useSellerPickupPoints() {
   return useQuery({
-    queryKey: ['seller-pickup-points'],
+    queryKey: ["seller-pickup-points"],
     queryFn: getSellerPickupPoints,
   });
 }
@@ -412,21 +476,23 @@ export function useSellerPickupPointMutations() {
   const queryClient = useQueryClient();
 
   const createPickupPoint = useMutation({
-    mutationFn: (data: Omit<PickupPoint, 'id'>) =>
-      apiFetch<PickupPoint>('/seller/pickup-points', {
-        method: 'POST',
+    mutationFn: (data: Omit<PickupPoint, "id">) =>
+      apiFetch<PickupPoint>("/seller/pickup-points", {
+        method: "POST",
         body: data,
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seller-pickup-points'] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["seller-pickup-points"] }),
   });
 
   const updatePickupPoint = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<PickupPoint> }) =>
       apiFetch<PickupPoint>(`/seller/pickup-points/${id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         body: data,
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seller-pickup-points'] }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["seller-pickup-points"] }),
   });
 
   return { createPickupPoint, updatePickupPoint };
@@ -434,7 +500,9 @@ export function useSellerPickupPointMutations() {
 
 // --- Notifications ---
 export async function getSellerNotifications(): Promise<NotificationItem[]> {
-  const res = await apiFetch<PageResponse<NotificationItem> | NotificationItem[]>('/seller/notifications', { skipIdempotency: true });
+  const res = await apiFetch<
+    PageResponse<NotificationItem> | NotificationItem[]
+  >("/seller/notifications", { skipIdempotency: true });
   if (Array.isArray(res)) {
     return res;
   }
@@ -443,7 +511,7 @@ export async function getSellerNotifications(): Promise<NotificationItem[]> {
 
 export function useSellerNotifications() {
   return useQuery({
-    queryKey: ['seller-notifications'],
+    queryKey: ["seller-notifications"],
     queryFn: getSellerNotifications,
     refetchInterval: POLL_INTERVAL_ORDERS,
   });
@@ -453,8 +521,9 @@ export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      apiFetch<void>(`/seller/notifications/${id}/read`, { method: 'POST' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seller-notifications'] }),
+      apiFetch<void>(`/seller/notifications/${id}/read`, { method: "POST" }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["seller-notifications"] }),
   });
 }
 
@@ -467,8 +536,10 @@ export interface AuditLogFilters {
   size?: number;
 }
 
-export async function getSellerAuditLogs(filters: AuditLogFilters = {}): Promise<PageResponse<AuditLogItem>> {
-  return apiFetch<PageResponse<AuditLogItem>>('/seller/audit-logs', {
+export async function getSellerAuditLogs(
+  filters: AuditLogFilters = {},
+): Promise<PageResponse<AuditLogItem>> {
+  return apiFetch<PageResponse<AuditLogItem>>("/seller/audit-logs", {
     params: {
       action: filters.action,
       entityType: filters.entityType,
@@ -482,7 +553,7 @@ export async function getSellerAuditLogs(filters: AuditLogFilters = {}): Promise
 
 export function useSellerAuditLogs(filters: AuditLogFilters = {}) {
   return useQuery({
-    queryKey: ['seller-audit-logs', filters],
+    queryKey: ["seller-audit-logs", filters],
     queryFn: () => getSellerAuditLogs(filters),
   });
 }

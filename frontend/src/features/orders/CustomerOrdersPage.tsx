@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ShoppingBag, ArrowRight } from 'lucide-react';
-import { useCustomerOrders } from './api';
-import { OrderStatusBadge, PaymentStatusBadge } from '../../components/StatusBadge';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { ErrorMessage } from '../../components/ErrorMessage';
-import { EmptyState } from '../../components/EmptyState';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ShoppingBag, ArrowRight } from "lucide-react";
+import { useCustomerOrders } from "./api";
+import {
+  OrderStatusBadge,
+  PaymentStatusBadge,
+} from "../../components/StatusBadge";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { ErrorMessage } from "../../components/ErrorMessage";
+import { EmptyState } from "../../components/EmptyState";
 
 export const CustomerOrdersPage: React.FC = () => {
+  const navigate = useNavigate();
   const [page, setPage] = useState(0);
   const { data, isLoading, error, refetch } = useCustomerOrders(page, 20);
 
@@ -28,15 +32,15 @@ export const CustomerOrdersPage: React.FC = () => {
   return (
     <div className="customer-orders-page container">
       <h1 className="page-title">
-        <ShoppingBag size={24} /> Lịch sử đơn hàng của tôi
+        <ShoppingBag size={24} /> Đơn hàng của tôi
       </h1>
 
       {orders.length === 0 ? (
         <EmptyState
           title="Bạn chưa có đơn hàng nào"
           description="Các đơn hàng bạn đặt khi đã đăng nhập tài khoản sẽ xuất hiện ở đây."
-          actionText="Bắt đầu mua sắm ngay"
-          onAction={() => (window.location.href = '/')}
+          actionText="Chọn sản phẩm"
+          onAction={() => navigate("/#catalog")}
         />
       ) : (
         <div className="orders-table-card card">
@@ -55,21 +59,28 @@ export const CustomerOrdersPage: React.FC = () => {
               <tbody>
                 {orders.map((order) => (
                   <tr key={order.id}>
-                    <td>
-                      <strong className="order-code-highlight">{order.orderCode}</strong>
+                    <td data-label="Mã đơn">
+                      <strong className="order-code-highlight">
+                        {order.orderCode}
+                      </strong>
                     </td>
-                    <td>{new Date(order.createdAt).toLocaleDateString('vi-VN')}</td>
-                    <td>
-                      <strong>{order.total.toLocaleString('vi-VN')} đ</strong>
+                    <td data-label="Ngày đặt">
+                      {new Date(order.createdAt).toLocaleDateString("vi-VN")}
                     </td>
-                    <td>
+                    <td data-label="Tổng tiền">
+                      <strong>{order.total.toLocaleString("vi-VN")} đ</strong>
+                    </td>
+                    <td data-label="Trạng thái">
                       <OrderStatusBadge status={order.status} />
                     </td>
-                    <td>
+                    <td data-label="Thanh toán">
                       <PaymentStatusBadge status={order.paymentStatus} />
                     </td>
                     <td className="text-right">
-                      <Link to={`/account/orders/${order.id}`} className="btn-secondary-sm">
+                      <Link
+                        to={`/account/orders/${order.id}`}
+                        className="btn-secondary-sm"
+                      >
                         Xem chi tiết <ArrowRight size={14} />
                       </Link>
                     </td>
@@ -94,7 +105,9 @@ export const CustomerOrdersPage: React.FC = () => {
               </span>
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.min(data.totalPages - 1, p + 1))}
+                onClick={() =>
+                  setPage((p) => Math.min(data.totalPages - 1, p + 1))
+                }
                 disabled={page >= data.totalPages - 1}
                 className="btn-secondary-sm"
               >

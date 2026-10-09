@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import type { User, Session } from '@supabase/supabase-js';
-import { supabase } from '../../lib/supabase';
-import { apiFetch } from '../../lib/api-client';
-import type { Profile, Role } from '../../types/api';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import type { User, Session } from "@supabase/supabase-js";
+import { supabase } from "../../lib/supabase";
+import { apiFetch } from "../../lib/api-client";
+import type { Profile, Role } from "../../types/api";
 
 interface AuthContextType {
   user: User | null;
@@ -12,32 +12,44 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isSeller: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   register: (
     email: string,
     password: string,
     fullName: string,
-    phone: string
+    phone: string,
   ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (
+    email: string,
+  ) => Promise<{ success: boolean; error?: string }>;
   refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (accessToken?: string) => {
     try {
-      const data = await apiFetch<Profile>('/me', { skipIdempotency: true });
+      const data = await apiFetch<Profile>("/me", {
+        skipIdempotency: true,
+        headers: accessToken
+          ? { Authorization: `Bearer ${accessToken}` }
+          : undefined,
+      });
       setProfile(data);
     } catch (err: any) {
-      console.warn('Could not fetch backend profile (/me)', err);
+      console.warn("Could not fetch backend profile (/me)", err);
       // Profile might not exist yet if backend is still provisioning or DB is empty
       setProfile(null);
     }
@@ -52,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       if (session) {
-        fetchProfile().finally(() => {
+        fetchProfile(session.access_token).finally(() => {
           if (mounted) setIsLoading(false);
         });
       } else {
@@ -63,16 +75,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Listen to auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
       if (!mounted) return;
       setSession(newSession);
       setUser(newSession?.user ?? null);
       if (newSession) {
-        await fetchProfile();
+        void fetchProfile(newSession.access_token).finally(() => {
+          if (mounted) setIsLoading(false);
+        });
       } else {
         setProfile(null);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
     return () => {
@@ -97,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     password: string,
     fullName: string,
-    phone: string
+    phone: string,
   ) => {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -140,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const role = profile?.role ?? null;
   const isAuthenticated = !!user;
-  const isSeller = role === 'SELLER';
+  const isSeller = role === "SELLER";
 
   return (
     <AuthContext.Provider
@@ -167,7 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
