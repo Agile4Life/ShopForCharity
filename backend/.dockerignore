@@ -1,0 +1,9 @@
+.git
+.env
+.env.*
+target
+*.log
+.idea
+scripts
+deployment
+README.md

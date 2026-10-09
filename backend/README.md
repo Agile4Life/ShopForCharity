@@ -1,5 +1,7 @@
 # School Shop backend
 
+For Vercel frontend deployment with a separate Docker/JVM backend, see [deployment guide](../docs/vercel-deployment.md). Build container from `backend/`; the Vercel project uses repository-root `vercel.mjs` and same-origin API proxy.
+
 Spring Boot 3.5.7 modular monolith: controllers → transactional services → Spring Data JPA/EntityManager repositories. Target Java 21 (build also tested using installed Java 25). PostgreSQL 16+, Supabase Auth and Storage. Owner will provision Supabase after code handoff; no secrets are required to run unit tests.
 
 ## Build and test

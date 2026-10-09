@@ -12,5 +12,6 @@
 - Uploads decode images, limit dimensions, strip metadata by PNG re-encoding; public product images include a thumbnail, private QR is signed on authorized access.
 - Public catalog polls at 15s; orders/notifications at 10s; dashboard at 30s (frontend responsibility).
 - No external messages, bank automation or frontend implemented in this change.
+- Deployment preparation: Vercel hosts the existing frontend from repository root using `vercel.mjs`; `/api` proxies to a configured HTTPS Spring Boot origin. Backend is packaged as a non-root Java 21 Docker service on a separate JVM/container host. Same-origin proxy preserves guest-cookie behavior; no backend secrets are needed in Vercel's frontend build. Deployment accounts, backend origin and Supabase env remain owner-provided.
 
 Official references checked: [Spring JWT](https://docs.spring.io/spring-security/reference/6.5/servlet/oauth2/resource-server/jwt.html), [Supabase uploads](https://supabase.com/docs/guides/storage/uploads/standard-uploads), [Supabase downloads](https://supabase.com/docs/guides/storage/serving/downloads).
