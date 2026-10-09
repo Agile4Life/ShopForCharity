@@ -15,8 +15,11 @@ Cập nhật 10/10/2026 (Asia/Saigon).
 - V4 bổ sung shared rate limit PostgreSQL; cleanup dọn counter cũ.
 - Upload FE/BE 4 MiB; nâng sharp và Multer.
 - Test dùng fixture riêng, không đọc .env hoặc DB shop.
-- 35/35 tests pass: 29 backend, 6 config. Có PostgreSQL embedded migration/rerun/checksum/Flyway baseline/shared counters, native sharp và multipart.
+- 39/39 tests pass: 29 backend, 10 deployment/config. Có PostgreSQL embedded migration/rerun/checksum/Flyway baseline/shared counters, native sharp, multipart, export environment và exact origin checks.
 - Frontend production build pass. Backend audit: 0 vulnerability được báo cáo.
+- Đã chuẩn bị cấu hình maiamchoem.vercel.app và file private .vercel/deploy.env; giữ session/encryption keys, tạo cron secret, không export migration credential.
+- Kiểm tra deployment environment: transaction pooler TLS/readiness pass, production/preview origin và cookie Secure/HttpOnly pass; origin khác bị chặn, cron sai token trả 401.
+- Clean production install/build và serverless startup pass; backend test dependencies được omit, frontend build dependencies được include. Không tìm thấy giá trị backend secret trong frontend JS bundle.
 
 ## Còn cần thực hiện
 

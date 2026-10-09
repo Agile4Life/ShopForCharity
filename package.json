@@ -12,9 +12,10 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "build:frontend": "npm --prefix frontend run build",
     "start:backend": "npm --prefix backend start",
-    "test": "npm --prefix backend test && node --test deployment/vercel-config.test.mjs",
+    "test": "npm --prefix backend test && node --test deployment/*.test.mjs",
     "test:backend": "npm --prefix backend test",
-    "test:vercel": "node --test deployment/vercel-config.test.mjs"
+    "test:vercel": "node --test deployment/*.test.mjs",
+    "prepare:vercel": "node deployment/prepare-vercel.mjs"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",

@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { databaseConfig } from './database-config.js';
+import { allowedOrigins } from './identity/allowed-origins.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 if (process.env.NODE_ENV !== 'test' && process.env.VERCEL !== '1') {
@@ -19,11 +20,8 @@ export const config = {
     jwksUri: process.env.JWT_JWK_SET_URI,
     audience: process.env.JWT_EXPECTED_AUDIENCE || 'authenticated',
   },
-  corsOrigins: (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:5173')
-    .split(',')
-    .map(o => o.trim())
-    .filter(Boolean),
-  cookieSecure: process.env.COOKIE_SECURE === 'true',
+  corsOrigins: allowedOrigins(process.env),
+  cookieSecure: process.env.VERCEL === '1' || process.env.COOKIE_SECURE === 'true',
   encryptionKey: process.env.IDEMPOTENCY_ENCRYPTION_KEY,
   signingKey: process.env.GUEST_SESSION_SIGNING_KEY,
   pendingTtlHours: parseInt(process.env.PENDING_ORDER_TTL_HOURS || '24', 10),

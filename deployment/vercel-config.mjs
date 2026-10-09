@@ -1,10 +1,13 @@
 /** Vercel build-time config, shared with offline deployment contract checks. */
 export function createVercelConfig(env) {
-  const isServerless = env.SERVERLESS_BACKEND === 'true';
+  if (env.SERVERLESS_BACKEND !== undefined && !['true', 'false'].includes(env.SERVERLESS_BACKEND)) {
+    throw new Error('SERVERLESS_BACKEND must be true or false.');
+  }
+  const isServerless = env.SERVERLESS_BACKEND === 'true' || (env.SERVERLESS_BACKEND === undefined && !env.BACKEND_ORIGIN);
   let backend = null;
   if (!isServerless) {
     if (!env.BACKEND_ORIGIN) {
-      throw new Error('Set BACKEND_ORIGIN to the HTTPS origin of the Spring Boot service.');
+      throw new Error('Set BACKEND_ORIGIN to the HTTPS origin of the separate backend.');
     }
     try {
       backend = new URL(env.BACKEND_ORIGIN);
@@ -45,7 +48,7 @@ export function createVercelConfig(env) {
   }
   return {
     framework: 'vite',
-    installCommand: 'npm --prefix frontend ci --workspaces=false && npm --prefix backend ci --workspaces=false',
+    installCommand: 'npm --prefix frontend ci --include=dev --workspaces=false && npm --prefix backend ci --omit=dev --workspaces=false',
     buildCommand: 'npm --prefix frontend run build',
     outputDirectory: 'frontend/dist',
     functions: { 'api/index.js': { includeFiles: 'backend/certs/**' } },

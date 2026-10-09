@@ -2,6 +2,8 @@
 
 Runtime: Node.js 24. Entry serverless: `api/index.js`; `backend/src/server.js` chỉ dùng khi chạy server thông thường.
 
+Cấu hình cụ thể đã chuẩn bị cho [maiamchoem.vercel.app](deploy-maiamchoem.md). Tạo file import môi trường bằng `npm.cmd run prepare:vercel`; file private `.vercel/deploy.env` được Git ignore.
+
 ## Monorepo: một Vercel project
 
 Import repo, Root Directory là root, Framework Preset Vite. `vercel.mjs` cài dependency cả frontend/backend bằng lockfile, build frontend, route `/api/*` và `/actuator/*` tới backend và đóng gói CA certificate.

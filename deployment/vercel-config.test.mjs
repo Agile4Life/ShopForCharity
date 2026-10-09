@@ -13,7 +13,7 @@ test('proxy preserves /api/v1 and precedes SPA fallback', () => {
     source: '/api/:path*', destination: 'https://api.example.com/api/:path*',
   });
   assert.equal(config.outputDirectory, 'frontend/dist');
-  assert.equal(config.installCommand, 'npm --prefix frontend ci --workspaces=false && npm --prefix backend ci --workspaces=false');
+  assert.equal(config.installCommand, 'npm --prefix frontend ci --include=dev --workspaces=false && npm --prefix backend ci --omit=dev --workspaces=false');
   assert.deepEqual(config.rewrites[1], { source: '/actuator/:path*', destination: 'https://api.example.com/actuator/:path*' });
   const spa = new RegExp(`^${config.rewrites[2].source}$`);
   for (const path of ['/checkout', '/guest-order', '/seller/orders/123', '/']) {
@@ -70,4 +70,12 @@ test('frequent cron schedule is opt-in for eligible plans', () => {
   const config = createVercelConfig({ ...authEnv, SERVERLESS_BACKEND: 'true', VERCEL_CRON_FREQUENT: 'true' });
   assert.equal(config.crons[0].schedule, '* * * * *');
   assert.equal(config.crons[1].schedule, '0 * * * *');
+});
+
+test('monorepo uses Node backend by default; flags cannot silently select a broken proxy', () => {
+  const config = createVercelConfig(authEnv);
+  assert.equal(config.rewrites[0].destination, '/api/index.js');
+  assert.equal(config.functions['api/index.js'].includeFiles, 'backend/certs/**');
+  assert.throws(() => createVercelConfig({ ...authEnv, SERVERLESS_BACKEND: 'false' }), /BACKEND_ORIGIN/);
+  assert.throws(() => createVercelConfig({ ...authEnv, SERVERLESS_BACKEND: 'ture' }), /true or false/);
 });

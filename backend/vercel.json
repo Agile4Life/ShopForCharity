@@ -1,7 +1,7 @@
 {
   "version": 2,
   "framework": null,
-  "installCommand": "npm ci --workspaces=false",
+  "installCommand": "npm ci --omit=dev --workspaces=false",
   "buildCommand": "",
   "functions": { "api/index.js": { "includeFiles": "certs/**" } },
   "crons": [

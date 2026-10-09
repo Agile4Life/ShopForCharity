@@ -8,16 +8,11 @@ function Invoke-Check {
 }
 Push-Location $repoPath
 try {
-    Invoke-Check 'node' @('--test', 'deployment/vercel-config.test.mjs')
+    Invoke-Check 'npm.cmd' @('test')
     Push-Location 'frontend'
-    try { Invoke-Check 'npm.cmd' @('run', 'check') } finally { Pop-Location }
-    Push-Location 'backend'
     try {
-        if ($UnitOnly) {
-            Invoke-Check '.\mvnw.cmd' @('-B', '-ntp', 'test')
-            Write-Warning 'UnitOnly omits database integration and packaging. This is NOT release validation.'
-        } else {
-            Invoke-Check '.\mvnw.cmd' @('-B', '-ntp', 'verify')
-        }
+        Invoke-Check 'npm.cmd' @('run', 'build')
+        if (-not $UnitOnly) { Invoke-Check 'npm.cmd' @('run', 'check') }
     } finally { Pop-Location }
+    if ($UnitOnly) { Write-Warning 'Browser E2E and live Vercel checks were not run.' }
 } finally { Pop-Location }
