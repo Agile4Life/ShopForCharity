@@ -230,7 +230,7 @@ export const SellerOrderDetailPage: React.FC = () => {
     e.preventDefault();
     try {
       await actions.confirmRefund.mutateAsync({
-        amount: order.total,
+        amount: order.receivedAmount,
         bankReference: refundBankRef.trim() || undefined,
         note: refundNote.trim() || undefined,
         expectedVersion: order.version,

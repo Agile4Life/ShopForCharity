@@ -10,4 +10,9 @@ frontend/.env.*
 *.log
 .idea/
 *.iml
+**/playwright-report/
+**/test-results/
+**/.npm-cache/
+**/.browsers/
+!frontend/.env.example
 

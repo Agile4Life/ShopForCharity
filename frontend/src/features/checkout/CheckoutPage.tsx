@@ -136,7 +136,7 @@ export const CheckoutPage: React.FC = () => {
     try {
       // Ensure guest session cookie is issued if guest
       if (!isAuthenticated) {
-        await createGuestSession().catch(() => {});
+        await createGuestSession();
       }
 
       const res = await quoteMutation.mutateAsync({

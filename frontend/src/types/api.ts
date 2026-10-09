@@ -61,6 +61,7 @@ export interface Profile {
 
 // Shop & Pickup Points
 export interface PickupPoint {
+  version?: number;
   id: string;
   shopId?: string;
   name: string;
@@ -265,6 +266,7 @@ export interface PaymentEventItem {
 }
 
 export interface OrderDetail {
+  receivedAmount: number;
   id: string;
   orderCode: string;
   customerId?: string;

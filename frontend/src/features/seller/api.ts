@@ -486,7 +486,7 @@ export function useSellerPickupPointMutations() {
   });
 
   const updatePickupPoint = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<PickupPoint> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<PickupPoint> & { expectedVersion?: number } }) =>
       apiFetch<PickupPoint>(`/seller/pickup-points/${id}`, {
         method: "PATCH",
         body: data,

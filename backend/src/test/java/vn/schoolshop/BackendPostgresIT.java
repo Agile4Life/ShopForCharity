@@ -30,7 +30,7 @@ import vn.schoolshop.payment.*;
 import vn.schoolshop.shop.*;
 
 /** Always disposable PostgreSQL; never uses the owner's Supabase or production DB. */
-@Testcontainers(disabledWithoutDocker = true)
+@Testcontainers
 @SpringBootTest(
     properties = {
       "spring.flyway.enabled=true",

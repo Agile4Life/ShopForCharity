@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:types": "tsc -p tsconfig.e2e.json",
+    "check": "npm run lint && npm run test:e2e:types && npm run test:e2e"
   },
   "dependencies": {
     "@fontsource-variable/baloo-2": "^5.3.0",
@@ -23,6 +27,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

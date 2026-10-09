@@ -21,9 +21,10 @@ export function Navbar() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
   const handleLogout = async () => {
-    await logout();
     setOpen(false);
-    navigate("/");
+    // Leave a protected page before SIGNED_OUT triggers its login redirect.
+    navigate("/", { replace: true });
+    await logout();
   };
   return (
     <>

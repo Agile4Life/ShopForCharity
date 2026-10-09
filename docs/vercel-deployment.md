@@ -1,27 +1,27 @@
 # Triển khai Vercel + Spring Boot + Supabase
 
-Đã chuẩn bị cấu hình, chưa publish lên tài khoản hay tạo hạ tầng. Mã frontend giữ nguyên.
+Đã chuẩn bị cấu hình, chưa publish lên tài khoản hay tạo hạ tầng. Xem [test và trạng thái trước deploy](./predeploy-readiness.md).
 
 ## Kiến trúc deploy
 
 Vercel build/host FE React/Vite. Request `/api/v1/*` trên domain Vercel được rewrite tới Spring Boot HTTPS. BE chạy dưới dạng JVM/container liên tục và kết nối Supabase PostgreSQL/Auth/Storage. Cookie guest được cấp qua proxy trên domain website, HttpOnly/Secure/SameSite=Lax, path `/api/v1`; tránh gọi API khác site trực tiếp khiến cookie guest không được gửi.
 
-Vercel Functions không có runtime JVM/Spring Boot chính thức; backend hiện có scheduler và connection pool nên cần dịch vụ container/JVM riêng. Có thể dùng hạ tầng container của bạn; chưa chọn hoặc tạo dịch vụ có phí. Tham khảo [Vercel runtimes](https://vercel.com/docs/functions/runtimes), [external rewrites](https://vercel.com/docs/routing/rewrites), [programmatic config](https://vercel.com/docs/project-configuration/vercel-ts).
+Vercel Functions không có runtime Java trực tiếp. Tài liệu hiện tại có Container runtime beta, nhưng phương án đó dùng container và cần đánh giá scheduler/lifecycle riêng. Nếu giữ Spring Boot/JUnit và không dùng container, backend chạy Java JAR trên host JVM riêng; Vercel host frontend. Supabase cung cấp PostgreSQL/Auth/Storage, không host Spring Boot. Cấu hình trong repo là phương án Vercel frontend + backend HTTPS riêng, **không phải toàn bộ frontend/backend trên Vercel**. Tham khảo [Vercel runtimes](https://vercel.com/docs/functions/runtimes), [external rewrites](https://vercel.com/docs/routing/rewrites), [programmatic config](https://vercel.com/docs/project-configuration/vercel-ts).
 
 ## 1. Chạy backend trước
 
-Docker build context là `backend/`:
+Backend có thể deploy trực tiếp bằng Java 21, không cần Docker. Từ thư mục `backend/`:
 
 ```sh
-docker build -t schoolshop-api ./backend
-docker run --rm --env-file /secure/path/backend.env -p 8080:8080 schoolshop-api
+sh mvnw -B -ntp package
+java -jar target/backend-0.1.0.jar
 ```
 
-Container chạy Java 21 với user không phải root, không chứa DB/key trong image. `PORT` mặc định 8080, có thể do host cấp. Host phải cung cấp HTTPS public origin, health check `/actuator/health/readiness`, và process không bị dừng giữa các kỳ scheduler. Thiết lập memory ban đầu phù hợp JVM (ví dụ 512MB, đo staging), một replica, pool tối đa 5. Docker build chỉ đóng gói; chạy `backend/mvnw.cmd verify` với Docker hoạt động trước release.
+Windows: `.\mvnw.cmd -B -ntp package`, sau đó chạy cùng lệnh `java -jar`. JAR build chạy unit test nhưng chưa chạy PostgreSQL integration; CI phải pass `verify` trước release. Host chạy Java bằng user không phải root và inject env; Spring không tự đọc `.env`. `PORT` mặc định 8080, có thể do host cấp. Host phải cung cấp HTTPS public origin, health check `/actuator/health/readiness`, và process chạy liên tục để scheduler hoạt động. Thiết lập một replica ban đầu, pool tối đa 5; đo memory trên staging. Dùng service manager của host để restart sau reboot/crash.
 
 Inject toàn bộ env trong [backend/.env.example](../backend/.env.example) tại host BE. Production: `COOKIE_SECURE=true`, `MIGRATIONS_ENABLED=false`, `CORS_ALLOWED_ORIGINS=https://<domain-website-thật>`. Mỗi origin đầy đủ, phân cách bằng dấu phẩy, không có dấu `/` cuối, không wildcard. BE vẫn kiểm tra Origin gốc từ browser sau Vercel proxy. Không tin X-Forwarded-* làm identity; không bật forwarded-header parsing chỉ vì có proxy.
 
-Chạy migrations với credential riêng và cấp quyền runtime theo [backend README](../backend/README.md) trước khi mở container phục vụ đơn. Không chạy migration bằng runtime user và không để schema owner credential ở FE/Vercel. DB chưa được owner tạo; image/config sẵn sàng nhận env sau.
+Chạy migrations với credential riêng và cấp quyền runtime theo [backend README](../backend/README.md) trước khi mở service phục vụ đơn. Không chạy migration bằng runtime user và không để schema owner credential ở FE/Vercel. Kết nối Supabase dev và cấu hình thực tế phải được xác nhận trước release.
 
 ## 2. Import repo vào Vercel
 
@@ -67,6 +67,6 @@ Kiểm tra config local không cần tài khoản hoặc key:
 node --test deployment/vercel-config.test.mjs
 ```
 
-Các mục chưa xác nhận: backend host/domain, Supabase credentials, Vercel project/env và health/cookie/proxy thực tế. Docker daemon hiện chưa chạy nên Docker image chưa được build tại máy này. Không coi những mục đó là đã deploy/test thành công.
+Các mục chưa xác nhận: backend host/domain, Supabase cấu hình live, Vercel project/env và health/cookie/proxy thực tế. PostgreSQL integration chưa pass tại máy này vì Docker engine chưa chạy; có thể chạy trong CI. Không coi những mục đó là đã deploy/test thành công.
 
-Kiểm tra local đã chạy: 4 test routing/config pass, build FE (`tsc -b && vite build`) pass, backend Maven packaging pass sau khi thêm PORT. FE build chỉ tạo artifact trong `frontend/dist`, không sửa source. Việc deploy thực tế và build Docker image còn chờ môi trường tương ứng.
+Kiểm tra và kết quả mới nhất nằm trong [predeploy-readiness.md](./predeploy-readiness.md). Deploy Java JAR không cần build Docker image. Yêu cầu toàn bộ frontend/backend trên Vercel trong khi giữ Java và không dùng container chưa được giải quyết bằng cấu hình này.

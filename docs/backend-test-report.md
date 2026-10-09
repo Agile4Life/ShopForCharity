@@ -1,5 +1,7 @@
 # Backend validation — 09/10/2026
 
+Historical report below. Latest: [predeploy readiness](./predeploy-readiness.md): 48 unit tests pass; PostgreSQL integration now fails when Docker is unavailable instead of silently skipping.
+
 Commands use Java 25.0.4, Maven 3.9.11 with Java 21 release target, Spring Boot 3.5.7.
 
 - Maven `verify`, backend build and JAR packaging: pass. 35 unit/security/contract tests passed; 9 PostgreSQL tests skipped because Docker is unavailable.

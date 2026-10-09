@@ -1,8 +1,8 @@
 # School Shop backend
 
-For Vercel frontend deployment with a separate Docker/JVM backend, see [deployment guide](../docs/vercel-deployment.md). Build container from `backend/`; the Vercel project uses repository-root `vercel.mjs` and same-origin API proxy.
+For Vercel frontend deployment with a separate Java JAR backend, see [deployment guide](../docs/vercel-deployment.md). The Vercel project uses repository-root `vercel.mjs` and same-origin API proxy. See [current test readiness](../docs/predeploy-readiness.md).
 
-Spring Boot 3.5.7 modular monolith: controllers → transactional services → Spring Data JPA/EntityManager repositories. Target Java 21 (build also tested using installed Java 25). PostgreSQL 16+, Supabase Auth and Storage. Owner will provision Supabase after code handoff; no secrets are required to run unit tests.
+Spring Boot 3.5.7 modular monolith: controllers → transactional services → Spring Data JPA/EntityManager repositories. Target Java 21 (build also tested using installed Java 25). PostgreSQL 16+, Supabase Auth and Storage. No secrets are required to run unit tests. Backend can run as a Java JAR without Docker; see the deployment guide.
 
 ## Build and test
 
@@ -12,7 +12,7 @@ cd backend
 .\mvnw.cmd verify
 ```
 
-Linux/macOS: `sh mvnw test` / `sh mvnw verify`. Maven 3.9.11 wrapper downloads the pinned distribution. Unit tests use no remote credentials. `verify` also runs `BackendPostgresIT` on disposable PostgreSQL 16.4 using Testcontainers; start Docker first. Without Docker the integration suite is **skipped**, not verified. Never point this suite at the shop's database.
+Linux/macOS: `sh mvnw test` / `sh mvnw verify`. Maven 3.9.11 wrapper downloads the pinned distribution. Unit tests use no remote credentials. `verify` also runs `BackendPostgresIT` on disposable PostgreSQL 16.4 using Testcontainers; start Docker first or run the CI workflow. Without Docker, `verify` **fails** so missing database validation cannot appear green. Docker is a test dependency only; deploying the Java JAR does not need Docker. Never point this suite at the shop's database.
 
 ## Configure and start
 

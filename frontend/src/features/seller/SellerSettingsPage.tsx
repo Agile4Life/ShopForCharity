@@ -129,7 +129,10 @@ export const SellerSettingsPage: React.FC = () => {
     try {
       await pointMutations.updatePickupPoint.mutateAsync({
         id,
-        data: { active: !currentActive },
+        data: {
+          active: !currentActive,
+          expectedVersion: pickupPoints.find((point) => point.id === id)?.version,
+        },
       });
     } catch (error) {
       notify(
