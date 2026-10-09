@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { ArrowUpRight, ShoppingBag, User, LogOut, Menu, X } from "lucide-react";
+import { useRef } from "react";
+import { ArrowUpRight, ChevronDown, ShoppingBag, User, LogOut, Menu, X } from "lucide-react";
 import { useCart } from "../features/cart/cart-context";
 import { useAuth } from "../features/auth/auth-context";
 import { BrandMark } from "./BrandMark";
@@ -13,15 +14,37 @@ export function Navbar() {
   const open = menuPath === pathname;
   const setOpen = (value: boolean) => setMenuPath(value ? pathname : null);
   const navigate = useNavigate();
+  const accountMenu = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (accountMenu.current) accountMenu.current.open = false;
+  }, [pathname]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setMenuPath(null);
+      if (event.key === "Escape") {
+        setMenuPath(null);
+        if (accountMenu.current?.open) {
+          accountMenu.current.open = false;
+          accountMenu.current.querySelector("summary")?.focus();
+        }
+      }
+    };
+    const onOutside = (event: Event) => {
+      if (event.target instanceof Node && !accountMenu.current?.contains(event.target)) {
+        if (accountMenu.current) accountMenu.current.open = false;
+      }
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onOutside);
+    document.addEventListener("focusin", onOutside);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onOutside);
+      document.removeEventListener("focusin", onOutside);
+    };
   }, []);
   const handleLogout = async () => {
     setOpen(false);
+    if (accountMenu.current) accountMenu.current.open = false;
     // Leave a protected page before SIGNED_OUT triggers its login redirect.
     navigate("/", { replace: true });
     await logout();
@@ -70,25 +93,37 @@ export function Navbar() {
               </span>
             </Link>
             {isAuthenticated ? (
-              <div className="user-menu">
-                <Link
-                  to="/account/profile"
-                  className="user-btn"
-                  aria-label="Thông tin tài khoản"
-                >
+              <details className="user-menu account-dropdown" ref={accountMenu}
+                onToggle={() => {
+                  if (accountMenu.current?.open) setMenuPath(null);
+                }}
+              >
+                <summary className="user-btn" role="button" aria-label="Menu tài khoản">
                   <User size={18} aria-hidden="true" />
                   <span className="user-name">
                     {profile?.fullName || "Tài khoản"}
                   </span>
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="logout-btn"
-                  aria-label="Đăng xuất"
+                  <ChevronDown className="account-chevron" size={15} aria-hidden="true" />
+                </summary>
+                <nav className="account-dropdown-panel" aria-label="Điều hướng tài khoản"
+                  onClick={(event) => {
+                    if ((event.target as Element).closest("a") && accountMenu.current) {
+                      accountMenu.current.open = false;
+                    }
+                  }}
                 >
-                  <LogOut size={18} aria-hidden="true" />
-                </button>
-              </div>
+                  <div className="account-dropdown-heading">
+                    <strong>{profile?.fullName || "Tài khoản"}</strong>
+                    <span>{isSeller ? "Người bán" : "Khách hàng"}</span>
+                  </div>
+                  <NavLink to="/account/profile"><User size={17} aria-hidden="true" />Thông tin tài khoản</NavLink>
+                  <NavLink to="/account/orders"><ShoppingBag size={17} aria-hidden="true" />Đơn hàng của tôi</NavLink>
+                  {isSeller && <NavLink to="/seller"><ArrowUpRight size={17} aria-hidden="true" />Bàn làm việc</NavLink>}
+                  <button type="button" onClick={handleLogout} className="account-dropdown-logout">
+                    <LogOut size={17} aria-hidden="true" />Đăng xuất
+                  </button>
+                </nav>
+              </details>
             ) : (
               <Link to="/login" className="nav-login">
                 Đăng nhập <ArrowUpRight size={17} aria-hidden="true" />
@@ -97,7 +132,10 @@ export function Navbar() {
             <button
               type="button"
               className="mobile-toggle"
-              onClick={() => setOpen(!open)}
+              onClick={() => {
+                if (accountMenu.current) accountMenu.current.open = false;
+                setOpen(!open);
+              }}
               aria-label={open ? "Đóng menu" : "Mở menu"}
               aria-expanded={open}
               aria-controls="mobile-navigation"

@@ -1,0 +1,162 @@
+/* Shared surfaces for menus, selects, and both axes of scrolling. */
+:root {
+  --control-surface: var(--bg-card);
+  --control-selected: var(--primary-subtle);
+  --scrollbar-track: var(--cream);
+  --scrollbar-thumb: #9ba98b;
+  --scrollbar-thumb-hover: #626f55;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+html { scrollbar-gutter: stable; }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border: 3px solid var(--scrollbar-track);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+/* Native selects retain validation, labels, and keyboard behavior. */
+select.select-field,
+select.select-input {
+  appearance: none;
+  min-width: 0;
+  min-height: 48px;
+  padding: 11px 40px 11px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--control-surface);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+    linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+  background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  color: var(--text-main);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+}
+select.select-field:hover:not(:disabled),
+select.select-input:hover:not(:disabled) { border-color: var(--scrollbar-thumb-hover); }
+select:disabled { opacity: 0.6; cursor: not-allowed; }
+select.input-error,
+select[aria-invalid="true"] { border-color: var(--danger); }
+
+/* Progressive enhancement; other browsers retain their native picker. */
+@supports (appearance: base-select) {
+  select.select-field,
+  select.select-input,
+  select::picker(select) { appearance: base-select; }
+  select.select-field,
+  select.select-input {
+    padding-inline-end: 14px;
+    background-image: none;
+    gap: 12px;
+  }
+  select::picker-icon {
+    color: var(--ink);
+    font-size: 0.8em;
+    margin-inline-start: auto;
+  }
+  select:open::picker-icon { rotate: 180deg; }
+  select::picker(select) {
+    margin-block: 6px;
+    padding: 6px;
+    max-block-size: min(320px, 65dvh);
+    max-inline-size: calc(100vw - 24px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--control-surface);
+    color: var(--text-main);
+    box-shadow: 0 12px 32px #284b3724;
+    font-family: var(--font-family);
+  }
+  select option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  select option:is(:hover, :focus) { background: var(--sage); outline: none; }
+  select option:checked { background: var(--control-selected); font-weight: 600; }
+  select option:disabled { opacity: 0.55; }
+  select option::checkmark { order: 1; margin-inline-start: auto; color: var(--primary); }
+}
+
+.account-dropdown { position: relative; display: block; }
+.account-dropdown > summary { list-style: none; border: 1px solid transparent; }
+.account-dropdown > summary::-webkit-details-marker { display: none; }
+.account-dropdown > summary:hover,
+.account-dropdown[open] > summary {
+  background: var(--control-selected);
+  border-color: var(--border-color);
+}
+.account-dropdown[open] .account-chevron { rotate: 180deg; }
+.account-dropdown-panel {
+  position: absolute;
+  inset-block-start: calc(100% + 10px);
+  inset-inline-end: 0;
+  width: 260px;
+  max-width: calc(100vw - 32px);
+  max-height: min(440px, 70dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--control-surface);
+  box-shadow: 0 12px 32px #284b3724;
+}
+.account-dropdown-heading {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px 14px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border-color);
+  overflow-wrap: anywhere;
+}
+.account-dropdown-heading strong { font-size: 14px; }
+.account-dropdown-heading span { color: var(--text-muted); font-size: 12px; }
+.account-dropdown-panel a,
+.account-dropdown-panel button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-main);
+  text-align: start;
+  font-size: 14px;
+}
+.account-dropdown-panel a:is(:hover, .active),
+.account-dropdown-panel button:hover { background: var(--control-selected); }
+.account-dropdown-panel .account-dropdown-logout { margin-top: 6px; color: var(--danger); }
+.account-dropdown-panel .account-dropdown-logout:hover { background: var(--danger-bg); }
+.account-dropdown-panel :focus-visible { outline-offset: -3px; }
+
+@media (forced-colors: active) {
+  * { scrollbar-color: auto; }
+  select.select-field,
+  select.select-input { appearance: auto; background-image: none; }
+  .account-dropdown > summary { border-color: ButtonText; }
+}

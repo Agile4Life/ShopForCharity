@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:e2e": "playwright test",
+    "test:e2e:integration": "playwright test --config playwright.integration.config.ts",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:types": "tsc -p tsconfig.e2e.json",
     "check": "npm run lint && npm run test:e2e:types && npm run test:e2e"

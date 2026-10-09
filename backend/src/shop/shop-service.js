@@ -27,17 +27,18 @@ export class ShopService {
     return p;
   }
 
-  async get(seller = false, actor = null) {
+  async get(seller = false, actor = null, client = null) {
     if (seller) this.profiles.seller(actor);
 
     const shopRes = await query(
       'SELECT * FROM shop.shops WHERE id = $1',
-      [config.shopId]
+      [config.shopId],
+      client
     );
     if (shopRes.rows.length === 0) throw ApiException.missing();
     const s = shopRes.rows[0];
 
-    const points = await this.points(seller);
+    const points = await this.points(seller, client);
     const out = {
       id: s.id,
       name: s.name,
@@ -53,7 +54,8 @@ export class ShopService {
       if (s.payment_settings_version_id) {
         const bankRes = await query(
           'SELECT * FROM shop.payment_settings_versions WHERE id = $1',
-          [s.payment_settings_version_id]
+          [s.payment_settings_version_id],
+          client
         );
         if (bankRes.rows.length > 0) {
           const b = bankRes.rows[0];
@@ -75,11 +77,11 @@ export class ShopService {
     return out;
   }
 
-  async points(seller = false) {
+  async points(seller = false, client = null) {
     const sql = `SELECT * FROM shop.pickup_points WHERE shop_id = $1 ${
       seller ? '' : 'AND active = true'
     } ORDER BY created_at ASC`;
-    const res = await query(sql, [config.shopId]);
+    const res = await query(sql, [config.shopId], client);
     return res.rows.map((p) => ({
       id: p.id,
       name: p.name,
@@ -222,7 +224,7 @@ export class ShopService {
         JSON.stringify({ acceptingOrders })
       );
 
-      return this.get(true, actor);
+      return this.get(true, actor, client);
     });
   }
 

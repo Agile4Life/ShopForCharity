@@ -12,8 +12,7 @@ test('logout removes account session and blocks protected pages', async ({ page,
   await scenario.authenticate('CUSTOMER');
   await page.goto('/account/profile');
   await expect(page.locator('#profName')).toHaveValue('Nguyễn Văn Test');
-  const menu = page.getByRole('button', { name: 'Mở menu', exact: true });
-  if (await menu.isVisible()) await menu.click();
+  await page.locator('.account-dropdown > summary').click();
   // One-time seed: subsequent navigation must preserve logout's actual storage state.
   await page.getByRole('button', { name: 'Đăng xuất', exact: true }).first().click();
   await expect(page).toHaveURL('/');
