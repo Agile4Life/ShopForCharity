@@ -32,7 +32,8 @@ public class RequestFilter extends OncePerRequestFilter {
     try {
       res.setHeader("Cache-Control", "private, no-store");
       boolean mutation = Set.of("POST", "PATCH", "PUT", "DELETE").contains(req.getMethod());
-      boolean bearer = req.getHeader("Authorization") != null;
+      String authorization = req.getHeader("Authorization");
+      boolean bearer = authorization != null && authorization.startsWith("Bearer ");
       boolean cookieRoute =
           req.getRequestURI().startsWith("/api/v1/guest/")
               || req.getRequestURI().equals("/api/v1/checkout/session");
@@ -53,8 +54,10 @@ public class RequestFilter extends OncePerRequestFilter {
         chain.doFilter(req, res);
       } catch (vn.schoolshop.common.ApiException e) {
         SecurityConfig.write(mapper, res, e.status, e.code, e.getMessage());
-      } catch (org.springframework.transaction.TransactionException | org.springframework.dao.DataAccessException e) {
-        SecurityConfig.write(mapper, res, 503, "DEPENDENCY_UNAVAILABLE", "Dịch vụ tạm không sẵn sàng.");
+      } catch (org.springframework.transaction.TransactionException
+          | org.springframework.dao.DataAccessException e) {
+        SecurityConfig.write(
+            mapper, res, 503, "DEPENDENCY_UNAVAILABLE", "Dịch vụ tạm không sẵn sàng.");
       }
     } finally {
       Object route =

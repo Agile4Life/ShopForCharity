@@ -400,6 +400,23 @@ public class CatalogService {
       i.id = p.id;
       i.stockOnHand = input.initialStock() == null ? 0 : input.initialStock();
       db.add(i);
+      if (i.stockOnHand > 0) {
+        var movement = new vn.schoolshop.inventory.Movement();
+        movement.productId = p.id;
+        movement.kind = "ADJUSTED";
+        movement.deltaOnHand = i.stockOnHand;
+        movement.deltaReserved = 0;
+        movement.reason = "INITIAL_STOCK";
+        movement.actorId = actor.id();
+        db.add(movement);
+        audit.record(
+            actor,
+            "STOCK_ADJUSTED",
+            "PRODUCT",
+            p.id,
+            "{\"stockOnHand\":0}",
+            "{\"stockOnHand\":" + i.stockOnHand + "}");
+      }
     }
     // Mark aggregate dirty even when only its children/metadata change.
     p.updatedAt = java.time.Instant.now();

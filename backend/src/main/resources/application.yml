@@ -37,6 +37,9 @@ management:
   endpoint.health:
     show-details: never
     probes.enabled: true
+    group:
+      liveness.include: livenessState
+      readiness.include: readinessState,db
 app:
   shop-id: ${APP_SHOP_ID:00000000-0000-0000-0000-000000000001}
   issuer: ${JWT_ISSUER_URI}
