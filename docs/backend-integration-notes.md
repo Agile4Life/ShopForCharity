@@ -1,6 +1,6 @@
 # Backend integration status for FE agent
 
-Backend owns `/api/v1`, frontend files are untouched. Checked FE commit `2b121b7`.
+Backend owns `/api/v1`, frontend files are untouched. Checked FE commits `2b121b7`, `5a42df5`, `c38b2fc`. The last commit addresses most of the version, pagination, slug and inventory contract gaps below.
 
 ## Required FE contract updates (keep the spec's safety rules)
 
@@ -16,6 +16,8 @@ Backend owns `/api/v1`, frontend files are untouched. Checked FE commit `2b121b7
 
 ## Backend compatibility work
 
-Backend will expose FE field names (`imageUrl`, `isSoldOut`, `categoryName`, `preservationInstructions`, `productName`, `totalPages`) and accept generated slugs for create forms. It accepts UUID or slug on public detail routes. Catalog/settings PATCH supports partial fields with explicit expectedVersion. Stock adjustment accepts `deltaOnHand` and optional absolute `stockOnHand` (exactly one).
+Backend exposes FE field names (`imageUrl`, `isSoldOut`, `categoryName`, `preservationInstructions`, `productName`, `totalPages`) and generates slugs for create forms. It accepts UUID or slug on public detail routes. Catalog/settings PATCH supports partial fields with explicit expectedVersion. Stock adjustment accepts `deltaOnHand` and optional absolute `stockOnHand` (exactly one).
 
-Database and Supabase credentials are intentionally pending owner provisioning. Build/unit checks can run without them. PostgreSQL integration checks run with Docker or an explicitly disposable test DB (never production). See backend README and OpenAPI.
+Remaining FE check at `c38b2fc`: refund currently submits `order.total`; submit `order.receivedAmount` instead (partial/extra receipts can differ from total), and add `receivedAmount` to the seller order type. `POST /confirm-payment` amount is each new actual receipt, not a cumulative overwrite. Lists return scalar order summaries; load detail to get items/timeline/contact/payment events. Cookie session creation failure must remain an error, rather than silently submitting without a session.
+
+Database and Supabase credentials are intentionally pending owner provisioning. Build/unit checks can run without them. PostgreSQL integration checks run only with a disposable Testcontainers Docker database, never production. See backend README and OpenAPI.
