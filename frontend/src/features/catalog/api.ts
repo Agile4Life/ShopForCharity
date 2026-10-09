@@ -45,7 +45,11 @@ export async function getProductDetail(idOrSlug: string): Promise<ProductDetail>
 }
 
 export async function getCombos(): Promise<ComboSummary[]> {
-  return apiFetch<ComboSummary[]>('/combos', { skipIdempotency: true });
+  const res = await apiFetch<PageResponse<ComboSummary> | ComboSummary[]>('/combos', { skipIdempotency: true });
+  if (Array.isArray(res)) {
+    return res;
+  }
+  return res.content || [];
 }
 
 export async function getComboDetail(idOrSlug: string): Promise<ComboDetail> {

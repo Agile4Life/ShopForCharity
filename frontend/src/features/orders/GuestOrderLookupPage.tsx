@@ -52,14 +52,14 @@ export const GuestOrderLookupPage: React.FC = () => {
     }
   };
 
-  const handleCancel = async (reason: string) => {
+  const handleCancel = async (reason: string, expectedVersion: number) => {
     if (!currentOrderCode) return;
-    await cancelMutation.mutateAsync({ orderCode: currentOrderCode, reason });
+    await cancelMutation.mutateAsync({ orderCode: currentOrderCode, reason, expectedVersion });
   };
 
-  const handleReportPayment = async () => {
+  const handleReportPayment = async (expectedVersion: number) => {
     if (!currentOrderCode) return;
-    await reportPaymentMutation.mutateAsync(currentOrderCode);
+    await reportPaymentMutation.mutateAsync({ orderCode: currentOrderCode, expectedVersion });
   };
 
   return (

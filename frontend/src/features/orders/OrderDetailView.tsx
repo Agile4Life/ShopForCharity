@@ -14,8 +14,8 @@ import { Modal } from '../../components/Modal';
 interface OrderDetailViewProps {
   order: OrderDetail;
   paymentInstructions?: PaymentInstructions | null;
-  onCancelOrder?: (reason: string) => Promise<void>;
-  onReportPayment?: () => Promise<void>;
+  onCancelOrder?: (reason: string, expectedVersion: number) => Promise<void>;
+  onReportPayment?: (expectedVersion: number) => Promise<void>;
   isCancelling?: boolean;
   isReportingPayment?: boolean;
 }
@@ -49,7 +49,7 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
       return;
     }
     if (onCancelOrder) {
-      await onCancelOrder(cancelReason.trim());
+      await onCancelOrder(cancelReason.trim(), order.version);
       setCancelModalOpen(false);
       setCancelReason('');
     }
@@ -287,7 +287,7 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                     </p>
                     <button
                       type="button"
-                      onClick={onReportPayment}
+                      onClick={() => onReportPayment(order.version)}
                       disabled={isReportingPayment}
                       className="btn-primary full-width"
                     >

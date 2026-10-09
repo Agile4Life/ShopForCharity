@@ -48,7 +48,7 @@ export const SellerProductsPage: React.FC = () => {
       data: {
         deltaOnHand,
         reason: adjustReason.trim(),
-        expectedVersion: selectedProduct.version ?? 0,
+        expectedVersion: selectedProduct.inventoryVersion ?? selectedProduct.version ?? 0,
       },
     });
     setAdjustModalOpen(false);
@@ -138,7 +138,7 @@ export const SellerProductsPage: React.FC = () => {
                         {p.status === 'ACTIVE' ? (
                           <button
                             type="button"
-                            onClick={() => mutations.archiveProduct.mutate(p.id)}
+                            onClick={() => mutations.archiveProduct.mutate({ id: p.id, expectedVersion: p.version ?? 0 })}
                             className="btn-danger-xs"
                             title="Ẩn sản phẩm"
                           >
@@ -147,7 +147,7 @@ export const SellerProductsPage: React.FC = () => {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => mutations.activateProduct.mutate(p.id)}
+                            onClick={() => mutations.activateProduct.mutate({ id: p.id, expectedVersion: p.version ?? 0 })}
                             className="btn-primary-xs"
                             title="Mở bán sản phẩm"
                           >

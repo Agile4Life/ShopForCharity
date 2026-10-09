@@ -20,7 +20,7 @@ export const ProfilePage: React.FC = () => {
     try {
       await apiFetch('/me', {
         method: 'PATCH',
-        body: { fullName, phone },
+        body: { fullName, phone, expectedVersion: profile?.version ?? 0 },
       });
       await refreshProfile();
       setMessage('Cập nhật thông tin thành công!');

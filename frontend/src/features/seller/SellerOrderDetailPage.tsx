@@ -79,20 +79,23 @@ export const SellerOrderDetailPage: React.FC = () => {
       channel: contactChannel,
       outcome: contactOutcome,
       note: contactNote.trim() || undefined,
+      expectedVersion: order.version,
     });
     setContactModalOpen(false);
     setContactNote('');
+    // Refetch order to get updated version
+    refetch();
   };
 
   const handleAcceptOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!acceptPickupPointId) {
-      alert('Vui lòng chọn điểm nhận hàng đã thỏa thuận');
+    if (!acceptPickupPointId || !acceptPickupAt) {
+      alert('Vui lòng chọn điểm nhận hàng và thời gian hẹn nhận cụ thể trong tương lai');
       return;
     }
     await actions.acceptOrder.mutateAsync({
       confirmedPickupPointId: acceptPickupPointId,
-      confirmedPickupAt: acceptPickupAt ? new Date(acceptPickupAt).toISOString() : undefined,
+      confirmedPickupAt: new Date(acceptPickupAt).toISOString(),
       expectedVersion: order.version,
     });
     setAcceptModalOpen(false);
@@ -155,6 +158,7 @@ export const SellerOrderDetailPage: React.FC = () => {
   const handleConfirmRefund = async (e: React.FormEvent) => {
     e.preventDefault();
     await actions.confirmRefund.mutateAsync({
+      amount: order.total,
       bankReference: refundBankRef.trim() || undefined,
       note: refundNote.trim() || undefined,
       expectedVersion: order.version,

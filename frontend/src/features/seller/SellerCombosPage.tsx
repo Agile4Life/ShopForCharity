@@ -100,7 +100,7 @@ export const SellerCombosPage: React.FC = () => {
                         {c.status === 'ACTIVE' ? (
                           <button
                             type="button"
-                            onClick={() => mutations.archiveCombo.mutate(c.id)}
+                            onClick={() => mutations.archiveCombo.mutate({ id: c.id, expectedVersion: c.version ?? 0 })}
                             className="btn-danger-xs"
                             title="Ẩn combo"
                           >
@@ -109,7 +109,7 @@ export const SellerCombosPage: React.FC = () => {
                         ) : (
                           <button
                             type="button"
-                            onClick={() => mutations.activateCombo.mutate(c.id)}
+                            onClick={() => mutations.activateCombo.mutate({ id: c.id, expectedVersion: c.version ?? 0 })}
                             className="btn-primary-xs"
                             title="Mở bán combo"
                           >

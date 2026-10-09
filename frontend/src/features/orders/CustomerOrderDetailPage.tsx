@@ -40,14 +40,14 @@ export const CustomerOrderDetailPage: React.FC = () => {
     );
   }
 
-  const handleCancel = async (reason: string) => {
+  const handleCancel = async (reason: string, expectedVersion: number) => {
     if (!orderId) return;
-    await cancelMutation.mutateAsync({ id: orderId, reason });
+    await cancelMutation.mutateAsync({ id: orderId, reason, expectedVersion });
   };
 
-  const handleReportPayment = async () => {
+  const handleReportPayment = async (expectedVersion: number) => {
     if (!orderId) return;
-    await reportPaymentMutation.mutateAsync(orderId);
+    await reportPaymentMutation.mutateAsync({ id: orderId, expectedVersion });
   };
 
   return (

@@ -22,17 +22,18 @@ export async function getCustomerOrderDetail(id: string): Promise<OrderDetail> {
   });
 }
 
-export async function cancelCustomerOrder(id: string, reason: string): Promise<OrderDetail> {
+export async function cancelCustomerOrder(id: string, reason: string, expectedVersion: number): Promise<OrderDetail> {
   return apiFetch<OrderDetail>(`/me/orders/${id}/cancel`, {
     method: 'POST',
-    body: { reason },
+    body: { reason, expectedVersion },
     skipIdempotency: false,
   });
 }
 
-export async function reportCustomerPayment(id: string): Promise<OrderDetail> {
+export async function reportCustomerPayment(id: string, expectedVersion: number): Promise<OrderDetail> {
   return apiFetch<OrderDetail>(`/me/orders/${id}/payment-report`, {
     method: 'POST',
+    body: { expectedVersion },
     skipIdempotency: false,
   });
 }
@@ -59,17 +60,18 @@ export async function getGuestOrderDetail(orderCode: string): Promise<OrderDetai
   });
 }
 
-export async function cancelGuestOrder(orderCode: string, reason: string): Promise<OrderDetail> {
+export async function cancelGuestOrder(orderCode: string, reason: string, expectedVersion: number): Promise<OrderDetail> {
   return apiFetch<OrderDetail>(`/guest/orders/${orderCode}/cancel`, {
     method: 'POST',
-    body: { reason },
+    body: { reason, expectedVersion },
     skipIdempotency: false,
   });
 }
 
-export async function reportGuestPayment(orderCode: string): Promise<OrderDetail> {
+export async function reportGuestPayment(orderCode: string, expectedVersion: number): Promise<OrderDetail> {
   return apiFetch<OrderDetail>(`/guest/orders/${orderCode}/payment-report`, {
     method: 'POST',
+    body: { expectedVersion },
     skipIdempotency: false,
   });
 }
@@ -110,7 +112,8 @@ export function useCustomerPaymentInstructions(id: string) {
 export function useCancelCustomerOrder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => cancelCustomerOrder(id, reason),
+    mutationFn: ({ id, reason, expectedVersion }: { id: string; reason: string; expectedVersion: number }) =>
+      cancelCustomerOrder(id, reason, expectedVersion),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['customer-order', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['customer-orders'] });
@@ -121,9 +124,10 @@ export function useCancelCustomerOrder() {
 export function useReportCustomerPayment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => reportCustomerPayment(id),
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: ['customer-order', id] });
+    mutationFn: ({ id, expectedVersion }: { id: string; expectedVersion: number }) =>
+      reportCustomerPayment(id, expectedVersion),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['customer-order', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['customer-orders'] });
     },
   });
@@ -149,8 +153,8 @@ export function useGuestPaymentInstructions(orderCode: string, enabled = true) {
 export function useCancelGuestOrder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ orderCode, reason }: { orderCode: string; reason: string }) =>
-      cancelGuestOrder(orderCode, reason),
+    mutationFn: ({ orderCode, reason, expectedVersion }: { orderCode: string; reason: string; expectedVersion: number }) =>
+      cancelGuestOrder(orderCode, reason, expectedVersion),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['guest-order', variables.orderCode] });
     },
@@ -160,9 +164,10 @@ export function useCancelGuestOrder() {
 export function useReportGuestPayment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (orderCode: string) => reportGuestPayment(orderCode),
-    onSuccess: (_, orderCode) => {
-      queryClient.invalidateQueries({ queryKey: ['guest-order', orderCode] });
+    mutationFn: ({ orderCode, expectedVersion }: { orderCode: string; expectedVersion: number }) =>
+      reportGuestPayment(orderCode, expectedVersion),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['guest-order', variables.orderCode] });
     },
   });
 }

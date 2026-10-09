@@ -53,6 +53,7 @@ export const CheckoutPage: React.FC = () => {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -66,6 +67,8 @@ export const CheckoutPage: React.FC = () => {
       note: '',
     },
   });
+
+  const selectedPaymentMethod = watch('paymentMethod');
 
   // Pre-fill profile info if customer is logged in
   useEffect(() => {
@@ -92,6 +95,7 @@ export const CheckoutPage: React.FC = () => {
           catalogId: i.catalogId,
           quantity: i.quantity,
         })),
+        paymentMethod: selectedPaymentMethod as PaymentMethod,
       });
       setQuote(res);
     } catch (err) {
@@ -106,7 +110,7 @@ export const CheckoutPage: React.FC = () => {
     }
     fetchQuote();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.length]);
+  }, [items.length, selectedPaymentMethod]);
 
   const onSubmit = async (data: CheckoutFormData) => {
     if (!quote) {
@@ -145,8 +149,16 @@ export const CheckoutPage: React.FC = () => {
           paymentMethod: data.paymentMethod,
         },
       });
-    } catch (err) {
-      setSubmitError(err);
+    } catch (err: any) {
+      if (err?.status === 409 || err?.code === 'CHECKOUT_CHANGED') {
+        // Stale quote or catalog changes -> automatically refresh quote and alert user
+        await fetchQuote();
+        setSubmitError(
+          new Error('Giá sản phẩm hoặc cấu hình giỏ hàng vừa thay đổi. Hệ thống đã cập nhật báo giá mới nhất, vui lòng xác nhận lại đơn!')
+        );
+      } else {
+        setSubmitError(err);
+      }
     }
   };
 

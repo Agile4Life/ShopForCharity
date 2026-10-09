@@ -253,14 +253,20 @@ export function useSellerProductMutations() {
   });
 
   const archiveProduct = useMutation({
-    mutationFn: (id: string) =>
-      apiFetch<void>(`/seller/products/${id}/archive`, { method: 'POST' }),
+    mutationFn: ({ id, expectedVersion }: { id: string; expectedVersion: number }) =>
+      apiFetch<void>(`/seller/products/${id}/archive`, {
+        method: 'POST',
+        body: { expectedVersion },
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seller-products'] }),
   });
 
   const activateProduct = useMutation({
-    mutationFn: (id: string) =>
-      apiFetch<void>(`/seller/products/${id}/activate`, { method: 'POST' }),
+    mutationFn: ({ id, expectedVersion }: { id: string; expectedVersion: number }) =>
+      apiFetch<void>(`/seller/products/${id}/activate`, {
+        method: 'POST',
+        body: { expectedVersion },
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seller-products'] }),
   });
 
@@ -287,7 +293,11 @@ export function useSellerProductMutations() {
 
 // --- Combos ---
 export async function getSellerCombos(): Promise<ComboSummary[]> {
-  return apiFetch<ComboSummary[]>('/seller/combos', { skipIdempotency: true });
+  const res = await apiFetch<PageResponse<ComboSummary> | ComboSummary[]>('/seller/combos', { skipIdempotency: true });
+  if (Array.isArray(res)) {
+    return res;
+  }
+  return res.content || [];
 }
 
 export function useSellerCombos() {
@@ -328,14 +338,20 @@ export function useSellerComboMutations() {
   });
 
   const archiveCombo = useMutation({
-    mutationFn: (id: string) =>
-      apiFetch<void>(`/seller/combos/${id}/archive`, { method: 'POST' }),
+    mutationFn: ({ id, expectedVersion }: { id: string; expectedVersion: number }) =>
+      apiFetch<void>(`/seller/combos/${id}/archive`, {
+        method: 'POST',
+        body: { expectedVersion },
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seller-combos'] }),
   });
 
   const activateCombo = useMutation({
-    mutationFn: (id: string) =>
-      apiFetch<void>(`/seller/combos/${id}/activate`, { method: 'POST' }),
+    mutationFn: ({ id, expectedVersion }: { id: string; expectedVersion: number }) =>
+      apiFetch<void>(`/seller/combos/${id}/activate`, {
+        method: 'POST',
+        body: { expectedVersion },
+      }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seller-combos'] }),
   });
 
@@ -418,7 +434,11 @@ export function useSellerPickupPointMutations() {
 
 // --- Notifications ---
 export async function getSellerNotifications(): Promise<NotificationItem[]> {
-  return apiFetch<NotificationItem[]>('/seller/notifications', { skipIdempotency: true });
+  const res = await apiFetch<PageResponse<NotificationItem> | NotificationItem[]>('/seller/notifications', { skipIdempotency: true });
+  if (Array.isArray(res)) {
+    return res;
+  }
+  return res.content || [];
 }
 
 export function useSellerNotifications() {

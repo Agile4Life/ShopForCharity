@@ -56,6 +56,7 @@ export interface Profile {
   email: string;
   role: Role;
   active: boolean;
+  version?: number;
 }
 
 // Shop & Pickup Points
@@ -99,6 +100,7 @@ export interface ProductSummary {
   isSoldOut: boolean;
   status: ProductStatus;
   version?: number;
+  inventoryVersion?: number;
 }
 
 export interface ProductDetail extends ProductSummary {
@@ -108,6 +110,7 @@ export interface ProductDetail extends ProductSummary {
   stockOnHand?: number;
   stockReserved?: number;
   version: number;
+  inventoryVersion?: number;
 }
 
 // Combo
@@ -167,6 +170,7 @@ export interface QuoteItemRequest {
 
 export interface QuoteRequest {
   items: QuoteItemRequest[];
+  paymentMethod?: PaymentMethod;
 }
 
 export interface QuoteItemResponse {
@@ -313,11 +317,12 @@ export interface RecordContactAttemptRequest {
   channel: ContactChannel;
   outcome: ContactOutcome;
   note?: string;
+  expectedVersion: number;
 }
 
 export interface AcceptOrderRequest {
   confirmedPickupPointId: string;
-  confirmedPickupAt?: string;
+  confirmedPickupAt: string;
   expectedVersion: number;
 }
 
@@ -339,6 +344,7 @@ export interface DismissPaymentReportRequest {
 }
 
 export interface ConfirmRefundRequest {
+  amount: number;
   bankReference?: string;
   note?: string;
   expectedVersion: number;
