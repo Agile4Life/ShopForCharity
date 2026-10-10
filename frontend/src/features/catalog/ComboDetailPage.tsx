@@ -1,16 +1,15 @@
-import { QuantityControl, notify } from "../../components/Usability";
+import { QuantityControl } from "../../components/Usability";
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, ShoppingCart, Layers } from "lucide-react";
+import { ArrowLeft, Layers } from "lucide-react";
 import { useComboDetail } from "./api";
-import { useCart } from "../cart/cart-context";
+import { AddToCartButton } from "../cart/AddToCartButton";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 
 export const ComboDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: combo, isLoading, error, refetch } = useComboDetail(slug || "");
-  const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
 
   if (isLoading) {
@@ -30,28 +29,6 @@ export const ComboDetailPage: React.FC = () => {
       </div>
     );
   }
-
-  const handleAddToCart = () => {
-    const res = addItem({
-      kind: "COMBO",
-      catalogId: combo.id,
-      quantity,
-      name: combo.name,
-      price: combo.price,
-      imageUrl: combo.imageUrl,
-      slug: combo.slug,
-    });
-
-    notify(
-      res.success
-        ? `Đã thêm ${quantity} combo vào giỏ.`
-        : res.message || "Chưa thể thêm món.",
-      {
-        tone: res.success ? "success" : "error",
-        to: res.success ? "/cart" : undefined,
-      },
-    );
-  };
 
   const isSoldOut = combo.isSoldOut || combo.availableStock <= 0;
 
@@ -115,13 +92,7 @@ export const ComboDetailPage: React.FC = () => {
                 onChange={setQuantity}
               />
 
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                className="btn-primary"
-              >
-                <ShoppingCart size={18} /> Thêm combo vào giỏ
-              </button>
+              <AddToCartButton kind="COMBO" catalogId={combo.id} name={combo.name} quantity={quantity} />
             </div>
           )}
         </div>

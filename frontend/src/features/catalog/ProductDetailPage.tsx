@@ -1,15 +1,14 @@
-import { QuantityControl, notify } from "../../components/Usability";
+import { QuantityControl } from "../../components/Usability";
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
-  ShoppingCart,
   Info,
   ShieldAlert,
   Thermometer,
 } from "lucide-react";
 import { useProductDetail } from "./api";
-import { useCart } from "../cart/cart-context";
+import { AddToCartButton } from "../cart/AddToCartButton";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 
@@ -21,7 +20,6 @@ export const ProductDetailPage: React.FC = () => {
     error,
     refetch,
   } = useProductDetail(slug || "");
-  const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
 
   if (isLoading) {
@@ -41,28 +39,6 @@ export const ProductDetailPage: React.FC = () => {
       </div>
     );
   }
-
-  const handleAddToCart = () => {
-    const res = addItem({
-      kind: "PRODUCT",
-      catalogId: product.id,
-      quantity,
-      name: product.name,
-      price: product.price,
-      imageUrl: product.imageUrl,
-      slug: product.slug,
-    });
-
-    notify(
-      res.success
-        ? `Đã thêm ${quantity} món vào giỏ.`
-        : res.message || "Chưa thể thêm món.",
-      {
-        tone: res.success ? "success" : "error",
-        to: res.success ? "/cart" : undefined,
-      },
-    );
-  };
 
   const isSoldOut = product.isSoldOut || product.availableStock <= 0;
 
@@ -153,13 +129,7 @@ export const ProductDetailPage: React.FC = () => {
                 onChange={setQuantity}
               />
 
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                className="btn-primary"
-              >
-                <ShoppingCart size={18} /> Thêm vào giỏ
-              </button>
+              <AddToCartButton kind="PRODUCT" catalogId={product.id} name={product.name} quantity={quantity} />
             </div>
           )}
         </div>

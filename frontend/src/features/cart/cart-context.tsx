@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { CartItem, ItemKind } from "../../types/api";
 
 const CART_STORAGE_KEY = "school_shop_cart_v1";
@@ -16,6 +16,7 @@ interface CartContextType {
     price?: number;
     imageUrl?: string;
     slug?: string;
+    availableStock?: number;
   }) => { success: boolean; message?: string };
   updateQuantity: (
     catalogId: string,
@@ -34,7 +35,7 @@ const CartContext = createContext<CartContextType | null>(null);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [items, setItems] = useState<CartItem[]>(() => {
+  const [items, setStoredItems] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem(CART_STORAGE_KEY);
       if (saved) {
@@ -48,6 +49,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     return [];
   });
+  const itemsRef = useRef(items);
+  const setItems = (next: React.SetStateAction<CartItem[]>) => {
+    const updated = typeof next === "function" ? next(itemsRef.current) : next;
+    itemsRef.current = updated;
+    setStoredItems(updated);
+  };
 
   useEffect(() => {
     try {
@@ -65,6 +72,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     price,
     imageUrl,
     slug,
+    availableStock,
   }: {
     kind: ItemKind;
     catalogId: string;
@@ -73,7 +81,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     price?: number;
     imageUrl?: string;
     slug?: string;
+    availableStock?: number;
   }) => {
+    const items = itemsRef.current;
+    const maxQuantity = Math.min(MAX_QTY_PER_LINE, availableStock ?? MAX_QTY_PER_LINE);
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      return { success: false, message: "Vui lòng chọn số lượng hợp lệ." };
+    }
     const existingIndex = items.findIndex(
       (i) => i.catalogId === catalogId && i.kind === kind,
     );
@@ -81,10 +95,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     if (existingIndex > -1) {
       const existing = items[existingIndex];
       const newQty = existing.quantity + quantity;
-      if (newQty > MAX_QTY_PER_LINE) {
+      if (newQty > maxQuantity) {
         return {
           success: false,
-          message: `Số lượng tối đa cho mỗi món là ${MAX_QTY_PER_LINE}. Hiện bạn đã có ${existing.quantity} trong giỏ.`,
+          message: `Bạn có thể đặt tối đa ${maxQuantity} món này. Hiện đã có ${existing.quantity} trong giỏ.`,
         };
       }
       const updated = [...items];
@@ -100,6 +114,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       return { success: true };
     }
 
+    if (quantity > maxQuantity) {
+      return { success: false, message: `Món này chỉ còn tối đa ${maxQuantity} phần có thể đặt.` };
+    }
     if (items.length >= MAX_LINES) {
       return {
         success: false,

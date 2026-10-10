@@ -18,6 +18,7 @@ test('product detail adds cart item, persists after refresh, removes and undoes'
   await page.goto('/products/banh-thu');
   await expect(page.getByRole('heading', { name: product.name, exact: true })).toBeVisible();
   await page.getByRole('button', { name: /Thêm.*vào giỏ/ }).click();
+  await expect(page.locator('.feedback-notice')).toContainText('Đã thêm');
   await page.goto('/cart');
   await expect(page.locator('.cart-item-card')).toHaveCount(1);
   await page.reload();
@@ -31,6 +32,7 @@ test('product detail adds cart item, persists after refresh, removes and undoes'
 test('combo detail adds distinct combo cart line', async ({ page }) => {
   await page.goto('/combos/combo-thu');
   await page.getByRole('button', { name: 'Thêm combo vào giỏ' }).click();
+  await expect(page.locator('.feedback-notice')).toContainText('Đã thêm');
   await page.goto('/cart');
   await expect(page.getByRole('heading', { name: 'Combo thử' })).toBeVisible();
   const cart = await page.evaluate(() => JSON.parse(localStorage.getItem('school_shop_cart_v1')!));

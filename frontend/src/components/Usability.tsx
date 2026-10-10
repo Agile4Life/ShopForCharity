@@ -125,6 +125,7 @@ export function FeedbackNotice() {
       className={`feedback-notice ${feedback.tone === "error" ? "feedback-error" : ""}`}
       role={feedback.tone === "error" ? "alert" : "status"}
     >
+      {feedback.tone === "success" && <Check size={20} className="feedback-icon" aria-hidden="true" />}
       <span>{feedback.message}</span>
       {feedback.to && (
         <Link to={feedback.to} onClick={() => setFeedback(null)}>

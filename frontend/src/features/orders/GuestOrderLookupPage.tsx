@@ -37,7 +37,7 @@ export const GuestOrderLookupPage: React.FC = () => {
 
   const { data: paymentInstructions } = useGuestPaymentInstructions(
     currentOrderCode || "",
-    !!currentOrderCode,
+    !!currentOrderCode && order?.paymentMethod === "BANK_TRANSFER",
   );
 
   const cancelMutation = useCancelGuestOrder();

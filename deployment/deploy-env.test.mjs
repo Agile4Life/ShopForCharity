@@ -21,7 +21,7 @@ test('deployment export uses runtime credentials, transaction pooler and HTTPS d
   assert.equal(db.port, '6543');
   assert.equal(decodeURIComponent(db.password), backend.DB_PASSWORD);
   assert.equal(db.searchParams.get('sslmode'), 'verify-full');
-  assert.equal(env.CORS_ALLOWED_ORIGINS, 'https://maiamchoem.vercel.app');
+  assert.equal(env.CORS_ALLOWED_ORIGINS, 'https://goiamchoem.vercel.app');
   assert.equal(env.MIGRATIONS_ENABLED, 'false');
   assert.equal(env.COOKIE_SECURE, 'true');
   assert.equal(env.VITE_API_BASE_URL, '/api/v1');
@@ -35,13 +35,13 @@ test('deployment preparation rejects mismatched Auth, invalid keys and unsafe or
   assert.throws(() => createDeployEnv(backend, { ...frontend, VITE_SUPABASE_URL: 'https://other.supabase.co' }), /same Supabase/);
   assert.throws(() => createDeployEnv({ ...backend, GUEST_SESSION_SIGNING_KEY: backend.IDEMPOTENCY_ENCRYPTION_KEY }, frontend), /different/);
   assert.throws(() => createDeployEnv({ ...backend, SUPABASE_BACKEND_SECRET_KEY: '' }, frontend), /Missing/);
-  assert.throws(() => createDeployEnv(backend, frontend, {}, 'http://maiamchoem.vercel.app'), /HTTPS/);
-  assert.throws(() => createDeployEnv(backend, frontend, {}, 'https://maiamchoem.vercel.app/path'), /HTTPS/);
+  assert.throws(() => createDeployEnv(backend, frontend, {}, 'http://goiamchoem.vercel.app'), /HTTPS/);
+  assert.throws(() => createDeployEnv(backend, frontend, {}, 'https://goiamchoem.vercel.app/path'), /HTTPS/);
 });
 
 test('CORS allows exact Vercel deployment origins without enabling wildcard or localhost', () => {
-  const origins = allowedOrigins({ VERCEL: '1', CORS_ALLOWED_ORIGINS: 'https://maiamchoem.vercel.app', VERCEL_URL: 'maiamchoem-preview-team.vercel.app', VERCEL_PROJECT_PRODUCTION_URL: 'maiamchoem.vercel.app' });
-  assert.deepEqual(origins, ['https://maiamchoem.vercel.app', 'https://maiamchoem-preview-team.vercel.app']);
+  const origins = allowedOrigins({ VERCEL: '1', CORS_ALLOWED_ORIGINS: 'https://goiamchoem.vercel.app', VERCEL_URL: 'goiamchoem-preview-team.vercel.app', VERCEL_PROJECT_PRODUCTION_URL: 'goiamchoem.vercel.app' });
+  assert.deepEqual(origins, ['https://goiamchoem.vercel.app', 'https://goiamchoem-preview-team.vercel.app']);
   assert.equal(origins.includes('http://localhost:5173'), false);
   assert.deepEqual(allowedOrigins({ VERCEL_URL: 'ignored.vercel.app' }), ['http://localhost:5173']);
   assert.throws(() => allowedOrigins({ VERCEL: '1', VERCEL_URL: 'valid.vercel.app@evil.example' }), /Invalid/);

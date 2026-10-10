@@ -1,5 +1,7 @@
 # Supabase connection verification
 
+Historical snapshot. See [current DB and cart UX verification](current-db-and-cart-ux-report.md) for the 2026-10-10 Supabase and deployed-domain checks.
+
 Verified on 2026-10-09 (Asia/Saigon) against the configured Supabase project.
 
 - PostgreSQL Session pooler: JDBC authentication succeeds with `shop_runtime`.

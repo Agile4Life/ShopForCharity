@@ -44,8 +44,10 @@ export async function getProducts(
 
 export async function getProductDetail(
   idOrSlug: string,
+  signal?: AbortSignal,
 ): Promise<ProductDetail> {
   return apiFetch<ProductDetail>(`/products/${idOrSlug}`, {
+    signal,
     skipIdempotency: true,
   });
 }
@@ -61,8 +63,9 @@ export async function getCombos(): Promise<ComboSummary[]> {
   return res.content || [];
 }
 
-export async function getComboDetail(idOrSlug: string): Promise<ComboDetail> {
+export async function getComboDetail(idOrSlug: string, signal?: AbortSignal): Promise<ComboDetail> {
   return apiFetch<ComboDetail>(`/combos/${idOrSlug}`, {
+    signal,
     skipIdempotency: true,
   });
 }

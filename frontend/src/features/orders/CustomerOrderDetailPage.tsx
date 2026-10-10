@@ -23,6 +23,7 @@ export const CustomerOrderDetailPage: React.FC = () => {
 
   const { data: paymentInstructions } = useCustomerPaymentInstructions(
     orderId || "",
+    order?.paymentMethod === "BANK_TRANSFER",
   );
   const cancelMutation = useCancelCustomerOrder();
   const reportPaymentMutation = useReportCustomerPayment();

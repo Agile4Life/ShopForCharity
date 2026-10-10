@@ -157,6 +157,7 @@ test('seller product → live catalog update → bank transfer → cash → comp
       await expect(buyer.locator('.detail-price')).toContainText('15.000');
       await buyer.getByRole('button', { name: /Tăng số lượng/ }).click();
       await buyer.getByRole('button', { name: /Thêm.*vào giỏ/ }).click();
+      await expect(buyer.locator('.feedback-notice')).toContainText('Đã thêm');
       await buyer.goto('/cart');
       await expect(buyer.locator('.cart-item-card')).toHaveCount(1);
       await expect(buyer.locator('.summary-total')).toContainText('30.000');
@@ -229,6 +230,7 @@ test('seller product → live catalog update → bank transfer → cash → comp
     await step('14. Mua 1 sản phẩm bằng tiền mặt và hoàn tất đối soát', buyer, async () => {
       await buyer.goto(`/products/${productId}`);
       await buyer.getByRole('button', { name: /Thêm.*vào giỏ/ }).click();
+      await expect(buyer.locator('.feedback-notice')).toContainText('Đã thêm');
       await buyer.goto('/checkout');
       await buyer.locator('#fullName').fill('Khách tiền mặt Playwright');
       await buyer.locator('#phone').fill('0912345678');

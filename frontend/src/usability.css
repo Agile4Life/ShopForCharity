@@ -1,4 +1,23 @@
 /* Usable controls and calm feedback, shared across the shop. */
+.add-to-cart-button {
+  min-width: 0;
+  transition: transform 150ms ease-out, opacity 150ms linear;
+}
+.add-cart-section .add-to-cart-button { min-width: 190px; }
+.add-to-cart-button:active:not(:disabled) { transform: scale(.97); }
+.add-to-cart-button[data-cart-state="loading"] { cursor: progress; }
+.cart-loading-icon { animation: cart-spin 800ms linear infinite; }
+.feedback-icon { flex-shrink: 0; }
+@keyframes cart-spin { to { transform: rotate(360deg); } }
+@keyframes feedback-enter {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.feedback-notice { animation: feedback-enter 220ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .cart-loading-icon, .feedback-notice { animation: none; }
+  .add-to-cart-button { transition: none; }
+}
 .purchase-steps {
   margin: 0 0 28px;
 }
@@ -83,6 +102,7 @@
 }
 .feedback-notice > span {
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 .feedback-notice a,
 .feedback-notice button {

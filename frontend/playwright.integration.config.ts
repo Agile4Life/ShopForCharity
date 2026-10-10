@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e-integrated',
+  outputDir: './.tools/playwright-integration',
   workers: 1,
   fullyParallel: false,
   retries: 0,

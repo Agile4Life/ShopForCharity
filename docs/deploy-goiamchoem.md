@@ -1,4 +1,4 @@
-# Deploy maiamchoem.vercel.app
+# Deploy goiamchoem.vercel.app
 
 Repo đã cấu hình một Vercel project cho cả React/Vite và Node/Express. Cấu hình dự kiến dùng gói Hobby với cron daily.
 
@@ -8,7 +8,7 @@ Repo đã cấu hình một Vercel project cho cả React/Vite và Node/Express.
 
 | Setting | Giá trị |
 | --- | --- |
-| Project Name | maiamchoem |
+| Project Name | goiamchoem |
 | Root Directory | Root repository (`.`), không phải frontend hoặc backend |
 | Framework Preset | Vite |
 | Node.js Version | 24.x |
@@ -22,7 +22,7 @@ Build/output/install đã có trong vercel.mjs; không cần ghi đè trên dash
 
 File private đã chuẩn bị tại `.vercel/deploy.env`, bị Git ignore. Trong phần Environment Variables của project, import file hoặc paste nội dung vào form, chọn môi trường **Production** và lưu trước lần deploy đầu tiên. File chứa runtime credentials và secret, không chứa migration credentials. Không đưa file này lên Git.
 
-File đã có CORS_ALLOWED_ORIGINS=https://maiamchoem.vercel.app, COOKIE_SECURE=true, MIGRATIONS_ENABLED=false, SERVERLESS_BACKEND=true, API base /api/v1, secret cron mới và PostgreSQL transaction pooler port 6543. Các key session/encryption hiện tại được giữ nguyên. CA Supabase được đóng gói cùng Function.
+File đã có CORS_ALLOWED_ORIGINS=https://goiamchoem.vercel.app, COOKIE_SECURE=true, MIGRATIONS_ENABLED=false, SERVERLESS_BACKEND=true, API base /api/v1, secret cron mới và PostgreSQL transaction pooler port 6543. Các key session/encryption hiện tại được giữ nguyên. CA Supabase được đóng gói cùng Function.
 
 Có thể tạo lại file mà vẫn giữ secret cron đã tạo:
 
@@ -44,16 +44,16 @@ Preview cần bộ biến môi trường riêng, ưu tiên DB/Supabase test riê
 
 Trong Supabase → Authentication → URL Configuration:
 
-- Site URL: `https://maiamchoem.vercel.app`
-- Redirect URLs: `https://maiamchoem.vercel.app/auth/callback`
-- Redirect URLs: `https://maiamchoem.vercel.app/reset-password`
+- Site URL: `https://goiamchoem.vercel.app`
+- Redirect URLs: `https://goiamchoem.vercel.app/auth/callback`
+- Redirect URLs: `https://goiamchoem.vercel.app/reset-password`
 
 Nếu kiểm tra Auth trên preview, thêm URL callback/reset của deployment đó. [Tài liệu redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls).
 
 ## Sau khi deploy
 
-- GET `https://maiamchoem.vercel.app/actuator/health/liveness` phải trả UP.
-- GET `https://maiamchoem.vercel.app/actuator/health/readiness` phải trả UP.
+- GET `https://goiamchoem.vercel.app/actuator/health/liveness` phải trả UP.
+- GET `https://goiamchoem.vercel.app/actuator/health/readiness` phải trả UP.
 - Kiểm tra login/reset, guest checkout cookies, quyền seller và upload trước khi mở nhận đơn.
 - Cron expire chạy 07:00 Việt Nam mỗi ngày; cleanup 08:00. Chỉ bật lịch thường xuyên khi gói hỗ trợ.
 

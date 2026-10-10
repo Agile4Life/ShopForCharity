@@ -133,11 +133,11 @@ export function useCustomerOrderDetail(id: string) {
   });
 }
 
-export function useCustomerPaymentInstructions(id: string) {
+export function useCustomerPaymentInstructions(id: string, enabled = true) {
   return useQuery({
     queryKey: ["customer-payment-instructions", id],
     queryFn: () => getCustomerPaymentInstructions(id),
-    enabled: !!id,
+    enabled: !!id && enabled,
   });
 }
 

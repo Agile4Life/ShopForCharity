@@ -9,7 +9,7 @@ const runtimeKeys = [
   'DB_SSL_CA', 'DB_POOL_MAX',
 ];
 
-export function createDeployEnv(backend, frontend, previous = {}, origin = 'https://maiamchoem.vercel.app') {
+export function createDeployEnv(backend, frontend, previous = {}, origin = 'https://goiamchoem.vercel.app') {
   const env = Object.fromEntries(runtimeKeys.filter(key => backend[key]).map(key => [key, backend[key]]));
   const db = databaseConfig(backend);
   if (!db.connectionString) throw new Error('Configure a runtime PostgreSQL URL before preparing Vercel environment.');

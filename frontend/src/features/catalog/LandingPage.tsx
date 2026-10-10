@@ -1,20 +1,18 @@
-﻿import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowDown,
   ArrowRight,
-  Check,
   Clock3,
   Cookie,
   Gift,
   MapPin,
-  Plus,
   Search,
   ShoppingBag,
   X,
 } from "lucide-react";
 import { useShopInfo, useCategories, useProducts, useCombos } from "./api";
-import { useCart } from "../cart/cart-context";
+import { AddToCartButton } from "../cart/AddToCartButton";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { EmptyState } from "../../components/EmptyState";
@@ -26,8 +24,6 @@ export function LandingPage() {
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState("");
   const [page, setPage] = useState(0);
-  const [notice, setNotice] = useState<string | null>(null);
-  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const timer = setTimeout(() => {
       setQuery(search);
@@ -35,12 +31,6 @@ export function LandingPage() {
     }, 280);
     return () => clearTimeout(timer);
   }, [search]);
-  useEffect(
-    () => () => {
-      if (noticeTimer.current) clearTimeout(noticeTimer.current);
-    },
-    [],
-  );
   const { data: shop, error: shopError, refetch: refetchShop } = useShopInfo();
   const { data: categories = [] } = useCategories();
   const { data, isLoading, isFetching, error, refetch } = useProducts({
@@ -56,34 +46,9 @@ export function LandingPage() {
     error: combosError,
     refetch: refetchCombos,
   } = useCombos();
-  const { addItem } = useCart();
   const products = data?.content || [];
-  function add(item: {
-    kind: "PRODUCT" | "COMBO";
-    catalogId: string;
-    name: string;
-    price: number;
-    imageUrl?: string;
-    slug?: string;
-  }) {
-    const result = addItem(item);
-    setNotice(
-      result.success
-        ? `Đã thêm ${item.name} vào giỏ đồ.`
-        : result.message || "Chưa thể thêm món này.",
-    );
-    if (noticeTimer.current) clearTimeout(noticeTimer.current);
-    noticeTimer.current = setTimeout(() => setNotice(null), 3500);
-  }
   return (
     <div className="landing-page">
-      {notice && (
-        <div className="toast-notification" role="status">
-          <Check size={18} aria-hidden="true" />
-          {notice}
-          <Link to="/cart">Xem giỏ</Link>
-        </div>
-      )}
       <section className="workshop-hero container" aria-labelledby="hero-title">
         <div className="hero-copy">
           <h1 id="hero-title">
@@ -310,23 +275,7 @@ export function LandingPage() {
                           : "Đã hết hàng"}
                       </span>
                     </div>
-                    <button
-                      className="product-add"
-                      aria-label={`Thêm ${p.name} vào giỏ`}
-                      disabled={p.isSoldOut || p.availableStock <= 0}
-                      onClick={() =>
-                        add({
-                          kind: "PRODUCT",
-                          catalogId: p.id,
-                          name: p.name,
-                          price: p.price,
-                          imageUrl: p.imageUrl,
-                          slug: p.slug,
-                        })
-                      }
-                    >
-                      <Plus size={23} aria-hidden="true" />
-                    </button>
+                    <AddToCartButton kind="PRODUCT" catalogId={p.id} name={p.name} compact className="product-add" disabled={p.isSoldOut || p.availableStock <= 0} />
                   </div>
                 </div>
               </article>
@@ -406,23 +355,7 @@ export function LandingPage() {
                           : "Hết hàng"}
                       </span>
                     </div>
-                    <button
-                      className="btn-primary-sm full-width mt-3"
-                      disabled={c.isSoldOut || c.availableStock <= 0}
-                      onClick={() =>
-                        add({
-                          kind: "COMBO",
-                          catalogId: c.id,
-                          name: c.name,
-                          price: c.price,
-                          imageUrl: c.imageUrl,
-                          slug: c.slug,
-                        })
-                      }
-                    >
-                      <Plus size={17} aria-hidden="true" />
-                      Thêm vào giỏ
-                    </button>
+                    <AddToCartButton kind="COMBO" catalogId={c.id} name={c.name} className="btn-primary-sm full-width mt-3" disabled={c.isSoldOut || c.availableStock <= 0} />
                   </div>
                 </article>
               ))}
