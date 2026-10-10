@@ -56,7 +56,7 @@ export class Scenario {
     items: [{ id: 'item-test', kind: 'PRODUCT', productId: ids.product, nameSnapshot: product.name,
       unitPrice: 10000, quantity: 1, lineTotal: 10000 }], statusHistory: [], contactAttempts: [], paymentEvents: [],
   };
-  constructor(private page: Page) {}
+  constructor(private page: Page, private origin = 'http://127.0.0.1:4173') {}
   async authenticate(role: 'CUSTOMER' | 'SELLER') {
     this.role = role;
     this.me.role = role;
@@ -77,7 +77,7 @@ export class Scenario {
       const req = route.request();
       const url = new URL(req.url());
       if (!url.pathname.startsWith('/api/v1') && !url.pathname.startsWith('/auth/v1')) {
-        if (url.origin !== 'http://127.0.0.1:4173') return route.abort();
+        if (url.origin !== this.origin) return route.abort();
         return route.continue();
       }
       this.calls.push(req);
@@ -187,8 +187,8 @@ export class Scenario {
   }
 }
 export const test = base.extend<{ scenario: Scenario }>({
-  scenario: [async ({ page }, use) => {
-    const scenario = new Scenario(page);
+  scenario: [async ({ page, baseURL }, use) => {
+    const scenario = new Scenario(page, new URL(baseURL!).origin);
     await scenario.install();
     await use(scenario);
     expect(scenario.unexpected, 'Every API request must have an explicit fixture').toEqual([]);

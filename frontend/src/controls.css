@@ -12,8 +12,10 @@
 }
 html { scrollbar-gutter: stable; }
 /* Scrollable menus, forms and tables use the same forest ink and paper palette. */
-:is(.table-responsive, .account-dropdown-panel, .modal-body, .category-tabs, .seller-workspace-bar nav, textarea):hover {
-  scrollbar-color: var(--scrollbar-thumb-hover) var(--scrollbar-track);
+@media (hover: hover) and (pointer: fine) {
+  :is(.table-responsive, .account-dropdown-panel, .modal-body, .category-tabs, .seller-workspace-bar nav, textarea):hover {
+    scrollbar-color: var(--scrollbar-thumb-hover) var(--scrollbar-track);
+  }
 }
 ::-webkit-scrollbar { width: 12px; height: 12px; }
 ::-webkit-scrollbar-track,
@@ -23,7 +25,9 @@ html { scrollbar-gutter: stable; }
   border: 3px solid var(--scrollbar-track);
   border-radius: 999px;
 }
-::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+@media (hover: hover) and (pointer: fine) {
+  ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+}
 ::-webkit-scrollbar-button { display: none; }
 @media (pointer: coarse) {
   * { scrollbar-width: auto; }
@@ -50,8 +54,10 @@ select.select-input {
   font-size: 16px;
   line-height: 1.5;
 }
-select.select-field:hover:not(:disabled),
-select.select-input:hover:not(:disabled) { border-color: var(--scrollbar-thumb-hover); }
+@media (hover: hover) and (pointer: fine) {
+  select.select-field:hover:not(:disabled),
+  select.select-input:hover:not(:disabled) { border-color: var(--scrollbar-thumb-hover); }
+}
 select:disabled { opacity: 0.6; cursor: not-allowed; }
 select.input-error,
 select[aria-invalid="true"] { border-color: var(--danger); }
@@ -101,7 +107,10 @@ select[aria-invalid="true"] { border-color: var(--danger); }
     white-space: normal;
     overflow-wrap: anywhere;
   }
-  select option:is(:hover, :focus) { background: var(--sage); outline: none; }
+  @media (hover: hover) and (pointer: fine) {
+    select option:hover:not(:disabled) { background: var(--sage); outline: none; }
+  }
+  select option:focus { background: var(--sage); outline: none; }
   select option:checked { background: var(--control-selected); font-weight: 600; }
   select option:disabled { opacity: 0.55; }
   select option::checkmark { order: 1; margin-inline-start: auto; color: var(--primary); }
@@ -110,7 +119,12 @@ select[aria-invalid="true"] { border-color: var(--danger); }
 .account-dropdown { position: relative; display: block; }
 .account-dropdown > summary { list-style: none; border: 1px solid transparent; }
 .account-dropdown > summary::-webkit-details-marker { display: none; }
-.account-dropdown > summary:hover,
+@media (hover: hover) and (pointer: fine) {
+  .account-dropdown > summary:hover {
+    background: var(--control-selected);
+    border-color: var(--border-color);
+  }
+}
 .account-dropdown[open] > summary {
   background: var(--control-selected);
   border-color: var(--border-color);
@@ -156,10 +170,14 @@ select[aria-invalid="true"] { border-color: var(--danger); }
   text-align: start;
   font-size: 14px;
 }
-.account-dropdown-panel a:is(:hover, .active),
-.account-dropdown-panel button:hover { background: var(--control-selected); }
+@media (hover: hover) and (pointer: fine) {
+  .account-dropdown-panel a:hover, .account-dropdown-panel button:hover:not(:disabled) { background: var(--control-selected); }
+}
+.account-dropdown-panel a.active { background: var(--control-selected); }
 .account-dropdown-panel .account-dropdown-logout { margin-top: 6px; color: var(--danger); }
-.account-dropdown-panel .account-dropdown-logout:hover { background: var(--danger-bg); }
+@media (hover: hover) and (pointer: fine) {
+  .account-dropdown-panel .account-dropdown-logout:hover:not(:disabled) { background: var(--danger-bg); }
+}
 .account-dropdown-panel :focus-visible { outline-offset: -3px; }
 
 @media (forced-colors: active) {

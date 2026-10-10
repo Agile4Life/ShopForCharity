@@ -4,6 +4,7 @@ import "./index.css";
 import "./workshop.css";
 import "./usability.css";
 import "./controls.css";
+import "./responsive.css";
 import App from "./App.tsx";
 
 createRoot(document.getElementById("root")!).render(

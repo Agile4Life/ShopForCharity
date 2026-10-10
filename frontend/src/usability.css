@@ -35,7 +35,7 @@
 .pickup-calendar-grid button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 .pickup-schedule button:disabled { opacity: .35; cursor: not-allowed; }
 .pickup-schedule button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .pickup-calendar-grid button:not(:disabled):not([aria-pressed="true"]):hover,
   .pickup-calendar-heading button:not(:disabled):hover { background: var(--sage); }
 }

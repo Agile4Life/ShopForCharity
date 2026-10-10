@@ -43,8 +43,10 @@ a {
   color: var(--primary);
   text-decoration: none;
 }
-a:hover {
-  text-decoration: underline;
+@media (hover: hover) and (pointer: fine) {
+  a:hover {
+    text-decoration: underline;
+  }
 }
 
 /* App Shell */
@@ -136,7 +138,9 @@ a:hover {
   color: var(--primary);
   text-decoration: none;
 }
-.navbar-brand:hover { text-decoration: none; }
+@media (hover: hover) and (pointer: fine) {
+  .navbar-brand:hover { text-decoration: none; }
+}
 .desktop-nav {
   display: flex;
   align-items: center;
@@ -151,7 +155,9 @@ a:hover {
   gap: 0.35rem;
   text-decoration: none;
 }
-.nav-link:hover { color: var(--primary); text-decoration: none; }
+@media (hover: hover) and (pointer: fine) {
+  .nav-link:hover { color: var(--primary); text-decoration: none; }
+}
 .seller-nav-group {
   display: flex;
   align-items: center;
@@ -206,7 +212,9 @@ a:hover {
   border-radius: var(--radius-sm);
   text-decoration: none;
 }
-.user-btn:hover { background: #e2e8f0; text-decoration: none; }
+@media (hover: hover) and (pointer: fine) {
+  .user-btn:hover { background: #e2e8f0; text-decoration: none; }
+}
 .logout-btn {
   background: none;
   border: none;
@@ -216,7 +224,9 @@ a:hover {
   display: flex;
   align-items: center;
 }
-.logout-btn:hover { color: var(--danger); }
+@media (hover: hover) and (pointer: fine) {
+  .logout-btn:hover:not(:disabled) { color: var(--danger); }
+}
 .guest-auth-buttons {
   display: flex;
   align-items: center;
@@ -306,7 +316,9 @@ a:hover {
   gap: 0.5rem;
   text-decoration: none;
 }
-.btn-primary:hover { background-color: var(--primary-hover); text-decoration: none; }
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover:not(:disabled) { background-color: var(--primary-hover); text-decoration: none; }
+}
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btn-primary-sm {
@@ -324,7 +336,9 @@ a:hover {
   gap: 0.35rem;
   text-decoration: none;
 }
-.btn-primary-sm:hover { background-color: var(--primary-hover); text-decoration: none; }
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary-sm:hover:not(:disabled) { background-color: var(--primary-hover); text-decoration: none; }
+}
 .btn-primary-sm:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btn-secondary {
@@ -342,7 +356,9 @@ a:hover {
   gap: 0.5rem;
   text-decoration: none;
 }
-.btn-secondary:hover { background-color: #e2e8f0; text-decoration: none; }
+@media (hover: hover) and (pointer: fine) {
+  .btn-secondary:hover:not(:disabled) { background-color: #e2e8f0; text-decoration: none; }
+}
 
 .btn-secondary-sm {
   background-color: #f1f5f9;
@@ -359,7 +375,9 @@ a:hover {
   gap: 0.35rem;
   text-decoration: none;
 }
-.btn-secondary-sm:hover { background-color: #e2e8f0; text-decoration: none; }
+@media (hover: hover) and (pointer: fine) {
+  .btn-secondary-sm:hover:not(:disabled) { background-color: #e2e8f0; text-decoration: none; }
+}
 
 .btn-danger {
   background-color: var(--danger);
@@ -370,7 +388,9 @@ a:hover {
   font-weight: 600;
   cursor: pointer;
 }
-.btn-danger:hover { background-color: #b91c1c; }
+@media (hover: hover) and (pointer: fine) {
+  .btn-danger:hover:not(:disabled) { background-color: #b91c1c; }
+}
 .btn-danger-outline {
   background: transparent;
   color: var(--danger);
@@ -392,7 +412,9 @@ a:hover {
   margin-bottom: 1rem;
   text-decoration: none;
 }
-.btn-back:hover { color: var(--text-main); text-decoration: underline; }
+@media (hover: hover) and (pointer: fine) {
+  .btn-back:hover:not(:disabled) { color: var(--text-main); text-decoration: underline; }
+}
 
 .btn-text-xs { font-size: 0.75rem; background: none; border: none; cursor: pointer; color: var(--primary); font-weight: 600; }
 .btn-text-sm { font-size: 0.85rem; background: none; border: none; cursor: pointer; color: var(--primary); font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem; }
@@ -508,9 +530,10 @@ a:hover {
   flex-direction: column;
   transition: transform 0.15s, box-shadow 0.15s;
 }
-.product-card:hover, .combo-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+@media (hover: hover) and (pointer: fine) {
+  .product-card:hover, .combo-card:hover {
+    box-shadow: var(--shadow-md);
+  }
 }
 .product-card-img, .combo-card-img {
   width: 100%;
@@ -541,7 +564,9 @@ a:hover {
   margin: 0.25rem 0 0.5rem;
 }
 .product-card-title a, .combo-card-title a { color: var(--text-main); text-decoration: none; }
-.product-card-title a:hover, .combo-card-title a:hover { color: var(--primary); }
+@media (hover: hover) and (pointer: fine) {
+  .product-card-title a:hover, .combo-card-title a:hover { color: var(--primary); }
+}
 .product-card-desc, .combo-description {
   font-size: 0.85rem;
   color: var(--text-muted);
@@ -697,7 +722,9 @@ a:hover {
   gap: 0.75rem;
   cursor: pointer;
 }
-.payment-radio-card:hover { border-color: var(--primary); }
+@media (hover: hover) and (pointer: fine) {
+  .payment-radio-card:not(:has(input:disabled)):hover { border-color: var(--primary); }
+}
 .checkout-layout {
   display: grid;
   grid-template-columns: 2fr 1.2fr;

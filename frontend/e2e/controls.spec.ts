@@ -32,12 +32,14 @@ test('select picker supports keyboard selection and escape', async ({ page }, te
   const select = page.getByRole('combobox', { name: 'Sắp xếp sản phẩm' });
   await select.scrollIntoViewIfNeeded();
   await select.focus();
-  await select.press('Space');
+  const customPicker = await page.evaluate(() => CSS.supports('appearance', 'base-select'));
+  if (customPicker) await select.press('Space');
   await page.screenshot({ path: testInfo.outputPath('select-picker.png') });
   await expect(select).toHaveJSProperty('value', '');
   await page.keyboard.press('ArrowDown');
-  await page.keyboard.press('Enter');
+  await page.keyboard.press(customPicker ? 'Enter' : 'Tab');
   await expect(select).toHaveValue('price,asc');
+  await select.focus();
   await select.press('Space');
   await page.keyboard.press('Escape');
   await expect(select).toBeFocused();

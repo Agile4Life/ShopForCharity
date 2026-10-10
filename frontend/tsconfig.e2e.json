@@ -4,5 +4,5 @@
     "moduleResolution": "bundler", "types": ["node"], "strict": true,
     "noEmit": true, "skipLibCheck": true
   },
-  "include": ["playwright.config.ts", "e2e/**/*.ts"]
+  "include": ["playwright.config.ts", "playwright.responsive.config.ts", "e2e/**/*.ts"]
 }

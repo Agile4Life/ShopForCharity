@@ -124,9 +124,9 @@ export function Navbar() {
                     <strong>{profile?.fullName || "Tài khoản"}</strong>
                     <span>{isSeller ? "Người bán" : "Khách hàng"}</span>
                   </div>
-                  <NavLink to="/account/profile"><User size={17} aria-hidden="true" />Thông tin tài khoản</NavLink>
-                  <NavLink to="/account/orders"><ShoppingBag size={17} aria-hidden="true" />Đơn hàng của tôi</NavLink>
-                  {isSeller && <NavLink to="/seller"><ArrowUpRight size={17} aria-hidden="true" />Bàn làm việc</NavLink>}
+                  <NavLink to="/account/profile" tabIndex={0}><User size={17} aria-hidden="true" />Thông tin tài khoản</NavLink>
+                  <NavLink to="/account/orders" tabIndex={0}><ShoppingBag size={17} aria-hidden="true" />Đơn hàng của tôi</NavLink>
+                  {isSeller && <NavLink to="/seller" tabIndex={0}><ArrowUpRight size={17} aria-hidden="true" />Bàn làm việc</NavLink>}
                   <button type="button" onClick={handleLogout} disabled={loggingOut} aria-busy={loggingOut} className="account-dropdown-logout">
                     <LogOut size={17} aria-hidden="true" />Đăng xuất
                   </button>
