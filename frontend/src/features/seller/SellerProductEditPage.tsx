@@ -10,15 +10,16 @@ import {
 import { useCategories } from "../catalog/api";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
+import { AssetImage } from "../../components/AssetImage";
 
 export const SellerProductEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isEditing = !!id && id !== "new";
   const navigate = useNavigate();
 
-  const { data: existingProduct, isLoading: loadingProduct } =
+  const { data: existingProduct, isLoading: loadingProduct, error: productError, refetch: refetchProduct } =
     useSellerProductDetail(id || "");
-  const { data: categories = [] } = useCategories();
+  const { data: categories = [], isLoading: categoriesLoading, error: categoriesError, refetch: refetchCategories } = useCategories();
   const mutations = useSellerProductMutations();
 
   const [name, setName] = useState("");
@@ -60,6 +61,7 @@ export const SellerProductEditPage: React.FC = () => {
 
     if (file.size > 4 * 1024 * 1024) {
       notify("Kích thước ảnh tối đa là 4 MiB!");
+      e.target.value = "";
       return;
     }
 
@@ -69,14 +71,16 @@ export const SellerProductEditPage: React.FC = () => {
       setImageAssetId(res.assetId);
       setImageUrl(res.url);
     } catch (err: any) {
-      notify(err.message || "Lỗi khi tải ảnh lên");
+      notify(err);
     } finally {
       setUploadingImage(false);
+      e.target.value = "";
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (uploadingImage || categoriesLoading || categoriesError || mutations.createProduct.isPending || mutations.updateProduct.isPending) return;
     if (!name.trim() || !categoryId || price <= 0) {
       notify("Vui lòng điền đầy đủ tên, danh mục và giá sản phẩm");
       return;
@@ -123,6 +127,7 @@ export const SellerProductEditPage: React.FC = () => {
   if (isEditing && loadingProduct) {
     return <LoadingSpinner message="Đang tải dữ liệu sản phẩm..." />;
   }
+  if (isEditing && !existingProduct && productError) return <div className="container mt-4"><ErrorMessage error={productError} onRetry={refetchProduct} /></div>;
 
   return (
     <div className="seller-product-edit-page container max-w-2xl mx-auto">
@@ -142,6 +147,8 @@ export const SellerProductEditPage: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit}>
+          {categoriesLoading && <LoadingSpinner message="Đang tải danh mục…" />}
+          {categoriesError && <ErrorMessage error={categoriesError} onRetry={refetchCategories} />}
           {/* Image Upload */}
           <div className="form-group mb-4">
             <label
@@ -153,7 +160,7 @@ export const SellerProductEditPage: React.FC = () => {
             <div className="image-upload-box flex items-center gap-4">
               <div className="preview-wrap">
                 {imageUrl ? (
-                  <img
+                  <AssetImage
                     src={imageUrl}
                     alt="Preview"
                     className="upload-preview-img"
@@ -175,12 +182,12 @@ export const SellerProductEditPage: React.FC = () => {
                     accept="image/jpeg,image/png,image/webp"
                     onChange={handleImageFileChange}
                     className="hidden"
-                    disabled={uploadingImage}
+                    disabled={uploadingImage || mutations.createProduct.isPending || mutations.updateProduct.isPending}
                   />
                 </label>
                 {imageAssetId && (
                   <span className="block text-xs text-green mt-1">
-                    Đã gắn Asset ID
+                    Đã tải ảnh
                   </span>
                 )}
               </div>
@@ -327,7 +334,7 @@ export const SellerProductEditPage: React.FC = () => {
             <button
               type="submit"
               disabled={
-                mutations.createProduct.isPending ||
+                uploadingImage || categoriesLoading || !!categoriesError || mutations.createProduct.isPending ||
                 mutations.updateProduct.isPending
               }
               className="btn-primary full-width"

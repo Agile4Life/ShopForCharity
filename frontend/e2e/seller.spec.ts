@@ -2,6 +2,50 @@ import { test, expect, ids, submit, expectMutation } from './fixtures';
 
 test.beforeEach(async ({ scenario }) => { await scenario.authenticate('SELLER'); });
 
+test('acceptance click explains missing successful contact without sending a request', async ({ page, scenario }) => {
+  await page.goto(`/seller/orders/${ids.order}`);
+  const accept = page.getByRole('button', { name: 'Chấp nhận đơn hàng', exact: true });
+  await expect(accept).toBeEnabled();
+  await accept.click();
+  await expect(page.getByRole('alert')).toContainText('Chưa thể chấp nhận đơn. Hãy chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước.');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(scenario.mutations('/accept')).toHaveLength(0);
+  await expect(page.getByText('Chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước khi chấp nhận đơn.')).toBeVisible();
+  await page.getByRole('button', { name: /Ghi nhận liên hệ/ }).click();
+  await page.locator('#sellerorderdetailpage-field-2').selectOption('FAILED');
+  await page.getByRole('button', { name: 'Lưu liên hệ', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await accept.click();
+  await expect(page.getByRole('alert')).toContainText('Chưa thể chấp nhận đơn.');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(scenario.mutations('/accept')).toHaveLength(0);
+  await page.getByRole('button', { name: /Ghi nhận liên hệ/ }).click();
+  await page.locator('#sellerorderdetailpage-field-2').selectOption('SUCCESS');
+  await page.getByRole('button', { name: 'Lưu liên hệ', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(accept).toBeEnabled();
+  await accept.click();
+  await expect(page.getByRole('dialog', { name: 'Chấp nhận đơn hàng' })).toBeVisible();
+});
+
+test('accept conflict refreshes order state and closes the stale acceptance form', async ({ page, scenario }) => {
+  await page.goto(`/seller/orders/${ids.order}`);
+  await page.getByRole('button', { name: /Ghi nhận liên hệ/ }).click();
+  await page.getByRole('button', { name: 'Lưu liên hệ', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Chấp nhận đơn hàng', exact: true }).click();
+  await page.getByRole('button', { name: 'Ngày mai', exact: true }).click();
+  await page.route('**/seller/orders/*/accept', async route => {
+    scenario.order.status = 'ACCEPTED';
+    scenario.order.version++;
+    await route.fulfill({ status: 409, json: { code: 'INVALID_TRANSITION', message: 'Không thể thực hiện ở trạng thái hiện tại.' } });
+  });
+  await page.getByRole('button', { name: 'Xác nhận duyệt đơn', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Chuyển sang.*Đang chuẩn bị/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Chấp nhận đơn hàng', exact: true })).toHaveCount(0);
+});
+
 test('dashboard, order filters and audit filters', async ({ page, scenario }) => {
   await page.goto('/seller');
   await expect(page.getByRole('heading', { name: 'Tổng quan', exact: true })).toBeVisible();
@@ -27,8 +71,7 @@ test('seller records contact, accepts, prepares, receives payment and completes'
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'Chấp nhận đơn hàng', exact: true }).click();
   await page.locator('#sellerorderdetailpage-field-4').selectOption(ids.pickup);
-  const future = new Date(Date.now() + 86400000).toISOString().slice(0, 16);
-  await page.locator('#sellerorderdetailpage-field-5').fill(future);
+  await page.getByRole('button', { name: 'Ngày mai', exact: true }).click();
   await page.getByRole('button', { name: 'Xác nhận duyệt đơn', exact: true }).click();
   await expectMutation(scenario, '/accept', { expectedVersion: 8, confirmedPickupPointId: ids.pickup });
   await page.getByRole('button', { name: /Chuyển sang.*Đang chuẩn bị/ }).click();
@@ -85,7 +128,7 @@ test('create product with uploaded image then edit versioned price', async ({ pa
   await page.goto('/seller/products/new');
   await page.locator('input[type="file"]').setInputFiles({ name: 'product.png', mimeType: 'image/png',
     buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/a9sAAAAASUVORK5CYII=', 'base64') });
-  await expect(page.getByText('Đã gắn Asset ID', { exact: true })).toBeVisible();
+  await expect(page.getByText('Đã tải ảnh', { exact: true })).toBeVisible();
   await page.locator('#sellerproducteditpage-field-1').fill('Sản phẩm mới');
   await page.locator('#sellerproducteditpage-field-2').selectOption(ids.category);
   await page.locator('#sellerproducteditpage-field-3').fill('12000');

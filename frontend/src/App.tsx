@@ -1,4 +1,6 @@
 import { LoadingSpinner } from "./components/LoadingSpinner";
+import { NetworkActivity } from "./components/NetworkActivity";
+import { lazyPage } from "./lib/lazy-page";
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -23,125 +25,125 @@ import { ProtectedRoute, SellerRoute } from "./routes/guards";
 
 // Public & Catalog Pages
 import { LandingPage } from "./features/catalog/LandingPage";
-const ProductDetailPage = React.lazy(() =>
+const ProductDetailPage = lazyPage(() =>
   import("./features/catalog/ProductDetailPage").then((module) => ({
     default: module.ProductDetailPage,
   })),
 );
-const ComboDetailPage = React.lazy(() =>
+const ComboDetailPage = lazyPage(() =>
   import("./features/catalog/ComboDetailPage").then((module) => ({
     default: module.ComboDetailPage,
   })),
 );
 
 // Cart & Checkout
-const CartPage = React.lazy(() =>
+const CartPage = lazyPage(() =>
   import("./features/cart/CartPage").then((module) => ({
     default: module.CartPage,
   })),
 );
-const CheckoutPage = React.lazy(() =>
+const CheckoutPage = lazyPage(() =>
   import("./features/checkout/CheckoutPage").then((module) => ({
     default: module.CheckoutPage,
   })),
 );
-const OrderSuccessPage = React.lazy(() =>
+const OrderSuccessPage = lazyPage(() =>
   import("./features/checkout/OrderSuccessPage").then((module) => ({
     default: module.OrderSuccessPage,
   })),
 );
 
 // Orders Tracking
-const GuestOrderLookupPage = React.lazy(() =>
+const GuestOrderLookupPage = lazyPage(() =>
   import("./features/orders/GuestOrderLookupPage").then((module) => ({
     default: module.GuestOrderLookupPage,
   })),
 );
-const CustomerOrdersPage = React.lazy(() =>
+const CustomerOrdersPage = lazyPage(() =>
   import("./features/orders/CustomerOrdersPage").then((module) => ({
     default: module.CustomerOrdersPage,
   })),
 );
-const CustomerOrderDetailPage = React.lazy(() =>
+const CustomerOrderDetailPage = lazyPage(() =>
   import("./features/orders/CustomerOrderDetailPage").then((module) => ({
     default: module.CustomerOrderDetailPage,
   })),
 );
 
 // Auth Pages
-const LoginPage = React.lazy(() =>
+const LoginPage = lazyPage(() =>
   import("./features/auth/LoginPage").then((module) => ({
     default: module.LoginPage,
   })),
 );
-const RegisterPage = React.lazy(() =>
+const RegisterPage = lazyPage(() =>
   import("./features/auth/RegisterPage").then((module) => ({
     default: module.RegisterPage,
   })),
 );
-const ForgotPasswordPage = React.lazy(() =>
+const ForgotPasswordPage = lazyPage(() =>
   import("./features/auth/ForgotPasswordPage").then((module) => ({
     default: module.ForgotPasswordPage,
   })),
 );
-const ResetPasswordPage = React.lazy(() =>
+const ResetPasswordPage = lazyPage(() =>
   import("./features/auth/ResetPasswordPage").then((module) => ({
     default: module.ResetPasswordPage,
   })),
 );
-const AuthCallbackPage = React.lazy(() =>
+const AuthCallbackPage = lazyPage(() =>
   import("./features/auth/AuthCallbackPage").then((module) => ({
     default: module.AuthCallbackPage,
   })),
 );
-const ProfilePage = React.lazy(() =>
+const ProfilePage = lazyPage(() =>
   import("./features/auth/ProfilePage").then((module) => ({
     default: module.ProfilePage,
   })),
 );
 
 // Seller Management Pages
-const SellerDashboardPage = React.lazy(() =>
+const SellerDashboardPage = lazyPage(() =>
   import("./features/seller/SellerDashboardPage").then((module) => ({
     default: module.SellerDashboardPage,
   })),
 );
-const SellerOrdersPage = React.lazy(() =>
+const SellerOrdersPage = lazyPage(() =>
   import("./features/seller/SellerOrdersPage").then((module) => ({
     default: module.SellerOrdersPage,
   })),
 );
-const SellerOrderDetailPage = React.lazy(() =>
+const SellerOrderDetailPage = lazyPage(() =>
   import("./features/seller/SellerOrderDetailPage").then((module) => ({
     default: module.SellerOrderDetailPage,
   })),
 );
-const SellerProductsPage = React.lazy(() =>
+const SellerProductsPage = lazyPage(() =>
   import("./features/seller/SellerProductsPage").then((module) => ({
     default: module.SellerProductsPage,
   })),
 );
-const SellerProductEditPage = React.lazy(() =>
+const SellerProductEditPage = lazyPage(() =>
   import("./features/seller/SellerProductEditPage").then((module) => ({
     default: module.SellerProductEditPage,
   })),
 );
-const SellerCombosPage = React.lazy(() =>
+const SellerCombosPage = lazyPage(() =>
   import("./features/seller/SellerCombosPage").then((module) => ({
     default: module.SellerCombosPage,
   })),
 );
-const SellerComboEditPage = React.lazy(() =>
+const SellerComboEditPage = lazyPage(() =>
   import("./features/seller/SellerComboEditPage").then((module) => ({
     default: module.SellerComboEditPage,
   })),
 );
-const SellerSettingsPage = React.lazy(() =>
+const SellerSettingsPage = lazyPage(() =>
   import("./features/seller/SellerSettingsPage").then((module) => ({
     default: module.SellerSettingsPage,
   })),
 );
-const SellerLogsPage = React.lazy(() =>
+const SellerLogsPage = lazyPage(() =>
   import("./features/seller/SellerLogsPage").then((module) => ({
     default: module.SellerLogsPage,
   })),
@@ -328,6 +330,7 @@ export const App: React.FC = () => {
               <Footer />
               <MobileNavigation />
               <FeedbackNotice />
+              <NetworkActivity />
             </div>
           </BrowserRouter>
         </CartProvider>

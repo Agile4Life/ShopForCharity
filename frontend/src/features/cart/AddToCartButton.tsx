@@ -3,6 +3,7 @@ import { Check, LoaderCircle, Plus, ShoppingCart } from "lucide-react";
 import { getComboDetail, getProductDetail } from "../catalog/api";
 import { notify } from "../../components/Usability";
 import { ApiError } from "../../lib/api-client";
+import { userErrorMessage } from "../../lib/user-errors";
 import { useCart } from "./cart-context";
 import type { ItemKind } from "../../types/api";
 
@@ -38,8 +39,7 @@ export function AddToCartButton({
     setState("loading");
     try {
       // Verify current availability and price before saving the cart locally.
-      const signal = AbortSignal.timeout(15000);
-      const item = await (kind === "PRODUCT" ? getProductDetail(catalogId, signal) : getComboDetail(catalogId, signal));
+      const item = await (kind === "PRODUCT" ? getProductDetail(catalogId) : getComboDetail(catalogId));
       if (!mounted.current) return;
       if (item.isSoldOut || item.availableStock <= 0) throw new Error("Món này vừa hết hàng. Bạn chọn món khác nhé.");
       const result = addItem({ kind, catalogId, quantity, name: item.name,
@@ -55,7 +55,7 @@ export function AddToCartButton({
         ? "Món này đã ngừng bán. Bạn chọn món khác nhé."
         : error instanceof TypeError || (error instanceof DOMException && error.name === "TimeoutError")
           ? "Chưa kết nối được gian hàng. Kiểm tra mạng và thử lại nhé."
-          : error instanceof Error ? error.message : "Chưa thể thêm món. Vui lòng thử lại.";
+          : userErrorMessage(error, "Chưa thể thêm món. Vui lòng thử lại.");
       notify(message, { tone: "error" });
     } finally {
       busy.current = false;

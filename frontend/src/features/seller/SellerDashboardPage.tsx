@@ -26,14 +26,14 @@ export const SellerDashboardPage: React.FC = () => {
     error: statsError,
     refetch,
   } = useSellerDashboard();
-  const { data: notifications = [] } = useSellerNotifications();
+  const { data: notifications = [], isLoading: notificationsLoading, error: notificationsError, refetch: refetchNotifications } = useSellerNotifications();
   const markReadMutation = useMarkNotificationRead();
 
   if (statsLoading) {
     return <LoadingSpinner message="Đang tải dữ liệu bảng điều khiển..." />;
   }
 
-  if (statsError) {
+  if (statsError && !stats) {
     return (
       <div className="container mt-4">
         <ErrorMessage error={statsError} onRetry={refetch} />
@@ -172,7 +172,7 @@ export const SellerDashboardPage: React.FC = () => {
             </h2>
           </div>
 
-          {notifications.length === 0 ? (
+          {notificationsLoading ? <LoadingSpinner message="Đang tải thông báo…" /> : notificationsError && notifications.length === 0 ? <ErrorMessage error={notificationsError} onRetry={refetchNotifications} /> : notifications.length === 0 ? (
             <p className="text-muted text-sm py-4 text-center">
               Chưa có thông báo nào.
             </p>
@@ -203,10 +203,12 @@ export const SellerDashboardPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => markReadMutation.mutate(notif.id)}
+                      disabled={markReadMutation.isPending}
+                      aria-busy={markReadMutation.isPending && markReadMutation.variables === notif.id}
                       className="btn-text-xs"
                       title="Đánh dấu đã đọc"
                     >
-                      Đã đọc
+                      {markReadMutation.isPending && markReadMutation.variables === notif.id ? "Đang lưu…" : "Đã đọc"}
                     </button>
                   )}
                 </div>

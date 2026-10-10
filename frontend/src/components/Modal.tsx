@@ -99,7 +99,7 @@ export const Modal: React.FC<ModalProps> = ({
             <X size={20} />
           </button>
         </div>
-        <div className="modal-body">{children}</div>
+        <div className="modal-body" aria-busy={closeDisabled || undefined}><fieldset className="modal-fields" disabled={closeDisabled}>{children}</fieldset></div>
       </div>
     </div>,
     document.body,

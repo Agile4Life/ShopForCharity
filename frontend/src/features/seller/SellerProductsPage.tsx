@@ -15,6 +15,7 @@ import { Modal } from "../../components/Modal";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import type { ProductSummary } from "../../types/api";
+import { AssetImage } from "../../components/AssetImage";
 
 export const SellerProductsPage: React.FC = () => {
   const [page, setPage] = useState(0);
@@ -40,7 +41,7 @@ export const SellerProductsPage: React.FC = () => {
 
   const handleConfirmAdjust = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct) return;
+    if (!selectedProduct || mutations.adjustStock.isPending) return;
     if (deltaOnHand === 0) {
       notify("Thay đổi tồn kho phải khác 0 (+ hoặc -)");
       return;
@@ -61,11 +62,7 @@ export const SellerProductsPage: React.FC = () => {
         },
       });
     } catch (error) {
-      notify(
-        error instanceof Error
-          ? error.message
-          : "Chưa lưu được thay đổi. Thử lại sau.",
-      );
+      notify(error);
       return;
     }
     setAdjustModalOpen(false);
@@ -73,13 +70,6 @@ export const SellerProductsPage: React.FC = () => {
 
   return (
     <div className="seller-products-page container">
-      {Object.values(mutations).find((mutation) => mutation.error)?.error && (
-        <ErrorMessage
-          error={
-            Object.values(mutations).find((mutation) => mutation.error)?.error
-          }
-        />
-      )}
       <div className="flex-between mb-4">
         <div>
           <h1 className="page-title">
@@ -96,7 +86,7 @@ export const SellerProductsPage: React.FC = () => {
 
       {isLoading ? (
         <LoadingSpinner message="Đang tải danh sách sản phẩm..." />
-      ) : error ? (
+      ) : error && !data ? (
         <ErrorMessage error={error} onRetry={refetch} />
       ) : (
         <div className="card">
@@ -118,7 +108,7 @@ export const SellerProductsPage: React.FC = () => {
                     <td>
                       <div className="flex items-center gap-3">
                         {p.imageUrl ? (
-                          <img
+                          <AssetImage
                             src={p.imageUrl}
                             alt={p.name}
                             className="table-thumb"
@@ -249,6 +239,7 @@ export const SellerProductsPage: React.FC = () => {
         isOpen={adjustModalOpen}
         onClose={() => setAdjustModalOpen(false)}
         title={`Điều chỉnh tồn kho: ${selectedProduct?.name}`}
+        closeDisabled={mutations.adjustStock.isPending}
       >
         <form onSubmit={handleConfirmAdjust}>
           <div className="form-group">

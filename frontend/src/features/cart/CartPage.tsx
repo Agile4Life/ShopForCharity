@@ -8,6 +8,8 @@ import {
   notify,
 } from "../../components/Usability";
 import type { CartItem } from "../../types/api";
+import { AssetImage } from "../../components/AssetImage";
+import { ErrorMessage } from "../../components/ErrorMessage";
 
 export function CartPage() {
   const {
@@ -19,7 +21,7 @@ export function CartPage() {
     estimatedSubtotal,
     totalQuantity,
   } = useCart();
-  const { data: shop } = useShopInfo();
+  const { data: shop, isLoading: shopLoading, error: shopError, refetch: refetchShop } = useShopInfo();
   const remove = (removed: CartItem[]) => {
     if (removed.length === items.length) clearCart();
     else removed.forEach((item) => removeItem(item.catalogId, item.kind));
@@ -72,7 +74,7 @@ export function CartPage() {
                   aria-label={`Xem ${item.name || "sản phẩm"}`}
                 >
                   {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.name || "Sản phẩm"} />
+                    <AssetImage src={item.imageUrl} alt={item.name || "Sản phẩm"} />
                   ) : (
                     <div className="thumb-placeholder">
                       {item.kind === "COMBO" ? "Combo" : "Món"}
@@ -135,6 +137,7 @@ export function CartPage() {
             <p className="summary-note text-muted">
               Giá và số lượng sẽ được kiểm tra ở bước tiếp theo.
             </p>
+            {shopError && !shop && <ErrorMessage error={shopError} onRetry={refetchShop} />}
             {shop && !shop.acceptingOrders && (
               <p className="cart-closed-note">
                 Shop tạm dừng nhận đơn. Bạn vẫn có thể lưu món trong giỏ.
@@ -150,7 +153,7 @@ export function CartPage() {
                 className="btn-primary full-width mt-4"
                 disabled
               >
-                {shop ? "Tạm dừng nhận đơn" : "Đang kiểm tra shop…"}
+                {shop ? "Tạm dừng nhận đơn" : shopLoading ? "Đang kiểm tra shop…" : "Chưa kiểm tra được shop"}
               </button>
             )}
             <p className="checkout-guest-note">Không cần tạo tài khoản.</p>

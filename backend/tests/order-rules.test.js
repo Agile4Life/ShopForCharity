@@ -6,7 +6,8 @@ import { ApiException } from '../src/common/api-exception.js';
 test('acceptance requires successful contact', () => {
   assert.throws(
     () => OrderRules.transition('PENDING_CONTACT', 'ACCEPTED', 'UNPAID', true, false),
-    ApiException
+    error => error instanceof ApiException && error.code === 'INVALID_TRANSITION'
+      && error.message === 'Cần ghi nhận liên hệ thành công với khách trước khi chấp nhận đơn.'
   );
   assert.doesNotThrow(
     () => OrderRules.transition('PENDING_CONTACT', 'ACCEPTED', 'UNPAID', true, true)

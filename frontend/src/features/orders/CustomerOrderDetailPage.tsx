@@ -21,7 +21,7 @@ export const CustomerOrderDetailPage: React.FC = () => {
     refetch,
   } = useCustomerOrderDetail(orderId || "");
 
-  const { data: paymentInstructions } = useCustomerPaymentInstructions(
+  const { data: paymentInstructions, isLoading: paymentLoading, error: paymentError, refetch: refetchPayment } = useCustomerPaymentInstructions(
     orderId || "",
     order?.paymentMethod === "BANK_TRANSFER",
   );
@@ -32,7 +32,7 @@ export const CustomerOrderDetailPage: React.FC = () => {
     return <LoadingSpinner message="Đang tải chi tiết đơn hàng..." />;
   }
 
-  if (error || !order) {
+  if (!order) {
     return (
       <div className="container mt-4">
         <Link to="/account/orders" className="btn-back">
@@ -65,6 +65,9 @@ export const CustomerOrderDetailPage: React.FC = () => {
       <OrderDetailView
         order={order}
         paymentInstructions={paymentInstructions}
+        paymentLoading={paymentLoading}
+        paymentError={paymentError}
+        onRetryPayment={refetchPayment}
         onCancelOrder={handleCancel}
         onReportPayment={handleReportPayment}
         isCancelling={cancelMutation.isPending}

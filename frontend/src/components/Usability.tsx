@@ -1,4 +1,4 @@
-import { Component, forwardRef, useEffect, useState } from "react";
+import { Component, forwardRef, useEffect, useState, useSyncExternalStore } from "react";
 import type { InputHTMLAttributes, ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
@@ -16,6 +16,8 @@ import {
 import { useCart } from "../features/cart/cart-context";
 import { useAuth } from "../features/auth/auth-context";
 import type { OrderStatus } from "../types/api";
+import { dismissFeedback, getFeedbackQueue, subscribeFeedback } from "../lib/feedback";
+export { notify, notifyError } from "../lib/feedback";
 
 class PageBoundary extends Component<
   { children: ReactNode },
@@ -30,7 +32,7 @@ class PageBoundary extends Component<
       return (
         <div className="container route-error" role="alert">
           <h1 className="page-title">Chưa mở được trang</h1>
-          <p>Thử tải lại trang. Giỏ hàng của bạn vẫn được lưu trên máy.</p>
+          <p>Thử tải lại trang để tiếp tục.</p>
           <button
             type="button"
             className="btn-primary"
@@ -49,26 +51,6 @@ class PageBoundary extends Component<
 export function RouteContentBoundary({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
   return <PageBoundary key={pathname}>{children}</PageBoundary>;
-}
-
-type Feedback = {
-  message: string;
-  tone?: "error" | "success";
-  action?: { label: string; onClick: () => void };
-  to?: string;
-};
-export function notify(
-  message: string,
-  options: Omit<Feedback, "message"> = {},
-) {
-  window.dispatchEvent(
-    new CustomEvent<Feedback>("shop-feedback", {
-      detail: { message, ...options },
-    }),
-  );
-}
-export function notifyError(message: string) {
-  notify(message, { tone: "error" });
 }
 
 export function OrderProgress({ status }: { status: OrderStatus }) {
@@ -104,18 +86,12 @@ export function OrderProgress({ status }: { status: OrderStatus }) {
 }
 
 export function FeedbackNotice() {
-  const [feedback, setFeedback] = useState<Feedback | null>(null);
-  useEffect(() => {
-    const receive = (event: Event) =>
-      setFeedback((event as CustomEvent<Feedback>).detail);
-    window.addEventListener("shop-feedback", receive);
-    return () => window.removeEventListener("shop-feedback", receive);
-  }, []);
+  const feedback = useSyncExternalStore(subscribeFeedback, getFeedbackQueue)[0];
   useEffect(() => {
     if (!feedback) return;
     const timer = window.setTimeout(
-      () => setFeedback(null),
-      feedback.action ? 15000 : 8000,
+      dismissFeedback,
+      feedback.action || feedback.tone === "error" ? 15000 : 8000,
     );
     return () => clearTimeout(timer);
   }, [feedback]);
@@ -128,7 +104,7 @@ export function FeedbackNotice() {
       {feedback.tone === "success" && <Check size={20} className="feedback-icon" aria-hidden="true" />}
       <span>{feedback.message}</span>
       {feedback.to && (
-        <Link to={feedback.to} onClick={() => setFeedback(null)}>
+        <Link to={feedback.to} onClick={dismissFeedback}>
           Xem giỏ
         </Link>
       )}
@@ -137,7 +113,7 @@ export function FeedbackNotice() {
           type="button"
           onClick={() => {
             feedback.action?.onClick();
-            setFeedback(null);
+            dismissFeedback();
           }}
         >
           {feedback.action.label}
@@ -147,7 +123,7 @@ export function FeedbackNotice() {
         type="button"
         className="feedback-close"
         aria-label="Đóng thông báo"
-        onClick={() => setFeedback(null)}
+        onClick={dismissFeedback}
       >
         <X size={18} aria-hidden="true" />
       </button>

@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "../../lib/api-client";
+import { ApiError, apiFetch } from "../../lib/api-client";
+import { UserFacingError } from "../../lib/user-errors";
+import { notifyError } from "../../lib/feedback";
 import {
   POLL_INTERVAL_ORDERS,
   POLL_INTERVAL_DASHBOARD,
@@ -100,85 +102,111 @@ export function useSellerOrderDetail(id: string) {
 export function useSellerOrderActions(orderId: string) {
   const queryClient = useQueryClient();
 
-  const invalidate = () => {
-    queryClient.invalidateQueries({ queryKey: ["seller-order", orderId] });
-    queryClient.invalidateQueries({ queryKey: ["seller-orders"] });
-    queryClient.invalidateQueries({ queryKey: ["seller-dashboard"] });
+  const refresh = () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["seller-order", orderId] }),
+    queryClient.invalidateQueries({ queryKey: ["seller-orders"] }),
+    queryClient.invalidateQueries({ queryKey: ["seller-dashboard"] }),
+  ]);
+  const invalidate = async (order: OrderDetail) => {
+    queryClient.setQueryData(["seller-order", orderId], order);
+    await refresh();
+  };
+  const recoverConflict = async (error: Error) => {
+    if (error instanceof ApiError && ["INVALID_TRANSITION", "VERSION_CONFLICT"].includes(error.code)) {
+      await refresh();
+    }
   };
 
   const recordContactAttempt = useMutation({
+    meta: { successMessage: "Đã ghi nhận liên hệ." },
     mutationFn: (data: RecordContactAttemptRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/contact-attempts`, {
         method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
+    onError: recoverConflict,
   });
 
   const acceptOrder = useMutation({
+    meta: { successMessage: "Đã chấp nhận đơn hàng." },
     mutationFn: (data: AcceptOrderRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/accept`, {
         method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
+    onError: recoverConflict,
   });
 
   const rejectOrder = useMutation({
+    meta: { successMessage: "Đã từ chối đơn hàng." },
     mutationFn: (data: TransitionOrderRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/reject`, {
         method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
+    onError: recoverConflict,
   });
 
   const prepareOrder = useMutation({
+    meta: { successMessage: "Đã chuyển đơn sang đang chuẩn bị." },
     mutationFn: (data: TransitionOrderRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/prepare`, {
         method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
+    onError: recoverConflict,
   });
 
   const readyOrder = useMutation({
+    meta: { successMessage: "Đã chuyển đơn sang sẵn sàng nhận." },
     mutationFn: (data: TransitionOrderRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/ready`, {
         method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
+    onError: recoverConflict,
   });
 
   const completeOrder = useMutation({
+    meta: { successMessage: "Đã hoàn tất bàn giao đơn hàng." },
     mutationFn: (data: TransitionOrderRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/complete`, {
         method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
+    onError: recoverConflict,
   });
 
   const cancelOrder = useMutation({
+    meta: { successMessage: "Đã hủy đơn hàng." },
     mutationFn: (data: TransitionOrderRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/cancel`, {
         method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
+    onError: recoverConflict,
   });
 
   const confirmPayment = useMutation({
+    meta: { successMessage: "Đã ghi nhận thanh toán." },
     mutationFn: (data: ConfirmPaymentRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/confirm-payment`, {
         method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
+    onError: recoverConflict,
   });
 
   const dismissPaymentReport = useMutation({
+    meta: { successMessage: "Đã cập nhật kết quả kiểm tra thanh toán." },
     mutationFn: (data: DismissPaymentReportRequest) =>
       apiFetch<OrderDetail>(
         `/seller/orders/${orderId}/dismiss-payment-report`,
@@ -188,15 +216,18 @@ export function useSellerOrderActions(orderId: string) {
         },
       ),
     onSuccess: invalidate,
+    onError: recoverConflict,
   });
 
   const confirmRefund = useMutation({
+    meta: { successMessage: "Đã ghi nhận hoàn tiền." },
     mutationFn: (data: ConfirmRefundRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/confirm-refund`, {
         method: "POST",
         body: data,
       }),
     onSuccess: invalidate,
+    onError: recoverConflict,
   });
 
   return {
@@ -243,7 +274,8 @@ export function useSellerProductDetail(id: string) {
   return useQuery({
     queryKey: ["seller-product", id],
     queryFn: () => getSellerProductDetail(id),
-    enabled: !!id,
+    enabled: !!id && id !== "new",
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -251,6 +283,7 @@ export function useSellerProductMutations() {
   const queryClient = useQueryClient();
 
   const createProduct = useMutation({
+    meta: { successMessage: "Đã thêm sản phẩm." },
     mutationFn: (data: CreateProductRequest) =>
       apiFetch<ProductDetail>("/seller/products", {
         method: "POST",
@@ -261,6 +294,7 @@ export function useSellerProductMutations() {
   });
 
   const updateProduct = useMutation({
+    meta: { successMessage: "Đã lưu sản phẩm." },
     mutationFn: ({ id, data }: { id: string; data: UpdateProductRequest }) =>
       apiFetch<ProductDetail>(`/seller/products/${id}`, {
         method: "PATCH",
@@ -273,6 +307,7 @@ export function useSellerProductMutations() {
   });
 
   const archiveProduct = useMutation({
+    meta: { successMessage: "Đã ẩn sản phẩm." },
     mutationFn: ({
       id,
       expectedVersion,
@@ -289,6 +324,7 @@ export function useSellerProductMutations() {
   });
 
   const activateProduct = useMutation({
+    meta: { successMessage: "Đã mở bán sản phẩm." },
     mutationFn: ({
       id,
       expectedVersion,
@@ -305,6 +341,7 @@ export function useSellerProductMutations() {
   });
 
   const adjustStock = useMutation({
+    meta: { successMessage: "Đã điều chỉnh tồn kho." },
     mutationFn: ({ id, data }: { id: string; data: StockAdjustmentRequest }) =>
       apiFetch<ProductDetail>(`/seller/products/${id}/stock-adjustments`, {
         method: "POST",
@@ -354,7 +391,8 @@ export function useSellerComboDetail(id: string) {
   return useQuery({
     queryKey: ["seller-combo", id],
     queryFn: () => getSellerComboDetail(id),
-    enabled: !!id,
+    enabled: !!id && id !== "new",
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -362,6 +400,7 @@ export function useSellerComboMutations() {
   const queryClient = useQueryClient();
 
   const createCombo = useMutation({
+    meta: { successMessage: "Đã thêm combo." },
     mutationFn: (data: CreateComboRequest) =>
       apiFetch<ComboDetail>("/seller/combos", { method: "POST", body: data }),
     onSuccess: () =>
@@ -369,6 +408,7 @@ export function useSellerComboMutations() {
   });
 
   const updateCombo = useMutation({
+    meta: { successMessage: "Đã lưu combo." },
     mutationFn: ({ id, data }: { id: string; data: UpdateComboRequest }) =>
       apiFetch<ComboDetail>(`/seller/combos/${id}`, {
         method: "PATCH",
@@ -381,6 +421,7 @@ export function useSellerComboMutations() {
   });
 
   const archiveCombo = useMutation({
+    meta: { successMessage: "Đã ẩn combo." },
     mutationFn: ({
       id,
       expectedVersion,
@@ -397,6 +438,7 @@ export function useSellerComboMutations() {
   });
 
   const activateCombo = useMutation({
+    meta: { successMessage: "Đã mở bán combo." },
     mutationFn: ({
       id,
       expectedVersion,
@@ -420,6 +462,13 @@ export async function uploadAsset(
   file: File,
   type: AssetType,
 ): Promise<AssetUploadResponse> {
+  if (file.size > 4 * 1024 * 1024 || !["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    const error = new UserFacingError(file.size > 4 * 1024 * 1024
+      ? "Ảnh vượt quá dung lượng cho phép. Chọn ảnh nhỏ hơn 4 MiB."
+      : "Định dạng ảnh chưa được hỗ trợ. Chọn JPEG, PNG hoặc WebP.");
+    notifyError(error);
+    throw error;
+  }
   const formData = new FormData();
   formData.append("file", file);
   formData.append("type", type);
@@ -427,6 +476,12 @@ export async function uploadAsset(
   return apiFetch<AssetUploadResponse>("/seller/assets", {
     method: "POST",
     body: formData,
+    validate: value => {
+      if (!value || typeof value !== "object") return false;
+      const asset = value as Partial<AssetUploadResponse>;
+      return typeof asset.assetId === "string" && !!asset.assetId
+        && typeof asset.url === "string" && !!asset.url;
+    },
   });
 }
 
@@ -441,6 +496,7 @@ export function useSellerShopSettings() {
   return useQuery({
     queryKey: ["seller-shop-settings"],
     queryFn: getSellerShopSettings,
+    refetchOnWindowFocus: false,
   });
 }
 

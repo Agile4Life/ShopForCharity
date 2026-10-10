@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiFetch } from "../../lib/api-client";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { ApiError, apiFetch } from "../../lib/api-client";
 import { POLL_INTERVAL_ORDERS } from "../../lib/query-client";
 import type {
   OrderDetail,
@@ -116,6 +116,12 @@ export async function getGuestPaymentInstructions(
 
 // React Query Hooks
 
+function refreshOnConflict(client: QueryClient, key: string[], error: Error) {
+  if (error instanceof ApiError && ["VERSION_CONFLICT", "INVALID_TRANSITION", "INVALID_PAYMENT_TRANSITION"].includes(error.code)) {
+    return client.invalidateQueries({ queryKey: key });
+  }
+}
+
 export function useCustomerOrders(page = 0, size = 20) {
   return useQuery({
     queryKey: ["customer-orders", page, size],
@@ -144,6 +150,7 @@ export function useCustomerPaymentInstructions(id: string, enabled = true) {
 export function useCancelCustomerOrder() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { successMessage: "Đã hủy đơn hàng." },
     mutationFn: ({
       id,
       reason,
@@ -153,18 +160,21 @@ export function useCancelCustomerOrder() {
       reason: string;
       expectedVersion: number;
     }) => cancelCustomerOrder(id, reason, expectedVersion),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ["customer-order", variables.id],
-      });
-      queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
+    onSuccess: (order, variables) => {
+      queryClient.setQueryData(["customer-order", variables.id], order);
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["customer-order", variables.id] }),
+        queryClient.invalidateQueries({ queryKey: ["customer-orders"] }),
+      ]);
     },
+    onError: (error, variables) => refreshOnConflict(queryClient, ["customer-order", variables.id], error),
   });
 }
 
 export function useReportCustomerPayment() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { successMessage: "Đã báo chuyển khoản. Shop sẽ kiểm tra và xác nhận thanh toán." },
     mutationFn: ({
       id,
       expectedVersion,
@@ -172,12 +182,14 @@ export function useReportCustomerPayment() {
       id: string;
       expectedVersion: number;
     }) => reportCustomerPayment(id, expectedVersion),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ["customer-order", variables.id],
-      });
-      queryClient.invalidateQueries({ queryKey: ["customer-orders"] });
+    onSuccess: (order, variables) => {
+      queryClient.setQueryData(["customer-order", variables.id], order);
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["customer-order", variables.id] }),
+        queryClient.invalidateQueries({ queryKey: ["customer-orders"] }),
+      ]);
     },
+    onError: (error, variables) => refreshOnConflict(queryClient, ["customer-order", variables.id], error),
   });
 }
 
@@ -201,6 +213,7 @@ export function useGuestPaymentInstructions(orderCode: string, enabled = true) {
 export function useCancelGuestOrder() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { successMessage: "Đã hủy đơn hàng." },
     mutationFn: ({
       orderCode,
       reason,
@@ -210,17 +223,18 @@ export function useCancelGuestOrder() {
       reason: string;
       expectedVersion: number;
     }) => cancelGuestOrder(orderCode, reason, expectedVersion),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ["guest-order", variables.orderCode],
-      });
+    onSuccess: (order, variables) => {
+      queryClient.setQueryData(["guest-order", variables.orderCode], order);
+      return queryClient.invalidateQueries({ queryKey: ["guest-order", variables.orderCode] });
     },
+    onError: (error, variables) => refreshOnConflict(queryClient, ["guest-order", variables.orderCode], error),
   });
 }
 
 export function useReportGuestPayment() {
   const queryClient = useQueryClient();
   return useMutation({
+    meta: { successMessage: "Đã báo chuyển khoản. Shop sẽ kiểm tra và xác nhận thanh toán." },
     mutationFn: ({
       orderCode,
       expectedVersion,
@@ -228,10 +242,10 @@ export function useReportGuestPayment() {
       orderCode: string;
       expectedVersion: number;
     }) => reportGuestPayment(orderCode, expectedVersion),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ["guest-order", variables.orderCode],
-      });
+    onSuccess: (order, variables) => {
+      queryClient.setQueryData(["guest-order", variables.orderCode], order);
+      return queryClient.invalidateQueries({ queryKey: ["guest-order", variables.orderCode] });
     },
+    onError: (error, variables) => refreshOnConflict(queryClient, ["guest-order", variables.orderCode], error),
   });
 }

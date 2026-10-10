@@ -10,16 +10,17 @@ import {
 } from "./api";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
+import { AssetImage } from "../../components/AssetImage";
 
 export const SellerComboEditPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isEditing = !!id && id !== "new";
   const navigate = useNavigate();
 
-  const { data: existingCombo, isLoading: loadingCombo } = useSellerComboDetail(
+  const { data: existingCombo, isLoading: loadingCombo, error: comboError, refetch: refetchCombo } = useSellerComboDetail(
     id || "",
   );
-  const { data: productsData } = useSellerProducts(0, 100);
+  const { data: productsData, isLoading: productsLoading, error: productsError, refetch: refetchProducts } = useSellerProducts(0, 100);
   const mutations = useSellerComboMutations();
 
   const [name, setName] = useState("");
@@ -71,9 +72,10 @@ export const SellerComboEditPage: React.FC = () => {
       setImageAssetId(res.assetId);
       setImageUrl(res.url);
     } catch (err: any) {
-      notify(err.message || "Lỗi khi tải ảnh lên");
+      notify(err);
     } finally {
       setUploadingImage(false);
+      e.target.value = "";
     }
   };
 
@@ -101,6 +103,7 @@ export const SellerComboEditPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (uploadingImage || productsLoading || productsError || mutations.createCombo.isPending || mutations.updateCombo.isPending) return;
 
     // Validation according to Spec 5.2
     if (!name.trim() || price <= 0) {
@@ -163,6 +166,7 @@ export const SellerComboEditPage: React.FC = () => {
   if (isEditing && loadingCombo) {
     return <LoadingSpinner message="Đang tải dữ liệu combo..." />;
   }
+  if (isEditing && !existingCombo && comboError) return <div className="container mt-4"><ErrorMessage error={comboError} onRetry={refetchCombo} /></div>;
 
   return (
     <div className="seller-combo-edit-page container max-w-2xl mx-auto">
@@ -182,6 +186,8 @@ export const SellerComboEditPage: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit}>
+          {productsLoading && <LoadingSpinner message="Đang tải sản phẩm thành phần…" />}
+          {productsError && <ErrorMessage error={productsError} onRetry={refetchProducts} />}
           {/* Image */}
           <div className="form-group mb-4">
             <label className="form-label" htmlFor="sellercomboeditpage-field-1">
@@ -190,7 +196,7 @@ export const SellerComboEditPage: React.FC = () => {
             <div className="flex items-center gap-4">
               <div className="preview-wrap">
                 {imageUrl ? (
-                  <img
+                  <AssetImage
                     src={imageUrl}
                     alt="Combo Preview"
                     className="upload-preview-img"
@@ -210,7 +216,7 @@ export const SellerComboEditPage: React.FC = () => {
                   accept="image/jpeg,image/png,image/webp"
                   onChange={handleImageFileChange}
                   className="hidden"
-                  disabled={uploadingImage}
+                  disabled={uploadingImage || mutations.createCombo.isPending || mutations.updateCombo.isPending}
                 />
               </label>
             </div>
@@ -330,7 +336,7 @@ export const SellerComboEditPage: React.FC = () => {
           <button
             type="submit"
             disabled={
-              mutations.createCombo.isPending || mutations.updateCombo.isPending
+              uploadingImage || productsLoading || !!productsError || mutations.createCombo.isPending || mutations.updateCombo.isPending
             }
             className="btn-primary full-width mt-4"
           >

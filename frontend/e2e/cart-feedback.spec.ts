@@ -47,7 +47,7 @@ test('failed availability check shows error, preserves cart and allows retry', a
   const path = `**/api/v1/products/${ids.product}`;
   await page.route(path, route => route.fulfill({ status: 503, json: { code: 'UNAVAILABLE', message: 'Chưa thể kiểm tra tồn kho. Vui lòng thử lại.' } }));
   await button.click();
-  await expect(page.getByRole('alert')).toContainText('Chưa thể kiểm tra tồn kho');
+  await expect(page.getByRole('alert')).toContainText('Dịch vụ đang gặp sự cố');
   await expect(button).toBeEnabled();
   expect(await page.evaluate(() => localStorage.getItem('school_shop_cart_v1'))).toBe('[]');
   await page.unroute(path);

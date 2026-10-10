@@ -111,7 +111,7 @@ export const SellerOrdersPage: React.FC = () => {
       {/* Orders Table */}
       {isLoading ? (
         <LoadingSpinner message="Đang tải danh sách đơn hàng..." />
-      ) : error ? (
+      ) : error && !data ? (
         <ErrorMessage error={error} onRetry={refetch} />
       ) : orders.length === 0 ? (
         <EmptyState

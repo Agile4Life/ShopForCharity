@@ -1,4 +1,5 @@
 import { notifyError as notify } from "../../components/Usability";
+import { userErrorMessage } from "../../lib/user-errors";
 import { notify as showFeedback } from "../../components/Usability";
 import React, { useState, useEffect, useRef } from "react";
 import {
@@ -20,6 +21,7 @@ import {
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { Modal } from "../../components/Modal";
+import { AssetImage } from "../../components/AssetImage";
 
 export const SellerSettingsPage: React.FC = () => {
   const { data: settings, isLoading, error, refetch } = useSellerShopSettings();
@@ -84,14 +86,16 @@ export const SellerSettingsPage: React.FC = () => {
       setQrAssetId(res.assetId);
       setQrUrl(res.url);
     } catch (err: any) {
-      notify(err.message || "Lỗi khi tải ảnh QR lên");
+      notify(err);
     } finally {
       setUploadingQr(false);
+      e.target.value = "";
     }
   };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (uploadingQr || updateSettingsMutation.isPending) return;
     setSettingsNotice(null);
     try {
       await updateSettingsMutation.mutateAsync({
@@ -108,7 +112,7 @@ export const SellerSettingsPage: React.FC = () => {
       setSettingsNotice("Cập nhật cấu hình shop và ngân hàng thành công!");
       setTimeout(() => setSettingsNotice(null), 3000);
     } catch (err: any) {
-      notify(err.message || "Lỗi lưu cài đặt");
+      notify(err);
     }
   };
 
@@ -131,9 +135,7 @@ export const SellerSettingsPage: React.FC = () => {
       });
     } catch (error) {
       setPointError(
-        error instanceof Error
-          ? error.message
-          : "Chưa lưu được thay đổi. Thử lại sau.",
+        userErrorMessage(error, "Chưa lưu được thay đổi. Thử lại sau."),
       );
       return;
     } finally {
@@ -158,11 +160,7 @@ export const SellerSettingsPage: React.FC = () => {
         },
       });
     } catch (error) {
-      notify(
-        error instanceof Error
-          ? error.message
-          : "Chưa lưu được thay đổi. Thử lại sau.",
-      );
+      notify(error);
       return;
     }
     showFeedback(currentActive ? "Đã ẩn điểm nhận hàng." : "Đã mở lại điểm nhận hàng.", { tone: "success" });
@@ -172,7 +170,7 @@ export const SellerSettingsPage: React.FC = () => {
     return <LoadingSpinner message="Đang tải thông tin cấu hình shop..." />;
   }
 
-  if (error) {
+  if (error && !settings) {
     return (
       <div className="container mt-4">
         <ErrorMessage error={error} onRetry={refetch} />
@@ -346,7 +344,7 @@ export const SellerSettingsPage: React.FC = () => {
               <div className="settings-qr-upload flex items-center gap-4">
                 <div className="qr-preview-box">
                   {qrUrl ? (
-                    <img src={qrUrl} alt="Mã QR" className="qr-preview-img" />
+                    <AssetImage src={qrUrl} alt="Mã QR" className="qr-preview-img" />
                   ) : (
                     <div className="qr-preview-empty">
                       <QrCode size={32} />
@@ -379,7 +377,7 @@ export const SellerSettingsPage: React.FC = () => {
 
             <button
               type="submit"
-              disabled={updateSettingsMutation.isPending}
+              disabled={uploadingQr || updateSettingsMutation.isPending}
               className="btn-primary full-width mt-4"
             >
               {updateSettingsMutation.isPending
@@ -410,7 +408,7 @@ export const SellerSettingsPage: React.FC = () => {
           </p>
 
           {pointsLoading ? <LoadingSpinner message="Đang tải điểm nhận hàng…" />
-            : pointsError ? <ErrorMessage error={pointsError} onRetry={refetchPoints} />
+            : pointsError && pickupPoints.length === 0 ? <ErrorMessage error={pointsError} onRetry={refetchPoints} />
               : pickupPoints.length === 0 ? (
                 <div className="pickup-points-empty">
                   <MapPin size={30} aria-hidden="true" />

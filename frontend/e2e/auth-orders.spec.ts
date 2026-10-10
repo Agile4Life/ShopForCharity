@@ -16,7 +16,7 @@ test('invalid login shows error', async ({ page, scenario }) => {
   await page.locator('#loginEmail').fill('test@example.com');
   await page.locator('#loginPass').fill('wrong-password');
   await submit(page);
-  await expect(page.getByText('Invalid login credentials', { exact: true })).toBeVisible();
+  await expect(page.getByText('Email hoặc mật khẩu chưa đúng. Vui lòng kiểm tra lại.', { exact: true })).toBeVisible();
   await expect(page).toHaveURL('/login');
 });
 
@@ -126,6 +126,6 @@ test('wrong guest token shows error and does not fetch private order', async ({ 
   await page.locator('#orderCode').fill('ORD-TEST001');
   await page.locator('#guestToken').fill('wrong-token');
   await submit(page);
-  await expect(page.getByText('INVALID_GUEST_ACCESS', { exact: true })).toBeVisible();
+  await expect(page.locator('main .error-box').filter({ hasText: 'Mã đơn hoặc khóa truy cập' })).toBeVisible();
   expect(scenario.calls.filter(r => r.method() === 'GET' && new URL(r.url()).pathname.includes('/guest/orders/'))).toHaveLength(0);
 });

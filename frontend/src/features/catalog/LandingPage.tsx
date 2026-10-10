@@ -15,6 +15,7 @@ import { useShopInfo, useCategories, useProducts, useCombos } from "./api";
 import { AddToCartButton } from "../cart/AddToCartButton";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
+import { AssetImage } from "../../components/AssetImage";
 import { EmptyState } from "../../components/EmptyState";
 import { WorkshopArt } from "../../components/WorkshopArt";
 
@@ -203,7 +204,7 @@ export function LandingPage() {
         </div>
         {isLoading ? (
           <LoadingSpinner message="Đang tải sản phẩm…" />
-        ) : error ? (
+        ) : error && !data ? (
           <ErrorMessage error={error} onRetry={refetch} />
         ) : products.length === 0 ? (
           <div className="catalog-empty">
@@ -242,7 +243,7 @@ export function LandingPage() {
                   to={`/products/${p.slug || p.id}`}
                 >
                   {p.imageUrl ? (
-                    <img
+                    <AssetImage
                       src={p.imageUrl}
                       alt={p.name}
                       className="product-card-img"
@@ -316,7 +317,7 @@ export function LandingPage() {
         <div className="combo-content">
           {combosLoading ? (
             <LoadingSpinner message="Đang tải combo…" />
-          ) : combosError ? (
+          ) : combosError && combos.length === 0 ? (
             <ErrorMessage error={combosError} onRetry={refetchCombos} />
           ) : combos.length === 0 ? (
             <div className="combo-coming-soon">
@@ -332,7 +333,7 @@ export function LandingPage() {
                       <Link to={`/combos/${c.slug || c.id}`}>{c.name}</Link>
                     </h3>
                     {c.imageUrl && (
-                      <img
+                      <AssetImage
                         className="combo-card-img"
                         src={c.imageUrl}
                         alt={c.name}

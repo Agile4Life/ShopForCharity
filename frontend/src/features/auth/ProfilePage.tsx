@@ -1,3 +1,4 @@
+import { userErrorMessage } from "../../lib/user-errors";
 import React, { useState } from "react";
 import { User, Shield } from "lucide-react";
 import { useAuth } from "./auth-context";
@@ -14,6 +15,7 @@ export const ProfilePage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setMessage(null);
     setErrorMsg(null);
@@ -25,7 +27,7 @@ export const ProfilePage: React.FC = () => {
       await refreshProfile();
       setMessage("Đã lưu thông tin.");
     } catch (err: any) {
-      setErrorMsg(err.message || "Lỗi cập nhật hồ sơ");
+      setErrorMsg(userErrorMessage(err, "Lỗi cập nhật hồ sơ"));
     } finally {
       setLoading(false);
     }

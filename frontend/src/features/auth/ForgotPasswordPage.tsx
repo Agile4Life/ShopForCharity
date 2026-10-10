@@ -1,3 +1,4 @@
+import { userErrorMessage } from "../../lib/user-errors";
 import { AuthCompanion } from "../../components/PageExperience";
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
@@ -15,6 +16,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     if (!email.trim()) return;
 
     setLoading(true);
@@ -27,7 +29,7 @@ export const ForgotPasswordPage: React.FC = () => {
         setErrorMsg(res.error || "Gửi yêu cầu không thành công");
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Lỗi gửi yêu cầu khôi phục mật khẩu");
+      setErrorMsg(userErrorMessage(err, "Lỗi gửi yêu cầu khôi phục mật khẩu"));
     } finally {
       setLoading(false);
     }

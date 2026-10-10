@@ -19,7 +19,7 @@ export const CustomerOrdersPage: React.FC = () => {
     return <LoadingSpinner message="Đang tải lịch sử đơn hàng của bạn..." />;
   }
 
-  if (error) {
+  if (error && !data) {
     return (
       <div className="container mt-4">
         <ErrorMessage error={error} onRetry={refetch} />

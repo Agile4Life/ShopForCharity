@@ -1,8 +1,11 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
 import { apiFetch } from "../../lib/api-client";
 import type { Profile, Role } from "../../types/api";
+import { userErrorMessage } from "../../lib/user-errors";
+import { notifyError } from "../../lib/feedback";
+import { withRequestDeadline } from "../../lib/request-state";
 
 interface AuthContextType {
   user: User | null;
@@ -12,6 +15,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isSeller: boolean;
   isLoading: boolean;
+  profileError: unknown;
   login: (
     email: string,
     password: string,
@@ -38,8 +42,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [profileError, setProfileError] = useState<unknown>(null);
+  const profileRequest = useRef(0);
 
   const fetchProfile = async (accessToken?: string) => {
+    const request = ++profileRequest.current;
     try {
       const data = await apiFetch<Profile>("/me", {
         skipIdempotency: true,
@@ -47,11 +54,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           ? { Authorization: `Bearer ${accessToken}` }
           : undefined,
       });
-      setProfile(data);
-    } catch (err: any) {
-      console.warn("Could not fetch backend profile (/me)", err);
-      // Profile might not exist yet if backend is still provisioning or DB is empty
-      setProfile(null);
+      if (request === profileRequest.current) { setProfile(data); setProfileError(null); }
+      return true;
+    } catch (err) {
+      if (request === profileRequest.current) {
+        setProfileError(err);
+        notifyError(err, "Chưa tải được thông tin tài khoản. Vui lòng thử lại.");
+      }
+      return false;
     }
   };
 
@@ -59,8 +69,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     let mounted = true;
 
     // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    withRequestDeadline(() => supabase.auth.getSession()).then(({ data: { session }, error }) => {
       if (!mounted) return;
+      if (error) throw error;
       setSession(session);
       setUser(session?.user ?? null);
       if (session) {
@@ -70,6 +81,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       } else {
         setIsLoading(false);
       }
+    }).catch(error => {
+      if (mounted) { setProfileError(error); setIsLoading(false); notifyError(error); }
     });
 
     // Listen to auth state changes
@@ -84,26 +97,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           if (mounted) setIsLoading(false);
         });
       } else {
+        ++profileRequest.current;
         setProfile(null);
+        setProfileError(null);
         setIsLoading(false);
       }
     });
 
     return () => {
       mounted = false;
+      ++profileRequest.current;
       subscription.unsubscribe();
     };
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await withRequestDeadline(() => supabase.auth.signInWithPassword({
       email,
       password,
-    });
+    }), { write: true });
     if (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: userErrorMessage(error, "Đăng nhập chưa thành công. Kiểm tra email và mật khẩu.") };
     }
-    await fetchProfile();
+    if (!await fetchProfile(data.session?.access_token)) {
+      return { success: false, error: "Đã đăng nhập nhưng chưa tải được tài khoản. Vui lòng thử đăng nhập lại." };
+    }
     return { success: true };
   };
 
@@ -113,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     fullName: string,
     phone: string,
   ) => {
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await withRequestDeadline(() => supabase.auth.signUp({
       email,
       password,
       options: {
@@ -122,10 +140,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           phone,
         },
       },
-    });
+    }), { write: true });
 
     if (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: userErrorMessage(error, "Chưa tạo được tài khoản. Vui lòng thử lại.") };
     }
 
     if (data.session) {
@@ -136,18 +154,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    const { error } = await withRequestDeadline(() => supabase.auth.signOut(), { write: true });
+    if (error) throw error;
+    ++profileRequest.current;
     setUser(null);
     setSession(null);
     setProfile(null);
+    setProfileError(null);
   };
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await withRequestDeadline(() => supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
-    });
+    }), { write: true });
     if (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: userErrorMessage(error, "Chưa gửi được email khôi phục. Vui lòng thử lại.") };
     }
     return { success: true };
   };
@@ -166,11 +187,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isAuthenticated,
         isSeller,
         isLoading,
+        profileError,
         login,
         register,
         logout,
         resetPassword,
-        refreshProfile: fetchProfile,
+        refreshProfile: async () => {
+          if (!profile || profileError) setIsLoading(true);
+          try {
+            const { data, error } = await withRequestDeadline(() => supabase.auth.getSession());
+            if (error) throw error;
+            setSession(data.session);
+            setUser(data.session?.user ?? null);
+            if (data.session) await fetchProfile(data.session.access_token);
+            else { setProfile(null); setProfileError(null); }
+          } catch (error) { setProfileError(error); notifyError(error); }
+          finally { setIsLoading(false); }
+        },
       }}
     >
       {children}

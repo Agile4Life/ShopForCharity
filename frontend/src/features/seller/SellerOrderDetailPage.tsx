@@ -8,6 +8,7 @@ import {
   CheckCircle,
   XCircle,
   DollarSign,
+  LoaderCircle,
 } from "lucide-react";
 import {
   useSellerOrderDetail,
@@ -22,6 +23,9 @@ import { Modal } from "../../components/Modal";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import type { ContactChannel, ContactOutcome } from "../../types/api";
+import { PickupDateTimePicker } from "./PickupDateTimePicker";
+import { pickupInstant } from "./pickup-time";
+import { ApiError } from "../../lib/api-client";
 
 export const SellerOrderDetailPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -45,6 +49,7 @@ export const SellerOrderDetailPage: React.FC = () => {
   const [acceptModalOpen, setAcceptModalOpen] = useState(false);
   const [acceptPickupPointId, setAcceptPickupPointId] = useState("");
   const [acceptPickupAt, setAcceptPickupAt] = useState("");
+  const [acceptError, setAcceptError] = useState("");
 
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -68,7 +73,7 @@ export const SellerOrderDetailPage: React.FC = () => {
     return <LoadingSpinner message="Đang tải chi tiết đơn hàng..." />;
   }
 
-  if (error || !order) {
+  if (!order) {
     return (
       <div className="container mt-4">
         <Link to="/seller/orders" className="btn-back">
@@ -98,11 +103,7 @@ export const SellerOrderDetailPage: React.FC = () => {
         expectedVersion: order.version,
       });
     } catch (error) {
-      notify(
-        error instanceof Error
-          ? error.message
-          : "Chưa lưu được thay đổi. Thử lại sau.",
-      );
+      notify(error);
       return;
     }
     setContactModalOpen(false);
@@ -113,24 +114,32 @@ export const SellerOrderDetailPage: React.FC = () => {
 
   const handleAcceptOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!acceptPickupPointId || !acceptPickupAt) {
-      notify(
-        "Vui lòng chọn điểm nhận hàng và thời gian hẹn nhận cụ thể trong tương lai",
-      );
+    if (actions.acceptOrder.isPending) return;
+    if (!hasSuccessfulContact) {
+      setAcceptError('Cần ghi nhận liên hệ "Thành công" với khách trước khi chấp nhận đơn.');
       return;
     }
+    if (!acceptPickupPointId || !acceptPickupAt) {
+      setAcceptError("Vui lòng chọn điểm nhận hàng và ngày hẹn nhận.");
+      return;
+    }
+    const instant = pickupInstant(acceptPickupAt);
+    if (!Number.isFinite(instant.getTime()) || instant.getTime() <= Date.now()) {
+      setAcceptError("Giờ hẹn đã qua. Vui lòng chọn thời gian trong tương lai.");
+      return;
+    }
+    setAcceptError("");
     try {
       await actions.acceptOrder.mutateAsync({
         confirmedPickupPointId: acceptPickupPointId,
-        confirmedPickupAt: new Date(acceptPickupAt).toISOString(),
+        confirmedPickupAt: instant.toISOString(),
         expectedVersion: order.version,
       });
     } catch (error) {
-      notify(
-        error instanceof Error
-          ? error.message
-          : "Chưa lưu được thay đổi. Thử lại sau.",
-      );
+      if (error instanceof ApiError && ["INVALID_TRANSITION", "VERSION_CONFLICT"].includes(error.code)) {
+        setAcceptModalOpen(false);
+      }
+      notify(error);
       return;
     }
     setAcceptModalOpen(false);
@@ -148,11 +157,7 @@ export const SellerOrderDetailPage: React.FC = () => {
         expectedVersion: order.version,
       });
     } catch (error) {
-      notify(
-        error instanceof Error
-          ? error.message
-          : "Chưa lưu được thay đổi. Thử lại sau.",
-      );
+      notify(error);
       return;
     }
     setRejectModalOpen(false);
@@ -170,11 +175,7 @@ export const SellerOrderDetailPage: React.FC = () => {
         expectedVersion: order.version,
       });
     } catch (error) {
-      notify(
-        error instanceof Error
-          ? error.message
-          : "Chưa lưu được thay đổi. Thử lại sau.",
-      );
+      notify(error);
       return;
     }
     setCancelModalOpen(false);
@@ -194,11 +195,7 @@ export const SellerOrderDetailPage: React.FC = () => {
         expectedVersion: order.version,
       });
     } catch (error) {
-      notify(
-        error instanceof Error
-          ? error.message
-          : "Chưa lưu được thay đổi. Thử lại sau.",
-      );
+      notify(error);
       return;
     }
     setConfirmPaymentModalOpen(false);
@@ -216,11 +213,7 @@ export const SellerOrderDetailPage: React.FC = () => {
         expectedVersion: order.version,
       });
     } catch (error) {
-      notify(
-        error instanceof Error
-          ? error.message
-          : "Chưa lưu được thay đổi. Thử lại sau.",
-      );
+      notify(error);
       return;
     }
     setDismissPaymentModalOpen(false);
@@ -236,11 +229,7 @@ export const SellerOrderDetailPage: React.FC = () => {
         expectedVersion: order.version,
       });
     } catch (error) {
-      notify(
-        error instanceof Error
-          ? error.message
-          : "Chưa lưu được thay đổi. Thử lại sau.",
-      );
+      notify(error);
       return;
     }
     setConfirmRefundModalOpen(false);
@@ -248,11 +237,6 @@ export const SellerOrderDetailPage: React.FC = () => {
 
   return (
     <div className="seller-order-detail-page container">
-      {Object.values(actions).find((action) => action.error)?.error && (
-        <ErrorMessage
-          error={Object.values(actions).find((action) => action.error)?.error}
-        />
-      )}
       <Link to="/seller/orders" className="btn-back mb-4">
         <ArrowLeft size={16} /> Quay lại danh sách đơn hàng
       </Link>
@@ -475,17 +459,24 @@ export const SellerOrderDetailPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    setAcceptPickupPointId(order.pickupPointName || "");
+                    if (!hasSuccessfulContact) {
+                      notify('Chưa thể chấp nhận đơn. Hãy chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước.');
+                      return;
+                    }
+                    const matchingPoints = pickupPoints.filter(p => p.active && p.name === order.pickupPointName);
+                    setAcceptPickupPointId(matchingPoints.length === 1 ? matchingPoints[0].id : "");
+                    setAcceptError("");
                     setAcceptModalOpen(true);
                   }}
                   className="btn-primary full-width mb-2"
+                  disabled={actions.recordContactAttempt.isPending}
+                  aria-describedby={!hasSuccessfulContact ? "accept-contact-required" : undefined}
                 >
                   <CheckCircle size={16} /> Chấp nhận đơn hàng
                 </button>
                 {!hasSuccessfulContact && (
-                  <p className="text-xs text-amber mb-2">
-                    * Lưu ý: Cần ghi nhận ít nhất một lần liên hệ "Thành công"
-                    trước khi chấp nhận đơn.
+                  <p id="accept-contact-required" className="text-sm text-muted mb-2">
+                    Chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước khi chấp nhận đơn.
                   </p>
                 )}
 
@@ -636,6 +627,7 @@ export const SellerOrderDetailPage: React.FC = () => {
       {/* Record Contact Modal */}
       <Modal
         isOpen={contactModalOpen}
+        closeDisabled={actions.recordContactAttempt.isPending}
         onClose={() => setContactModalOpen(false)}
         title="Ghi nhận liên hệ khách hàng"
       >
@@ -725,26 +717,31 @@ export const SellerOrderDetailPage: React.FC = () => {
       {/* Accept Order Modal */}
       <Modal
         isOpen={acceptModalOpen}
-        onClose={() => setAcceptModalOpen(false)}
+        onClose={() => { setAcceptModalOpen(false); setAcceptError(""); }}
         title="Chấp nhận đơn hàng"
+        className="pickup-schedule-dialog"
+        closeDisabled={actions.acceptOrder.isPending}
       >
         <form onSubmit={handleAcceptOrder}>
+          <p className="pickup-schedule-intro">Chốt điểm nhận và thời gian đã thống nhất với khách.</p>
           <div className="form-group">
             <label
               className="form-label"
               htmlFor="sellerorderdetailpage-field-4"
             >
-              Xác nhận điểm hẹn nhận hàng:
+              Điểm nhận hàng
             </label>
             <select
               id="sellerorderdetailpage-field-4"
               value={acceptPickupPointId}
-              onChange={(e) => setAcceptPickupPointId(e.target.value)}
+              onChange={(e) => { setAcceptPickupPointId(e.target.value); setAcceptError(""); }}
               className="select-field"
+              disabled={actions.acceptOrder.isPending}
+              data-autofocus
               required
             >
               <option value="">-- Chọn điểm nhận --</option>
-              {pickupPoints.map((p) => (
+              {pickupPoints.filter((p) => p.active).map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
@@ -752,36 +749,28 @@ export const SellerOrderDetailPage: React.FC = () => {
             </select>
           </div>
 
-          <div className="form-group">
-            <label
-              className="form-label"
-              htmlFor="sellerorderdetailpage-field-5"
-            >
-              Xác nhận thời gian hẹn nhận:
-            </label>
-            <input
-              id="sellerorderdetailpage-field-5"
-              type="datetime-local"
-              value={acceptPickupAt}
-              onChange={(e) => setAcceptPickupAt(e.target.value)}
-              className="input-field"
-            />
-          </div>
+          <PickupDateTimePicker value={acceptPickupAt}
+            onChange={(value) => { setAcceptPickupAt(value); setAcceptError(""); }}
+            disabled={actions.acceptOrder.isPending} invalid={!!acceptError} errorId="pickup-schedule-error" />
+          {acceptError && <p id="pickup-schedule-error" className="pickup-schedule-error" role="alert">{acceptError}</p>}
+          {!pickupPoints.some(p => p.active) && <p className="pickup-schedule-error">Chưa có điểm nhận đang hoạt động. <Link to="/seller/settings">Thêm điểm nhận hàng</Link></p>}
 
           <div className="modal-actions">
             <button
               type="button"
               onClick={() => setAcceptModalOpen(false)}
               className="btn-secondary"
+              disabled={actions.acceptOrder.isPending}
             >
               Đóng
             </button>
             <button
               type="submit"
-              disabled={actions.acceptOrder.isPending}
+              disabled={actions.acceptOrder.isPending || !hasSuccessfulContact || !pickupPoints.some(p => p.active)}
               className="btn-primary"
             >
-              Xác nhận duyệt đơn
+              {actions.acceptOrder.isPending && <LoaderCircle size={18} className="pickup-saving-icon" aria-hidden="true" />}
+              {actions.acceptOrder.isPending ? "Đang xác nhận…" : "Xác nhận duyệt đơn"}
             </button>
           </div>
         </form>
@@ -790,6 +779,7 @@ export const SellerOrderDetailPage: React.FC = () => {
       {/* Reject Order Modal */}
       <Modal
         isOpen={rejectModalOpen}
+        closeDisabled={actions.rejectOrder.isPending}
         onClose={() => setRejectModalOpen(false)}
         title="Từ chối đơn hàng"
       >
@@ -834,6 +824,7 @@ export const SellerOrderDetailPage: React.FC = () => {
       {/* Cancel Order Modal */}
       <Modal
         isOpen={cancelModalOpen}
+        closeDisabled={actions.cancelOrder.isPending}
         onClose={() => setCancelModalOpen(false)}
         title="Hủy đơn hàng"
       >
@@ -878,6 +869,7 @@ export const SellerOrderDetailPage: React.FC = () => {
       {/* Confirm Payment Modal */}
       <Modal
         isOpen={confirmPaymentModalOpen}
+        closeDisabled={actions.confirmPayment.isPending}
         onClose={() => setConfirmPaymentModalOpen(false)}
         title="Xác nhận thanh toán đủ (PAID)"
       >
@@ -955,6 +947,7 @@ export const SellerOrderDetailPage: React.FC = () => {
       {/* Dismiss Payment Report Modal */}
       <Modal
         isOpen={dismissPaymentModalOpen}
+        closeDisabled={actions.dismissPaymentReport.isPending}
         onClose={() => setDismissPaymentModalOpen(false)}
         title="Bác bỏ báo cáo chuyển khoản"
       >
@@ -999,6 +992,7 @@ export const SellerOrderDetailPage: React.FC = () => {
       {/* Confirm Refund Modal */}
       <Modal
         isOpen={confirmRefundModalOpen}
+        closeDisabled={actions.confirmRefund.isPending}
         onClose={() => setConfirmRefundModalOpen(false)}
         title="Xác nhận hoàn tiền cho khách"
       >

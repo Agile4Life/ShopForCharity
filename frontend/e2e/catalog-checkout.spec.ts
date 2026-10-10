@@ -75,7 +75,7 @@ for (const condition of ['sessionError', 'quoteUnavailable', 'quoteExpired'] as 
     await page.goto('/checkout');
     await expect(page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeDisabled();
     if (condition === 'sessionError') {
-      await expect(page.getByText('SESSION_UNAVAILABLE', { exact: true })).toBeVisible();
+      await expect(page.locator('main .error-box').filter({ hasText: 'Dịch vụ đang gặp sự cố' })).toBeVisible();
       expect(scenario.mutations('/checkout/quote')).toHaveLength(0);
     } else await expect.poll(() => scenario.mutations('/checkout/quote').length).toBeGreaterThan(0);
     expect(scenario.mutations('/orders')).toHaveLength(0);

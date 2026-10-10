@@ -73,6 +73,7 @@ export const CheckoutPage: React.FC = () => {
   const [now, setNow] = useState(Date.now());
   const requestId = useRef(0);
   const orderCreated = useRef(false);
+  const submittingOrder = useRef(false);
 
   const quoteMutation = useCheckoutQuote();
   const orderMutation = useCreateOrder();
@@ -171,6 +172,7 @@ export const CheckoutPage: React.FC = () => {
   }, [items, selectedPaymentMethod, isAuthenticated]);
 
   const onSubmit = async (data: CheckoutFormData) => {
+    if (submittingOrder.current || orderCreated.current) return;
     if (
       !quote ||
       checkingQuote ||
@@ -186,6 +188,7 @@ export const CheckoutPage: React.FC = () => {
       return;
     }
 
+    submittingOrder.current = true;
     setSubmitError(null);
     try {
       const orderPayload = {
@@ -223,7 +226,7 @@ export const CheckoutPage: React.FC = () => {
         },
       });
     } catch (err: any) {
-      if (err?.status === 409 || err?.code === "CHECKOUT_CHANGED") {
+      if (["CHECKOUT_CHANGED", "INVALID_QUOTE", "QUOTE_EXPIRED", "INSUFFICIENT_STOCK", "CATALOG_UNAVAILABLE"].includes(err?.code)) {
         // Stale quote or catalog changes -> automatically refresh quote and alert user
         await fetchQuote();
         setSubmitError(
@@ -233,7 +236,10 @@ export const CheckoutPage: React.FC = () => {
         );
       } else {
         setSubmitError(err);
+        if (err?.code === "SHOP_CLOSED") await refetchShop();
       }
+    } finally {
+      submittingOrder.current = false;
     }
   };
 

@@ -1,3 +1,4 @@
+import { userErrorMessage } from "../../lib/user-errors";
 import { PasswordField } from "../../components/Usability";
 import { AuthCompanion } from "../../components/PageExperience";
 import React, { useState } from "react";
@@ -20,6 +21,7 @@ export const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     if (!email.trim() || !password) {
       setErrorMsg("Vui lòng điền đầy đủ email và mật khẩu");
       return;
@@ -35,7 +37,7 @@ export const LoginPage: React.FC = () => {
         setErrorMsg(res.error || "Email hoặc mật khẩu không chính xác");
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Đăng nhập không thành công");
+      setErrorMsg(userErrorMessage(err, "Đăng nhập không thành công"));
     } finally {
       setLoading(false);
     }

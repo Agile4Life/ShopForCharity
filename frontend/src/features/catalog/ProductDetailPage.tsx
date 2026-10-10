@@ -11,6 +11,7 @@ import { useProductDetail } from "./api";
 import { AddToCartButton } from "../cart/AddToCartButton";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
+import { AssetImage } from "../../components/AssetImage";
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -26,7 +27,7 @@ export const ProductDetailPage: React.FC = () => {
     return <LoadingSpinner message="Đang tải thông tin món..." />;
   }
 
-  if (error || !product) {
+  if (!product) {
     return (
       <div className="container mt-4">
         <Link to="/" className="btn-back">
@@ -51,7 +52,7 @@ export const ProductDetailPage: React.FC = () => {
       <div className="detail-layout">
         <div className="detail-media">
           {product.imageUrl ? (
-            <img
+            <AssetImage
               src={product.imageUrl}
               alt={product.name}
               className="detail-img"

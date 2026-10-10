@@ -5,6 +5,7 @@ import { useSellerCombos, useSellerComboMutations } from "./api";
 import { ProductStatusBadge } from "../../components/StatusBadge";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
+import { AssetImage } from "../../components/AssetImage";
 
 export const SellerCombosPage: React.FC = () => {
   const { data: combos = [], isLoading, error, refetch } = useSellerCombos();
@@ -12,13 +13,6 @@ export const SellerCombosPage: React.FC = () => {
 
   return (
     <div className="seller-combos-page container">
-      {Object.values(mutations).find((mutation) => mutation.error)?.error && (
-        <ErrorMessage
-          error={
-            Object.values(mutations).find((mutation) => mutation.error)?.error
-          }
-        />
-      )}
       <div className="flex-between mb-4">
         <div>
           <h1 className="page-title">
@@ -32,7 +26,7 @@ export const SellerCombosPage: React.FC = () => {
 
       {isLoading ? (
         <LoadingSpinner message="Đang tải danh sách combo..." />
-      ) : error ? (
+      ) : error && combos.length === 0 ? (
         <ErrorMessage error={error} onRetry={refetch} />
       ) : combos.length === 0 ? (
         <div className="card text-center py-6">
@@ -63,7 +57,7 @@ export const SellerCombosPage: React.FC = () => {
                     <td>
                       <div className="flex items-center gap-3">
                         {c.imageUrl ? (
-                          <img
+                          <AssetImage
                             src={c.imageUrl}
                             alt={c.name}
                             className="table-thumb"

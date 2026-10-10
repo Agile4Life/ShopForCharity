@@ -21,6 +21,15 @@ export async function getCheckoutQuote(
     method: "POST",
     body: data,
     skipIdempotency: true,
+    validate: value => {
+      if (!value || typeof value !== "object") return false;
+      const quote = value as Partial<QuoteResponse>;
+      return typeof quote.quoteToken === "string" && !!quote.quoteToken
+        && typeof quote.expiresAt === "string" && Number.isFinite(Date.parse(quote.expiresAt))
+        && typeof quote.total === "number" && Number.isFinite(quote.total)
+        && typeof quote.subtotal === "number" && Number.isFinite(quote.subtotal)
+        && Array.isArray(quote.items);
+    },
   });
 }
 
@@ -31,6 +40,13 @@ export async function createOrder(
     method: "POST",
     body: data,
     skipIdempotency: false, // Must generate Idempotency-Key
+    validate: value => {
+      if (!value || typeof value !== "object") return false;
+      const order = value as Partial<CreateOrderResponse>;
+      return typeof order.orderId === "string" && !!order.orderId
+        && typeof order.orderCode === "string" && !!order.orderCode
+        && typeof order.total === "number" && Number.isFinite(order.total);
+    },
   });
 }
 

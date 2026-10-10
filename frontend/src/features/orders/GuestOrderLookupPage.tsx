@@ -35,7 +35,7 @@ export const GuestOrderLookupPage: React.FC = () => {
     refetch: refetchOrder,
   } = useGuestOrderDetail(currentOrderCode || "", !!currentOrderCode);
 
-  const { data: paymentInstructions } = useGuestPaymentInstructions(
+  const { data: paymentInstructions, isLoading: paymentLoading, error: paymentError, refetch: refetchPayment } = useGuestPaymentInstructions(
     currentOrderCode || "",
     !!currentOrderCode && order?.paymentMethod === "BANK_TRANSFER",
   );
@@ -45,6 +45,7 @@ export const GuestOrderLookupPage: React.FC = () => {
 
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (accessLoading) return;
     if (!orderCodeInput.trim() || !guestTokenInput.trim()) {
       setAccessError(new Error("Vui lòng nhập mã đơn hàng và khóa truy cập."));
       return;
@@ -155,12 +156,15 @@ export const GuestOrderLookupPage: React.FC = () => {
 
           {orderLoading ? (
             <LoadingSpinner message="Đang tải dữ liệu đơn hàng..." />
-          ) : orderError ? (
+          ) : orderError && !order ? (
             <ErrorMessage error={orderError} onRetry={refetchOrder} />
           ) : order ? (
             <OrderDetailView
               order={order}
               paymentInstructions={paymentInstructions}
+              paymentLoading={paymentLoading}
+              paymentError={paymentError}
+              onRetryPayment={refetchPayment}
               onCancelOrder={handleCancel}
               onReportPayment={handleReportPayment}
               isCancelling={cancelMutation.isPending}

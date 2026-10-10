@@ -17,6 +17,9 @@ import {
   PaymentStatusBadge,
 } from "../../components/StatusBadge";
 import { Modal } from "../../components/Modal";
+import { LoadingSpinner } from "../../components/LoadingSpinner";
+import { ErrorMessage } from "../../components/ErrorMessage";
+import { AssetImage } from "../../components/AssetImage";
 
 interface OrderDetailViewProps {
   order: OrderDetail;
@@ -25,6 +28,9 @@ interface OrderDetailViewProps {
   onReportPayment?: (expectedVersion: number) => Promise<void>;
   isCancelling?: boolean;
   isReportingPayment?: boolean;
+  paymentLoading?: boolean;
+  paymentError?: unknown;
+  onRetryPayment?: () => void;
 }
 
 export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
@@ -34,6 +40,9 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
   onReportPayment,
   isCancelling = false,
   isReportingPayment = false,
+  paymentLoading = false,
+  paymentError,
+  onRetryPayment,
 }) => {
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -60,8 +69,8 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
         await onCancelOrder(cancelReason.trim(), order.version);
         setCancelModalOpen(false);
         setCancelReason("");
-      } catch {
-        notify("Chưa hủy được đơn. Kiểm tra trạng thái đơn và thử lại.");
+      } catch (error) {
+        notify(error, "Chưa hủy được đơn. Kiểm tra trạng thái đơn và thử lại.");
       }
     }
   };
@@ -253,6 +262,8 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
 
             {order.paymentMethod === "BANK_TRANSFER" && (
               <div className="bank-transfer-box">
+                {paymentLoading && <LoadingSpinner message="Đang tải hướng dẫn chuyển khoản…" />}
+                {paymentError != null && <ErrorMessage error={paymentError} onRetry={onRetryPayment} />}
                 {isBankPendingContact && (
                   <div className="alert-box alert-warning text-xs mb-3">
                     <AlertCircle size={16} />
@@ -268,10 +279,11 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                   <div className="payment-instructions-panel">
                     {paymentInstructions.qrSignedUrl ? (
                       <div className="qr-container">
-                        <img
+                        <AssetImage
                           src={paymentInstructions.qrSignedUrl}
                           alt="Mã QR Chuyển khoản"
                           className="qr-image"
+                          onRetry={onRetryPayment}
                         />
                       </div>
                     ) : (
@@ -323,10 +335,8 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                       onClick={async () => {
                         try {
                           await onReportPayment(order.version);
-                        } catch {
-                          notify(
-                            "Chưa gửi được thông báo chuyển khoản. Thử lại sau.",
-                          );
+                        } catch (error) {
+                          notify(error, "Chưa gửi được thông báo chuyển khoản. Thử lại sau.");
                         }
                       }}
                       disabled={isReportingPayment}
@@ -385,6 +395,7 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
         isOpen={cancelModalOpen}
         onClose={() => setCancelModalOpen(false)}
         title="Xác nhận hủy đơn hàng"
+        closeDisabled={isCancelling}
       >
         <p className="text-sm text-muted mb-3">
           Vui lòng nhập lý do bạn muốn hủy đơn hàng này:

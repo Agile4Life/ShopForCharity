@@ -6,6 +6,7 @@ import { useComboDetail } from "./api";
 import { AddToCartButton } from "../cart/AddToCartButton";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
+import { AssetImage } from "../../components/AssetImage";
 
 export const ComboDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -16,7 +17,7 @@ export const ComboDetailPage: React.FC = () => {
     return <LoadingSpinner message="Đang tải thông tin combo..." />;
   }
 
-  if (error || !combo) {
+  if (!combo) {
     return (
       <div className="container mt-4">
         <Link to="/" className="btn-back">
@@ -41,7 +42,7 @@ export const ComboDetailPage: React.FC = () => {
       <div className="detail-layout">
         <div className="detail-media">
           {combo.imageUrl ? (
-            <img src={combo.imageUrl} alt={combo.name} className="detail-img" />
+            <AssetImage src={combo.imageUrl} alt={combo.name} className="detail-img" />
           ) : (
             <div className="detail-img-placeholder">
               <Layers size={48} />

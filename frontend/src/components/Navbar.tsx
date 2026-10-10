@@ -5,6 +5,7 @@ import { ArrowUpRight, ChevronDown, ShoppingBag, User, LogOut, Menu, X } from "l
 import { useCart } from "../features/cart/cart-context";
 import { useAuth } from "../features/auth/auth-context";
 import { BrandMark } from "./BrandMark";
+import { notifyError } from "../lib/feedback";
 
 export function Navbar() {
   const { totalQuantity } = useCart();
@@ -15,6 +16,8 @@ export function Navbar() {
   const setOpen = (value: boolean) => setMenuPath(value ? pathname : null);
   const navigate = useNavigate();
   const accountMenu = useRef<HTMLDetailsElement>(null);
+  const logoutBusy = useRef(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   useEffect(() => {
     if (accountMenu.current) accountMenu.current.open = false;
   }, [pathname]);
@@ -43,11 +46,16 @@ export function Navbar() {
     };
   }, []);
   const handleLogout = async () => {
+    if (logoutBusy.current) return;
+    logoutBusy.current = true;
+    setLoggingOut(true);
     setOpen(false);
     if (accountMenu.current) accountMenu.current.open = false;
     // Leave a protected page before SIGNED_OUT triggers its login redirect.
     navigate("/", { replace: true });
-    await logout();
+    try { await logout(); }
+    catch (error) { notifyError(error, "Chưa đăng xuất được. Vui lòng thử lại."); }
+    finally { logoutBusy.current = false; setLoggingOut(false); }
   };
   return (
     <>
@@ -119,7 +127,7 @@ export function Navbar() {
                   <NavLink to="/account/profile"><User size={17} aria-hidden="true" />Thông tin tài khoản</NavLink>
                   <NavLink to="/account/orders"><ShoppingBag size={17} aria-hidden="true" />Đơn hàng của tôi</NavLink>
                   {isSeller && <NavLink to="/seller"><ArrowUpRight size={17} aria-hidden="true" />Bàn làm việc</NavLink>}
-                  <button type="button" onClick={handleLogout} className="account-dropdown-logout">
+                  <button type="button" onClick={handleLogout} disabled={loggingOut} aria-busy={loggingOut} className="account-dropdown-logout">
                     <LogOut size={17} aria-hidden="true" />Đăng xuất
                   </button>
                 </nav>
@@ -163,7 +171,7 @@ export function Navbar() {
                 <NavLink to="/account/orders">Đơn hàng của tôi</NavLink>
                 <NavLink to="/account/profile">Thông tin tài khoản</NavLink>
                 {isSeller && <NavLink to="/seller">Bàn làm việc</NavLink>}
-                <button onClick={handleLogout} className="logout-link">
+                <button onClick={handleLogout} disabled={loggingOut} aria-busy={loggingOut} className="logout-link">
                   Đăng xuất
                 </button>
               </>

@@ -40,7 +40,9 @@ export class OrderRules {
       valid,
       409,
       'INVALID_TRANSITION',
-      'Không thể thực hiện ở trạng thái hiện tại.'
+      seller && from === 'PENDING_CONTACT' && to === 'ACCEPTED' && !contact
+        ? 'Cần ghi nhận liên hệ thành công với khách trước khi chấp nhận đơn.'
+        : 'Không thể thực hiện ở trạng thái hiện tại.'
     );
   }
 }

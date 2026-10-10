@@ -1,5 +1,75 @@
 /* Usable controls and calm feedback, shared across the shop. */
+.network-activity { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 320; display: flex; align-items: center; gap: 10px; max-width: calc(100dvw - 32px); width: max-content; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; color: var(--ink); background: var(--bg-card); box-shadow: 0 6px 24px #284b3724; font-size: 13px; pointer-events: none; }
+.network-activity svg { flex-shrink: 0; }
+.network-offline { color: #8e3523; border-color: #e2b5a5; background: #fff3ed; }
+.network-activity-spinner { animation: cart-spin 800ms linear infinite; }
+@media (prefers-reduced-motion: reduce) { .network-activity-spinner { animation: none; } }
 .modal-backdrop { z-index: 250; }
+.modal-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.asset-image-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 12px; max-width: 100%; min-height: 48px; background: var(--paper); color: var(--text-muted); font-size: 12px; text-align: center; overflow: hidden; }
+.asset-image-fallback.table-thumb { min-width: 48px; padding: 4px; font-size: 9px; }
+.asset-image-fallback.qr-image { min-height: 180px; }
+.pickup-schedule-dialog { max-width: 620px; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.pickup-schedule-dialog .modal-header { flex-shrink: 0; padding: 18px 24px; gap: 12px; }
+.pickup-schedule-dialog .modal-title { font-size: 1.4rem; line-height: 1.3; }
+.pickup-schedule-dialog .modal-body { min-height: 0; overflow-y: auto; padding: 20px 24px 24px; }
+.pickup-schedule-intro { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.6; }
+.pickup-schedule-dialog .form-label { font-size: 15px; }
+.pickup-schedule { border: 0; padding: 0; margin: 0; min-width: 0; }
+.pickup-schedule legend { font-weight: 600; font-size: 15px; margin-bottom: 12px; color: var(--ink); }
+.pickup-date-shortcuts { display: flex; gap: 8px; margin-bottom: 12px; }
+.pickup-date-shortcuts button { border: 1px solid var(--border-color); border-radius: 24px; background: var(--paper); color: var(--ink); padding: 8px 16px; min-height: 40px; font-size: 13px; }
+.pickup-date-shortcuts button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.pickup-date-trigger { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; min-height: 52px; padding: 12px 16px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-card); color: var(--ink); font-size: 15px; }
+.pickup-date-trigger span { flex: 1; }
+.pickup-date-trigger svg { flex-shrink: 0; }
+.pickup-date-trigger .is-expanded { transform: rotate(90deg); }
+.pickup-date-trigger[aria-invalid="true"] { border-color: #a54229; }
+.pickup-calendar { border: 1px solid var(--border-color); background: var(--paper); border-radius: 14px; padding: 12px; margin-top: 10px; }
+.pickup-calendar-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 600; font-size: 15px; margin-bottom: 6px; }
+.pickup-calendar-heading button { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); }
+.pickup-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.pickup-weekday { color: var(--text-muted); text-align: center; font-size: 12px; padding: 6px 0; }
+.pickup-calendar-grid button { min-height: 40px; width: 100%; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--ink); font-size: 14px; }
+.pickup-calendar-grid button[aria-current="date"] { border-color: var(--ink); font-weight: 700; }
+.pickup-calendar-grid button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.pickup-schedule button:disabled { opacity: .35; cursor: not-allowed; }
+.pickup-schedule button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+@media (hover: hover) {
+  .pickup-calendar-grid button:not(:disabled):not([aria-pressed="true"]):hover,
+  .pickup-calendar-heading button:not(:disabled):hover { background: var(--sage); }
+}
+.pickup-time-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 20px 0 10px; font-size: 14px; color: var(--ink); }
+.pickup-time-heading small { margin-left: auto; color: var(--text-muted); font-size: 11px; }
+.pickup-time-fields { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: end; }
+.pickup-time-fields > div { display: grid; gap: 6px; }
+.pickup-time-fields label { font-size: 12px; color: var(--text-muted); }
+.pickup-time-fields select { font-size: 18px; min-height: 48px; color: var(--ink); }
+.pickup-time-fields > span { align-self: end; padding-bottom: 14px; }
+.pickup-schedule-details { margin-top: 10px; }
+.pickup-schedule-details.with-calendar { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.pickup-schedule-details .pickup-calendar { margin-top: 0; }
+.pickup-schedule-details.with-calendar .pickup-time-heading { margin-top: 10px; }
+.pickup-schedule-details.with-calendar .pickup-time-heading small { width: 100%; margin-left: 0; margin-top: 2px; }
+.pickup-time-panel { min-width: 0; }
+.pickup-time-help { font-size: 12px; color: var(--text-muted); line-height: 1.7; margin-top: 12px; }
+.pickup-schedule-error { margin-top: 12px; color: #8e3523; background: #f9ece6; padding: 12px; border-radius: 10px; font-size: 13px; line-height: 1.5; }
+.pickup-schedule-dialog .modal-actions { position: sticky; bottom: -24px; padding-top: 16px; background: var(--bg-card); border-top: 1px solid var(--border-color); gap: 10px; }
+.pickup-schedule-dialog .modal-actions button { min-height: 46px; font-size: 14px; white-space: nowrap; }
+.pickup-saving-icon { animation: cart-spin 800ms linear infinite; }
+@media (prefers-reduced-motion: reduce) { .pickup-saving-icon { animation: none; } }
+@media (max-width: 600px) {
+  .pickup-schedule-dialog .modal-header { padding: 16px 18px; }
+  .pickup-schedule-dialog .modal-body { padding: 18px; }
+  .pickup-schedule-dialog .modal-title { font-size: 1.25rem; }
+  .pickup-schedule-dialog .modal-actions { bottom: -18px; }
+  .pickup-schedule-dialog .modal-actions .btn-primary { flex: 1; min-width: 0; }
+  .pickup-calendar { padding: 8px; }
+  .pickup-calendar-grid { gap: 2px; }
+  .pickup-schedule-details.with-calendar { display: block; }
+  .pickup-schedule-details.with-calendar .pickup-time-heading { margin-top: 20px; }
+  .pickup-schedule-details.with-calendar .pickup-time-heading small { width: auto; margin-left: auto; }
+}
 .seller-settings-page { max-width: 1200px; }
 .seller-settings-page .page-title { font-size: clamp(1.6rem, 3vw, 2.2rem); }
 .seller-settings-page .settings-grid { align-items: start; }

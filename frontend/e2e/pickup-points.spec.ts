@@ -74,7 +74,7 @@ test('pending save blocks duplicates and closing; failure keeps values for retry
   await dialog.locator('form').dispatchEvent('submit');
   await expect.poll(() => writes).toBe(1);
   release();
-  await expect(dialog.getByRole('alert')).toContainText('Chưa lưu được điểm nhận');
+  await expect(dialog.getByRole('alert')).toContainText('Dịch vụ đang gặp sự cố');
   await expect(name).toHaveValue('Cổng thư viện');
   await expect(dialog.getByLabel('Chỉ dẫn nhận hàng', { exact: false })).toHaveValue('Nhận lúc 10 giờ');
   await page.unroute(path);

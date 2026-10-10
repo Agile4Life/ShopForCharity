@@ -1,3 +1,4 @@
+import { userErrorMessage } from "../../lib/user-errors";
 import { PasswordField } from "../../components/Usability";
 import { AuthCompanion } from "../../components/PageExperience";
 import React, { useState } from "react";
@@ -19,6 +20,7 @@ export const RegisterPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     if (!fullName.trim() || !phone.trim() || !email.trim() || !password) {
       setErrorMsg("Vui lòng điền đầy đủ các trường thông tin");
       return;
@@ -47,7 +49,7 @@ export const RegisterPage: React.FC = () => {
         setErrorMsg(res.error || "Đăng ký không thành công");
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Đã xảy ra lỗi khi đăng ký");
+      setErrorMsg(userErrorMessage(err, "Đã xảy ra lỗi khi đăng ký"));
     } finally {
       setLoading(false);
     }

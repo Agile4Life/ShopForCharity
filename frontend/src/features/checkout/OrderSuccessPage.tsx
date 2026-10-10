@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { PurchaseSteps, notify } from "../../components/Usability";
 import type { CreateOrderResponse } from "../../types/api";
+import { withRequestDeadline } from "../../lib/request-state";
 import {
   OrderStatusBadge,
   PaymentStatusBadge,
@@ -26,6 +27,7 @@ export const OrderSuccessPage: React.FC = () => {
   } | null;
 
   const [copied, setCopied] = useState(false);
+  const [copying, setCopying] = useState(false);
 
   if (!state?.order) {
     return <Navigate to="/" replace />;
@@ -33,20 +35,17 @@ export const OrderSuccessPage: React.FC = () => {
 
   const { order } = state;
 
-  const handleCopyCredentials = () => {
-    if (!order.guestAccessToken) return;
+  const handleCopyCredentials = async () => {
+    if (!order.guestAccessToken || copying) return;
     const textToCopy = `Mã đơn hàng: ${order.orderCode}\nKhóa truy cập: ${order.guestAccessToken}\nWebsite: ${window.location.origin}/guest-order`;
-    navigator.clipboard
-      .writeText(textToCopy)
-      .then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 3000);
-      })
-      .catch(() =>
-        notify("Chưa sao chép được. Bạn có thể tải thông tin về máy.", {
-          tone: "error",
-        }),
-      );
+    setCopying(true);
+    try {
+      await withRequestDeadline(() => navigator.clipboard.writeText(textToCopy), { timeoutMs: 5000, write: true, allowOffline: true });
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch {
+      notify("Chưa sao chép được. Bạn có thể tải thông tin về máy.", { tone: "error" });
+    } finally { setCopying(false); }
   };
   const downloadCredentials = () => {
     const blob = new Blob(
@@ -128,9 +127,11 @@ export const OrderSuccessPage: React.FC = () => {
             <button
               type="button"
               onClick={handleCopyCredentials}
+              disabled={copying}
+              aria-busy={copying}
               className="btn-secondary full-width mt-2"
             >
-              {copied ? (
+              {copying ? "Đang sao chép…" : copied ? (
                 <>
                   <Check size={16} /> Đã sao chép
                 </>

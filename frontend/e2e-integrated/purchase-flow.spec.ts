@@ -45,12 +45,23 @@ test('seller product → live catalog update → bank transfer → cash → comp
       const start = Date.now();
       console.log(`START ${title}`);
       try {
+        await page.bringToFront();
         await action();
         const screenshot = `${String(results.length + 1).padStart(2, '0')}.png`;
         await page.screenshot({ path: testInfo.outputPath(screenshot), fullPage: true, mask: [page.locator('.guest-credentials-box')] });
         results.push({ name: title, status: 'PASS', elapsedMs: Date.now() - start, screenshot });
         console.log(`PASS ${title}`);
       } catch (error) {
+        console.log('FLOW_FAILURE_CONTEXT', await page.evaluate(() => {
+          const input = document.querySelector<HTMLInputElement>('#phone');
+          const box = input?.getBoundingClientRect();
+          return { path: location.pathname, visibility: document.visibilityState,
+            phone: input ? { disabled: input.disabled, readOnly: input.readOnly,
+              width: box?.width, height: box?.height, display: getComputedStyle(input).display,
+              visibility: getComputedStyle(input).visibility } : null };
+        }).catch(() => null));
+        await page.screenshot({ path: testInfo.outputPath('flow-failure.png'), fullPage: true,
+          mask: [page.locator('.cred-code'), page.locator('input[type="password"]')] }).catch(() => {});
         results.push({ name: title, status: 'FAIL', elapsedMs: Date.now() - start });
         throw error;
       }
@@ -76,7 +87,7 @@ test('seller product → live catalog update → bank transfer → cash → comp
     await expect(seller.getByRole('dialog')).toHaveCount(0);
     await seller.getByRole('button', { name: 'Chấp nhận đơn hàng', exact: true }).click();
     await seller.locator('#sellerorderdetailpage-field-4').selectOption(pickupId);
-    await seller.locator('#sellerorderdetailpage-field-5').fill(new Date(Date.now() + 86400000).toISOString().slice(0, 16));
+    await seller.getByRole('button', { name: 'Ngày mai', exact: true }).click();
     const accepted = await mutation(seller, `/seller/orders/${orderId}/accept`, () => seller.getByRole('button', { name: 'Xác nhận duyệt đơn', exact: true }).click());
     expect(accepted.status).toBe('ACCEPTED');
     await expect(seller.getByRole('dialog')).toHaveCount(0);
@@ -122,7 +133,7 @@ test('seller product → live catalog update → bank transfer → cash → comp
     await step('04. Upload ảnh và tạo sản phẩm nháp: 12.000đ, tồn 8', seller, async () => {
       await seller.goto('/seller/products/new');
       await mutation(seller, '/seller/assets', () => seller.locator('input[type="file"]').setInputFiles({ name: 'product.png', mimeType: 'image/png', buffer: image }));
-      await expect(seller.getByText('Đã gắn Asset ID', { exact: true })).toBeVisible();
+      await expect(seller.getByText('Đã tải ảnh', { exact: true })).toBeVisible();
       await seller.locator('#sellerproducteditpage-field-1').fill(name);
       const category = await seller.locator('#sellerproducteditpage-field-2 option').nth(1).getAttribute('value');
       await seller.locator('#sellerproducteditpage-field-2').selectOption(category!);

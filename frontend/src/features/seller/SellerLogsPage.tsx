@@ -77,7 +77,7 @@ export const SellerLogsPage: React.FC = () => {
 
       {isLoading ? (
         <LoadingSpinner message="Đang tải nhật ký kiểm toán..." />
-      ) : error ? (
+      ) : error && !data ? (
         <ErrorMessage error={error} onRetry={refetch} />
       ) : logs.length === 0 ? (
         <EmptyState

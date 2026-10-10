@@ -1,3 +1,4 @@
+import { userErrorMessage } from "../../lib/user-errors";
 import { PasswordField } from "../../components/Usability";
 import { AuthCompanion } from "../../components/PageExperience";
 import React, { useState } from "react";
@@ -5,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { ErrorMessage } from "../../components/ErrorMessage";
+import { withRequestDeadline } from "../../lib/request-state";
 
 export const ResetPasswordPage: React.FC = () => {
   const [password, setPassword] = useState("");
@@ -16,6 +18,7 @@ export const ResetPasswordPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     if (password !== confirmPassword) {
       setErrorMsg("Mật khẩu xác nhận không khớp");
       return;
@@ -28,15 +31,15 @@ export const ResetPasswordPage: React.FC = () => {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      const { error } = await withRequestDeadline(() => supabase.auth.updateUser({ password }), { write: true });
       if (error) {
-        setErrorMsg(error.message);
+        setErrorMsg(userErrorMessage(error));
       } else {
         setSuccess(true);
         setTimeout(() => navigate("/login"), 2000);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || "Lỗi đặt lại mật khẩu");
+      setErrorMsg(userErrorMessage(err, "Lỗi đặt lại mật khẩu"));
     } finally {
       setLoading(false);
     }

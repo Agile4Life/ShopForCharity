@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { CartItem, ItemKind } from "../../types/api";
+import { notifyError } from "../../lib/feedback";
 
 const CART_STORAGE_KEY = "school_shop_cart_v1";
 const MAX_LINES = 30;
@@ -41,11 +42,19 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.slice(0, MAX_LINES);
+          const valid = parsed.filter((item): item is CartItem => item && ["PRODUCT", "COMBO"].includes(item.kind)
+            && typeof item.catalogId === "string" && item.catalogId.length > 0
+            && Number.isInteger(item.quantity) && item.quantity >= 1 && item.quantity <= MAX_QTY_PER_LINE
+            && Number.isFinite(item.price) && item.price >= 0
+            && typeof item.name === "string");
+          if (valid.length !== parsed.length) notifyError("Một số món lưu trong giỏ không còn hợp lệ và đã được bỏ khỏi giỏ. Vui lòng kiểm tra lại.");
+          if (valid.length > MAX_LINES) notifyError("Giỏ đã lưu vượt giới hạn 30 loại món. Vui lòng kiểm tra lại giỏ trước khi đặt hàng.");
+          return valid.slice(0, MAX_LINES);
         }
+        notifyError("Giỏ đã lưu không hợp lệ. Vui lòng thêm lại các món.");
       }
-    } catch (e) {
-      console.error("Failed to load cart from localStorage", e);
+    } catch {
+      notifyError("Chưa đọc được giỏ đã lưu trên máy. Vui lòng kiểm tra và thêm lại các món.");
     }
     return [];
   });
@@ -59,8 +68,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     try {
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-    } catch (e) {
-      console.error("Failed to save cart to localStorage", e);
+    } catch {
+      notifyError("Trình duyệt chưa lưu được giỏ trên máy. Giỏ vẫn dùng được trong tab này; hãy giữ tab khi đặt hàng.");
     }
   }, [items]);
 
