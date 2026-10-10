@@ -2,15 +2,19 @@
 :root {
   --control-surface: var(--bg-card);
   --control-selected: var(--primary-subtle);
-  --scrollbar-track: var(--cream);
-  --scrollbar-thumb: #9ba98b;
-  --scrollbar-thumb-hover: #626f55;
+  --scrollbar-track: var(--paper);
+  --scrollbar-thumb: #718569;
+  --scrollbar-thumb-hover: var(--ink);
 }
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 html { scrollbar-gutter: stable; }
+/* Scrollable menus, forms and tables use the same forest ink and paper palette. */
+:is(.table-responsive, .account-dropdown-panel, .modal-body, .category-tabs, .seller-workspace-bar nav, textarea):hover {
+  scrollbar-color: var(--scrollbar-thumb-hover) var(--scrollbar-track);
+}
 ::-webkit-scrollbar { width: 12px; height: 12px; }
 ::-webkit-scrollbar-track,
 ::-webkit-scrollbar-corner { background: var(--scrollbar-track); }
@@ -20,6 +24,10 @@ html { scrollbar-gutter: stable; }
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+::-webkit-scrollbar-button { display: none; }
+@media (pointer: coarse) {
+  * { scrollbar-width: auto; }
+}
 
 /* Native selects retain validation, labels, and keyboard behavior. */
 select.select-field,
@@ -155,7 +163,10 @@ select[aria-invalid="true"] { border-color: var(--danger); }
 .account-dropdown-panel :focus-visible { outline-offset: -3px; }
 
 @media (forced-colors: active) {
-  * { scrollbar-color: auto; }
+  * { scrollbar-color: auto !important; }
+  ::-webkit-scrollbar-thumb { background: ButtonText; border-color: Canvas; }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner { background: Canvas; }
   select.select-field,
   select.select-input { appearance: auto; background-image: none; }
   .account-dropdown > summary { border-color: ButtonText; }

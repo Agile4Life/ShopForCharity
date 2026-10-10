@@ -180,6 +180,7 @@ test('seller product → live catalog update → bank transfer → cash → comp
       await buyer.locator('#fullName').fill('Khách kiểm thử Playwright');
       await buyer.locator('#phone').fill('0912345678');
       await buyer.locator('#email').fill('buyer-playwright@example.com');
+      await buyer.locator('#pickupPointId').selectOption(pickupId);
       await buyer.locator('input[value="BANK_TRANSFER"]').check();
       await expect(buyer.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeEnabled();
       const order = await mutation(buyer, '/orders', () => buyer.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true }).click());
@@ -246,6 +247,7 @@ test('seller product → live catalog update → bank transfer → cash → comp
       await buyer.locator('#fullName').fill('Khách tiền mặt Playwright');
       await buyer.locator('#phone').fill('0912345678');
       await buyer.locator('#email').fill('cash-playwright@example.com');
+      await buyer.locator('#pickupPointId').selectOption(pickupId);
       await buyer.locator('input[value="CASH"]').check();
       await expect(buyer.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeEnabled();
       const order = await mutation(buyer, '/orders', () => buyer.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true }).click());

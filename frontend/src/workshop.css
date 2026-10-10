@@ -119,7 +119,7 @@ p {
   min-width: 0;
 }
 .main-content > div {
-  animation: page-arrive 0.42s var(--ease-out) both;
+  animation: page-arrive 0.28s var(--ease-out) both;
 }
 .container {
   max-width: 1280px;
@@ -2161,23 +2161,31 @@ tbody tr:hover {
 /* Motion never blocks an action; reduced-motion renders final states immediately. */
 .reveal-ready {
   opacity: 0;
-  transform: translateY(24px);
+  translate: 0 16px;
   transition:
-    opacity 0.6s var(--ease-out),
-    transform 0.6s var(--ease-out);
+    opacity 0.28s ease-out,
+    translate 0.28s var(--ease-out);
 }
 .reveal-ready.is-visible {
   opacity: 1;
-  transform: none;
+  translate: none;
 }
-.product-card.reveal-ready:nth-child(4n + 2) {
-  transition-delay: 0.05s;
+.reveal-ready:focus-within {
+  opacity: 1;
+  translate: none;
+  transition: none;
 }
-.product-card.reveal-ready:nth-child(4n + 3) {
-  transition-delay: 0.1s;
+:is(.products-grid, .combos-grid, .workshop-steps, .metrics-grid) > .reveal-ready:nth-child(4n + 2) {
+  transition-delay: 30ms;
 }
-.product-card.reveal-ready:nth-child(4n + 4) {
-  transition-delay: 0.15s;
+:is(.products-grid, .combos-grid, .workshop-steps, .metrics-grid) > .reveal-ready:nth-child(4n + 3) {
+  transition-delay: 60ms;
+}
+:is(.products-grid, .combos-grid, .workshop-steps, .metrics-grid) > .reveal-ready:nth-child(4n + 4) {
+  transition-delay: 90ms;
+}
+@media (max-width: 640px) {
+  .reveal-ready { transition-delay: 0s !important; }
 }
 @keyframes page-arrive {
   from {
@@ -2938,5 +2946,6 @@ tbody tr:hover {
   .reveal-ready {
     opacity: 1 !important;
     transform: none !important;
+    translate: none !important;
   }
 }

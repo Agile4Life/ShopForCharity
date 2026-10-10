@@ -4,44 +4,89 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { WorkshopArt } from "./WorkshopArt";
 import { useAuth } from "../features/auth/auth-context";
 
+// Reveal individual surfaces, rather than hiding entire long pages or tables.
+const revealSelector = [
+  "[data-reveal]", ".section-heading", ".catalog-toolbar", ".shop-status-strip",
+  ".product-card", ".combo-card", ".combo-intro", ".combo-coming-soon",
+  ".workshop-steps > li", ".detail-media", ".detail-info", ".card",
+  ".cart-item-card", ".cart-summary-card",
+].join(", ");
+
 export function PageExperience() {
   const { pathname, hash } = useLocation();
   useEffect(() => {
-    if (hash) {
-      requestAnimationFrame(() =>
+    const anchorFrame = hash ? requestAnimationFrame(() =>
         document.getElementById(hash.slice(1))?.scrollIntoView(),
-      );
-    } else {
+      ) : null;
+    if (!hash) {
       window.scrollTo({ top: 0, behavior: "instant" });
     }
     const main = document.getElementById("main-content");
-    if (!main || window.matchMedia("(prefers-reduced-motion: reduce)").matches)
-      return;
+    if (!main) return;
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (typeof window.IntersectionObserver !== "function") return;
+    const pending = new Set<Element>();
+    const show = (el: Element) => {
+      el.classList.add("is-visible");
+      pending.delete(el);
+      observer.unobserve(el);
+    };
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            observer.unobserve(entry.target);
+            show(entry.target);
           }
         });
       },
-      { threshold: 0.08 },
+      // A tall card must still appear when only its top enters the viewport.
+      { threshold: 0, rootMargin: "0px 0px -24px 0px" },
     );
     const watched = new WeakSet<Element>();
-    const scan = () =>
-      main.querySelectorAll("[data-reveal]:not(.is-visible)").forEach((el) => {
+    const scan = () => {
+      const surfaces = Array.from(main.querySelectorAll(revealSelector)).filter(el => {
         if (watched.has(el)) return;
         watched.add(el);
+        return !el.closest("[role='dialog'], .modal-backdrop") &&
+          !el.parentElement?.closest(revealSelector);
+      }).map(el => ({ el, top: el.getBoundingClientRect().top }));
+      surfaces.forEach(({ el, top }) => {
+        // Content already on screen stays readable immediately, including API updates.
+        if (motion.matches || top < window.innerHeight - 24 ||
+            el.contains(document.activeElement)) {
+          show(el);
+          return;
+        }
         el.classList.add("reveal-ready");
+        pending.add(el);
         observer.observe(el);
       });
+    };
     scan();
-    const mutation = new MutationObserver(scan);
+    let scanFrame: number | null = null;
+    const mutation = new MutationObserver(() => {
+      if (scanFrame !== null) return;
+      scanFrame = requestAnimationFrame(() => { scanFrame = null; scan(); });
+    });
     mutation.observe(main, { childList: true, subtree: true });
+    const revealFocus = (event: FocusEvent) => {
+      if (!(event.target instanceof Element)) return;
+      const surface = event.target.closest(".reveal-ready");
+      if (surface) show(surface);
+    };
+    const reduceMotion = () => {
+      if (motion.matches) pending.forEach(show);
+    };
+    main.addEventListener("focusin", revealFocus);
+    motion.addEventListener("change", reduceMotion);
     return () => {
+      if (anchorFrame !== null) cancelAnimationFrame(anchorFrame);
+      if (scanFrame !== null) cancelAnimationFrame(scanFrame);
       observer.disconnect();
       mutation.disconnect();
+      main.removeEventListener("focusin", revealFocus);
+      motion.removeEventListener("change", reduceMotion);
+      pending.forEach(el => el.classList.remove("reveal-ready"));
     };
   }, [pathname, hash]);
   return null;

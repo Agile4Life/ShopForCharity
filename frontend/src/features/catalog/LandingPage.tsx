@@ -77,7 +77,6 @@ export function LandingPage() {
         className="catalog-section container"
         id="catalog"
         aria-labelledby="catalog-title"
-        data-reveal
       >
         <div className="section-heading">
           <div>
@@ -309,7 +308,6 @@ export function LandingPage() {
         className={`combo-workshop container${!combosLoading && !combosError && combos.length === 0 ? " combo-empty-section" : ""}`}
         id="combos"
         aria-labelledby="combo-title"
-        data-reveal
       >
         <div className="combo-intro">
           <h2 id="combo-title">Combo</h2>
@@ -364,7 +362,7 @@ export function LandingPage() {
           )}
         </div>
       </section>
-      <section className="how-it-works container" id="how-it-works" data-reveal>
+      <section className="how-it-works container" id="how-it-works">
         <div className="section-heading">
           <div>
             <h2>Cách nhận hàng</h2>
