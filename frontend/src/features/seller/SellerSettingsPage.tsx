@@ -1,5 +1,6 @@
 import { notifyError as notify } from "../../components/Usability";
-import React, { useState, useEffect } from "react";
+import { notify as showFeedback } from "../../components/Usability";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Settings,
   CreditCard,
@@ -7,6 +8,7 @@ import {
   MapPin,
   Plus,
   Upload,
+  LoaderCircle,
 } from "lucide-react";
 import {
   useSellerShopSettings,
@@ -23,7 +25,7 @@ export const SellerSettingsPage: React.FC = () => {
   const { data: settings, isLoading, error, refetch } = useSellerShopSettings();
   const updateSettingsMutation = useUpdateShopSettings();
 
-  const { data: pickupPoints = [] } = useSellerPickupPoints();
+  const { data: pickupPoints = [], isLoading: pointsLoading, error: pointsError, refetch: refetchPoints } = useSellerPickupPoints();
   const pointMutations = useSellerPickupPointMutations();
 
   // Settings form states
@@ -46,6 +48,17 @@ export const SellerSettingsPage: React.FC = () => {
   const [pointModalOpen, setPointModalOpen] = useState(false);
   const [newPointName, setNewPointName] = useState("");
   const [newPointInstructions, setNewPointInstructions] = useState("");
+  const [pointError, setPointError] = useState<string | null>(null);
+  const pointNameRef = useRef<HTMLInputElement>(null);
+  const pointSaveInFlight = useRef(false);
+  const pointSaving = pointMutations.createPickupPoint.isPending;
+  const closePointModal = () => {
+    if (pointSaving || pointSaveInFlight.current) return;
+    setPointModalOpen(false);
+    setNewPointName("");
+    setNewPointInstructions("");
+    setPointError(null);
+  };
 
   useEffect(() => {
     if (settings) {
@@ -101,7 +114,14 @@ export const SellerSettingsPage: React.FC = () => {
 
   const handleCreatePoint = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPointName.trim()) return;
+    if (pointSaving || pointSaveInFlight.current) return;
+    if (!newPointName.trim()) {
+      setPointError("Vui lòng nhập tên điểm nhận hàng.");
+      pointNameRef.current?.focus();
+      return;
+    }
+    setPointError(null);
+    pointSaveInFlight.current = true;
 
     try {
       await pointMutations.createPickupPoint.mutateAsync({
@@ -110,16 +130,19 @@ export const SellerSettingsPage: React.FC = () => {
         active: true,
       });
     } catch (error) {
-      notify(
+      setPointError(
         error instanceof Error
           ? error.message
           : "Chưa lưu được thay đổi. Thử lại sau.",
       );
       return;
+    } finally {
+      pointSaveInFlight.current = false;
     }
     setPointModalOpen(false);
     setNewPointName("");
     setNewPointInstructions("");
+    showFeedback("Đã thêm điểm nhận hàng. Khách có thể chọn khi đặt đơn.", { tone: "success" });
   };
 
   const handleTogglePointActive = async (
@@ -142,6 +165,7 @@ export const SellerSettingsPage: React.FC = () => {
       );
       return;
     }
+    showFeedback(currentActive ? "Đã ẩn điểm nhận hàng." : "Đã mở lại điểm nhận hàng.", { tone: "success" });
   };
 
   if (isLoading) {
@@ -319,7 +343,7 @@ export const SellerSettingsPage: React.FC = () => {
               >
                 Ảnh mã QR tĩnh của Shop:
               </label>
-              <div className="flex items-center gap-4">
+              <div className="settings-qr-upload flex items-center gap-4">
                 <div className="qr-preview-box">
                   {qrUrl ? (
                     <img src={qrUrl} alt="Mã QR" className="qr-preview-img" />
@@ -336,6 +360,7 @@ export const SellerSettingsPage: React.FC = () => {
                     <Upload size={14} />{" "}
                     {uploadingQr ? "Đang tải..." : "Tải ảnh QR mới"}
                     <input
+                      id="sellersettingspage-field-7"
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
                       onChange={handleQrUpload}
@@ -365,14 +390,14 @@ export const SellerSettingsPage: React.FC = () => {
         </div>
 
         {/* Pickup Points Management */}
-        <div className="card">
-          <div className="flex-between mb-3">
+        <div className="card pickup-points-card">
+          <div className="pickup-points-heading">
             <h2 className="section-subtitle flex items-center gap-2">
               <MapPin size={18} /> Điểm hẹn nhận hàng ({pickupPoints.length})
             </h2>
             <button
               type="button"
-              onClick={() => setPointModalOpen(true)}
+              onClick={() => { setPointError(null); setPointModalOpen(true); }}
               className="btn-primary-sm"
             >
               <Plus size={14} /> Thêm điểm nhận
@@ -384,6 +409,15 @@ export const SellerSettingsPage: React.FC = () => {
             đơn.
           </p>
 
+          {pointsLoading ? <LoadingSpinner message="Đang tải điểm nhận hàng…" />
+            : pointsError ? <ErrorMessage error={pointsError} onRetry={refetchPoints} />
+              : pickupPoints.length === 0 ? (
+                <div className="pickup-points-empty">
+                  <MapPin size={30} aria-hidden="true" />
+                  <strong>Chưa có điểm nhận hàng</strong>
+                  <p>Thêm địa điểm và chỉ dẫn để khách biết nơi đến nhận đơn.</p>
+                </div>
+              ) : null}
           <div className="pickup-points-list">
             {pickupPoints.map((pt) => (
               <div
@@ -399,10 +433,14 @@ export const SellerSettingsPage: React.FC = () => {
                 <div>
                   <button
                     type="button"
+                    disabled={pointMutations.updatePickupPoint.isPending}
+                    aria-pressed={pt.active}
+                    aria-busy={pointMutations.updatePickupPoint.isPending && pointMutations.updatePickupPoint.variables?.id === pt.id}
                     onClick={() => handleTogglePointActive(pt.id, pt.active)}
                     className={`btn-text-xs ${pt.active ? "text-green" : "text-gray"}`}
                   >
-                    {pt.active ? "Đang hoạt động" : "Tạm ẩn"}
+                    {pointMutations.updatePickupPoint.isPending && pointMutations.updatePickupPoint.variables?.id === pt.id
+                      ? "Đang lưu…" : pt.active ? "Đang hoạt động" : "Tạm ẩn"}
                   </button>
                 </div>
               </div>
@@ -414,33 +452,44 @@ export const SellerSettingsPage: React.FC = () => {
       {/* Add Pickup Point Modal */}
       <Modal
         isOpen={pointModalOpen}
-        onClose={() => setPointModalOpen(false)}
-        title="Thêm điểm hẹn nhận hàng mới"
+        onClose={closePointModal}
+        closeDisabled={pointSaving}
+        className="pickup-point-dialog"
+        title="Thêm điểm nhận hàng"
       >
-        <form onSubmit={handleCreatePoint}>
+        <form onSubmit={handleCreatePoint} className="pickup-point-form" noValidate aria-busy={pointSaving}>
+          <p className="pickup-point-intro">Địa điểm này sẽ xuất hiện để khách chọn khi đặt hàng.</p>
+          {pointError && <p id="pickup-point-error" className="pickup-point-error" role="alert">{pointError}</p>}
           <div className="form-group">
-            <label className="form-label">Tên địa điểm nhận hàng *:</label>
+            <label className="form-label" htmlFor="pickup-point-name">Tên điểm nhận hàng <span aria-hidden="true">*</span></label>
             <input
-              id="sellersettingspage-field-7"
+              id="pickup-point-name"
+              ref={pointNameRef}
               type="text"
+              data-autofocus
+              disabled={pointSaving}
+              aria-invalid={!!pointError && !newPointName.trim()}
+              aria-describedby={pointError ? "pickup-point-error" : "pickup-point-name-help"}
               value={newPointName}
-              onChange={(e) => setNewPointName(e.target.value)}
-              placeholder="Ví dụ: Cổng Thư viện trường / Sảnh nhà B"
+              onChange={(e) => { setNewPointName(e.target.value); setPointError(null); }}
+              placeholder="Ví dụ: Sảnh nhà B"
               className="input-field"
               required
             />
+            <p id="pickup-point-name-help" className="pickup-point-help">Dùng tên ngắn gọn, dễ tìm trong trường.</p>
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="sellersettingspage-field-8">
-              Chỉ dẫn nhận hàng:
+            <label className="form-label" htmlFor="pickup-point-instructions">
+              Chỉ dẫn nhận hàng <span className="text-muted">(không bắt buộc)</span>
             </label>
             <textarea
-              id="sellersettingspage-field-8"
-              rows={2}
+              id="pickup-point-instructions"
+              rows={3}
+              disabled={pointSaving}
               value={newPointInstructions}
               onChange={(e) => setNewPointInstructions(e.target.value)}
-              placeholder="Ví dụ: Đứng gần ghế đá số 3, nhận vào giờ ra chơi..."
+              placeholder="Ví dụ: Gần ghế đá số 3, nhận vào giờ ra chơi."
               className="textarea-field"
             />
           </div>
@@ -448,17 +497,19 @@ export const SellerSettingsPage: React.FC = () => {
           <div className="modal-actions">
             <button
               type="button"
-              onClick={() => setPointModalOpen(false)}
+              onClick={closePointModal}
+              disabled={pointSaving}
               className="btn-secondary"
             >
-              Đóng
+              Hủy
             </button>
             <button
               type="submit"
-              disabled={pointMutations.createPickupPoint.isPending}
+              disabled={pointSaving}
               className="btn-primary"
             >
-              Thêm điểm nhận
+              {pointSaving && <LoaderCircle size={18} className="cart-loading-icon" aria-hidden="true" />}
+              {pointSaving ? "Đang lưu…" : "Thêm điểm nhận"}
             </button>
           </div>
         </form>

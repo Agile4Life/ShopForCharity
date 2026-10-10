@@ -1,0 +1,43 @@
+import { test, expect } from '@playwright/test';
+
+test('seller types pickup form, saves through backend and public shop reflects activation', async ({ page, request }, testInfo) => {
+  await page.goto('/login');
+  await page.locator('input[type="email"]').fill(process.env.E2E_SELLER_EMAIL!);
+  await page.locator('input[type="password"]').fill(process.env.E2E_SELLER_PASSWORD!);
+  await page.locator('form button[type="submit"]').click();
+  await expect(page).toHaveURL('http://127.0.0.1:5173/');
+  await page.goto('/seller/settings');
+  await page.getByRole('button', { name: 'Thêm điểm nhận', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  const name = dialog.getByLabel('Tên điểm nhận hàng', { exact: false });
+  await expect(name).toBeFocused();
+  await name.pressSequentially('Cong thu vien', { delay: 20 });
+  await expect(name).toHaveValue('Cong thu vien');
+  await name.fill('Cổng thư viện');
+  await dialog.getByLabel('Chỉ dẫn nhận hàng', { exact: false }).fill('Gần ghế đá số 3.\nNhận vào giờ ra chơi.');
+  const saved = page.waitForResponse(response => response.url().endsWith('/api/v1/seller/pickup-points') && response.request().method() === 'POST');
+  await dialog.getByRole('button', { name: 'Thêm điểm nhận', exact: true }).click();
+  const response = await saved;
+  expect(response.ok()).toBe(true);
+  const point = await response.json();
+  expect(point).toMatchObject({ name:'Cổng thư viện', instructions:'Gần ghế đá số 3.\nNhận vào giờ ra chơi.',active:true,version:0 });
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator('.feedback-notice')).toContainText('Đã thêm điểm nhận hàng');
+  const row = page.locator('.pickup-point-item').filter({ hasText:'Cổng thư viện' });
+  await expect(row).toBeVisible();
+  await page.reload();
+  await expect(row).toBeVisible();
+  const shop = async () => {
+    const response = await request.get('/api/v1/shop');
+    expect(response.ok()).toBe(true);
+    return response.json();
+  };
+  expect((await shop()).pickupPoints).toEqual([expect.objectContaining({id:point.id,name:point.name})]);
+  await row.getByRole('button',{name:'Đang hoạt động',exact:true}).click();
+  await expect(row.getByRole('button',{name:'Tạm ẩn',exact:true})).toBeVisible();
+  expect((await shop()).pickupPoints).toEqual([]);
+  await row.getByRole('button',{name:'Tạm ẩn',exact:true}).click();
+  await expect(row.getByRole('button',{name:'Đang hoạt động',exact:true})).toBeVisible();
+  expect((await shop()).pickupPoints).toHaveLength(1);
+  await page.screenshot({path:testInfo.outputPath('pickup-saved.png'),fullPage:true});
+});

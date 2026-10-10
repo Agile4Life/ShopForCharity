@@ -1,4 +1,49 @@
 /* Usable controls and calm feedback, shared across the shop. */
+.modal-backdrop { z-index: 250; }
+.seller-settings-page { max-width: 1200px; }
+.seller-settings-page .page-title { font-size: clamp(1.6rem, 3vw, 2.2rem); }
+.seller-settings-page .settings-grid { align-items: start; }
+.settings-qr-upload { flex-wrap: wrap; }
+.seller-settings-page .card { padding: 24px; min-width: 0; }
+.pickup-points-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; margin-bottom: 16px; }
+.pickup-points-heading .section-subtitle { font-size: 1.15rem; }
+.pickup-points-heading button { min-height: 44px; }
+.pickup-points-empty { display: grid; justify-items: center; gap: 12px; text-align: center; padding: 32px 20px; background: var(--paper); border: 1px dashed var(--border-color); border-radius: 12px; }
+.pickup-points-empty p { color: var(--text-muted); font-size: 14px; max-width: 28ch; }
+.pickup-point-item { gap: 16px; align-items: start; }
+.pickup-point-item > div:first-child { min-width: 0; overflow-wrap: anywhere; }
+.pickup-point-item p { white-space: pre-wrap; margin-top: 6px; }
+.pickup-point-item button { min-height: 44px; white-space: nowrap; }
+.pickup-point-dialog { max-width: min(560px, calc(100dvw - 32px)); min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.pickup-point-dialog .modal-header { flex-shrink: 0; gap: 12px; padding: 18px 24px; }
+.pickup-point-dialog .modal-title { font-size: 1.4rem; line-height: 1.3; }
+.pickup-point-dialog .modal-body { overflow-y: auto; min-height: 0; padding: 24px; }
+.pickup-point-intro { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 22px; }
+.pickup-point-help { color: var(--text-muted); font-size: 13px; margin-top: 8px; }
+.pickup-point-form .input-field, .pickup-point-form .textarea-field { font-size: 16px; }
+.pickup-point-form .textarea-field { resize: vertical; min-height: 100px; max-height: 240px; }
+.pickup-point-error { color: #8e3523; background: #f9ece6; padding: 12px 14px; border-radius: 8px; margin-bottom: 18px; font-size: 14px; overflow-wrap: anywhere; }
+.pickup-point-form .modal-actions { position: sticky; bottom: -24px; background: var(--bg-card); padding: 16px 0 0; border-top: 1px solid var(--border-color); gap: 12px; }
+.pickup-point-form .modal-actions button { min-height: 46px; white-space: nowrap; font-size: 14px; }
+@media (max-width: 600px) {
+  .seller-settings-page .card { padding: 18px; }
+  .seller-settings-page .pickup-points-card { order: -1; }
+  .pickup-point-item { flex-wrap: wrap; gap: 8px; }
+  .pickup-point-dialog .modal-header { padding: 16px 18px; }
+  .pickup-point-dialog .modal-body { padding: 18px; }
+  .pickup-point-dialog .modal-title { font-size: 1.25rem; }
+  .pickup-point-form .modal-actions { bottom: -18px; }
+  .pickup-point-form .modal-actions button { padding-inline: 14px; }
+  .pickup-point-form .modal-actions button:first-child { flex: 0 0 auto; }
+  .pickup-point-form .modal-actions button[type="submit"] { flex: 1; min-width: 0; }
+}
+@media (max-width: 400px) {
+  .navbar-container { padding-inline: 12px; gap: 8px; }
+  .navbar-brand { min-width: 0; flex-shrink: 1; gap: 7px; }
+  .brand-icon { flex-shrink: 0; }
+  .brand-name { font-size: 1.1rem; max-width: 110px; }
+  .navbar-actions { flex-shrink: 0; gap: 6px; }
+}
 .add-to-cart-button {
   min-width: 0;
   transition: transform 150ms ease-out, opacity 150ms linear;
@@ -86,7 +131,7 @@
   left: 50%;
   bottom: 24px;
   transform: translateX(-50%);
-  z-index: 200;
+  z-index: 300;
   width: max-content;
   max-width: calc(100% - 32px);
   display: flex;

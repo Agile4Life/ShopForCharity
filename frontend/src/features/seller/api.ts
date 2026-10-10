@@ -481,8 +481,12 @@ export function useSellerPickupPointMutations() {
         method: "POST",
         body: data,
       }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["seller-pickup-points"] }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["seller-pickup-points"] }),
+        queryClient.invalidateQueries({ queryKey: ["shop"] }),
+      ]);
+    },
   });
 
   const updatePickupPoint = useMutation({
@@ -491,8 +495,12 @@ export function useSellerPickupPointMutations() {
         method: "PATCH",
         body: data,
       }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["seller-pickup-points"] }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["seller-pickup-points"] }),
+        queryClient.invalidateQueries({ queryKey: ["shop"] }),
+      ]);
+    },
   });
 
   return { createPickupPoint, updatePickupPoint };

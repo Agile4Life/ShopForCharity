@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -6,6 +7,8 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  className?: string;
+  closeDisabled?: boolean;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -13,18 +16,26 @@ export const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
+  className = "",
+  closeDisabled = false,
 }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const closeRef = useRef({ onClose, closeDisabled });
+  useEffect(() => {
+    closeRef.current = { onClose, closeDisabled };
+  }, [onClose, closeDisabled]);
   useEffect(() => {
     if (!isOpen) return;
     const previousFocus = document.activeElement as HTMLElement | null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    contentRef.current?.focus();
+    const initialFocus = contentRef.current?.querySelector<HTMLElement>("[data-autofocus]");
+    (initialFocus || contentRef.current)?.focus();
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing) return;
       if (e.key === "Escape" && isOpen) {
-        onClose();
+        if (!closeRef.current.closeDisabled) closeRef.current.onClose();
       }
       if (e.key === "Tab") {
         const controls = contentRef.current?.querySelectorAll<HTMLElement>(
@@ -59,16 +70,16 @@ export const Modal: React.FC<ModalProps> = ({
       document.body.style.overflow = previousOverflow;
       previousFocus?.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
+  return createPortal(
+    <div className="modal-backdrop" onClick={() => { if (!closeDisabled) onClose(); }}>
       <div
         ref={contentRef}
         tabIndex={-1}
-        className="modal-content"
+        className={`modal-content ${className}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -82,6 +93,7 @@ export const Modal: React.FC<ModalProps> = ({
             type="button"
             className="modal-close-btn"
             onClick={onClose}
+            disabled={closeDisabled}
             aria-label="Đóng"
           >
             <X size={20} />
@@ -89,6 +101,7 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
         <div className="modal-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
