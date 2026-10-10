@@ -27,8 +27,9 @@ export async function requestFilter(req, res, next) {
   const mutation = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method);
   const authorization = req.headers.authorization;
   const bearer = authorization && authorization.startsWith('Bearer ');
-  const path = req.path || req.url;
-  const cookieRoute = path.startsWith('/api/v1/guest/') || path === '/api/v1/checkout/session';
+  // Express accepts case variations and trailing slashes; apply the same security checks.
+  const path = (req.path || req.url).toLowerCase().replace(/\/+$/, '') || '/';
+  const cookieRoute = path.startsWith('/api/v1/guest/') || path === '/api/v1/checkout/session' || path === '/api/v1/auth/register-seller';
   const origin = req.headers.origin;
 
   if (mutation && (cookieRoute || !bearer)) {
@@ -45,13 +46,14 @@ export async function requestFilter(req, res, next) {
     }
   }
 
-  if (path === '/api/v1/guest/orders/access' && req.method === 'POST') {
+  if (['/api/v1/guest/orders/access', '/api/v1/auth/register-seller'].includes(path) && req.method === 'POST') {
     // Vercel overwrites this header. Outside Vercel, use the direct socket IP.
     const ip = process.env.VERCEL === '1'
       ? req.headers['x-vercel-forwarded-for'] || req.socket.remoteAddress || 'unknown'
       : req.socket.remoteAddress || 'unknown';
     let allowed;
-    try { allowed = await rateLimiter.allow(`access:${ip}`, 10); }
+    const registration = path === '/api/v1/auth/register-seller';
+    try { allowed = await rateLimiter.allow(`${registration ? 'seller-registration' : 'access'}:${ip}`, registration ? 5 : 10); }
     catch (err) { return next(err); }
     if (!allowed) {
       res.status(429);

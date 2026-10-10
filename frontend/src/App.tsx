@@ -81,6 +81,9 @@ const RegisterPage = lazyPage(() =>
     default: module.RegisterPage,
   })),
 );
+const SellerRegisterPage = lazyPage(() =>
+  import("./features/auth/SellerRegisterPage").then((module) => ({ default: module.SellerRegisterPage })),
+);
 const ForgotPasswordPage = lazyPage(() =>
   import("./features/auth/ForgotPasswordPage").then((module) => ({
     default: module.ForgotPasswordPage,
@@ -192,6 +195,7 @@ export const App: React.FC = () => {
                       {/* Auth */}
                       <Route path="/login" element={<LoginPage />} />
                       <Route path="/register" element={<RegisterPage />} />
+                      <Route path="/register-seller" element={<SellerRegisterPage />} />
                       <Route
                         path="/forgot-password"
                         element={<ForgotPasswordPage />}

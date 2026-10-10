@@ -3,6 +3,7 @@ import { query, withTx, lockShop } from '../common/db.js';
 import { ApiException } from '../common/api-exception.js';
 import { normalizePhone } from './phone.js';
 import { config } from '../config.js';
+import { isRegisteredSeller } from './seller-registration.js';
 
 export class ProfileService {
   async actor(jwt) {
@@ -25,11 +26,14 @@ export class ProfileService {
       if (res.rows.length === 0) {
         const id = crypto.randomUUID();
         const email = jwt.email || null;
+        const registeredSeller = isRegisteredSeller(jwt);
+        const name = registeredSeller && typeof jwt.user_metadata?.full_name === 'string'
+          ? jwt.user_metadata.full_name.trim().slice(0, 100) : null;
         const insertRes = await client.query(
-          `INSERT INTO shop.profiles (id, auth_user_id, email, role, active, version, created_at, updated_at)
-           VALUES ($1, $2, $3, 'CUSTOMER', true, 0, NOW(), NOW())
+          `INSERT INTO shop.profiles (id, auth_user_id, email, role, full_name, active, version, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, true, 0, NOW(), NOW())
            RETURNING *`,
-          [id, sub, email]
+          [id, sub, email, registeredSeller ? 'SELLER' : 'CUSTOMER', name]
         );
         profile = insertRes.rows[0];
       } else {

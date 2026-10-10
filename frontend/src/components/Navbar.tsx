@@ -179,6 +179,7 @@ export function Navbar() {
               <>
                 <NavLink to="/login">Đăng nhập</NavLink>
                 <NavLink to="/register">Tạo tài khoản</NavLink>
+                <NavLink to="/register-seller">Đăng ký người bán</NavLink>
               </>
             )}
           </nav>

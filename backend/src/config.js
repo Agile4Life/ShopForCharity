@@ -28,6 +28,7 @@ export const config = {
   guestTtlDays: parseInt(process.env.GUEST_TOKEN_TTL_DAYS || '90', 10),
   supabaseUrl: (process.env.SUPABASE_URL || '').replace(/\/+$/, ''),
   supabaseStorageKey: process.env.SUPABASE_BACKEND_SECRET_KEY || '',
+  sellerRegistrationCode: process.env.SELLER_REGISTRATION_CODE || '',
   productBucket: process.env.PUBLIC_PRODUCT_BUCKET || 'product-images',
   paymentBucket: process.env.PRIVATE_PAYMENT_BUCKET || 'payment-qr',
   migrationsEnabled: process.env.MIGRATIONS_ENABLED === 'true',

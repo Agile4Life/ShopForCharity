@@ -23,7 +23,8 @@ Import repo, Root Directory là root, Framework Preset Vite. `vercel.mjs` cài d
 | IDEMPOTENCY_ENCRYPTION_KEY | Base64 của 32 byte ngẫu nhiên khác signing key |
 | CRON_SECRET | Secret ngẫu nhiên riêng |
 | SUPABASE_URL | HTTPS origin project Supabase |
-| SUPABASE_BACKEND_SECRET_KEY | Credential backend dùng Storage |
+| SUPABASE_BACKEND_SECRET_KEY | Credential backend dùng Storage và Admin Auth tạo người bán |
+| SELLER_REGISTRATION_CODE | Mã đăng ký người bán, chỉ đặt ở backend; thiếu thì đóng đăng ký người bán |
 | JWT_ISSUER_URI | https://<project>.supabase.co/auth/v1 |
 | JWT_JWK_SET_URI | https://<project>.supabase.co/auth/v1/.well-known/jwks.json |
 | JWT_EXPECTED_AUDIENCE | authenticated, khớp Auth |

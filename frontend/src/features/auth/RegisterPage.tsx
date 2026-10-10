@@ -160,6 +160,7 @@ export const RegisterPage: React.FC = () => {
         )}
 
         <div className="auth-footer text-center mt-4 text-sm text-muted">
+          <p className="mb-2"><Link to="/register-seller" className="text-primary font-bold">Đăng ký người bán</Link></p>
           Đã có tài khoản?{" "}
           <Link to="/login" className="text-primary font-bold">
             Đăng nhập

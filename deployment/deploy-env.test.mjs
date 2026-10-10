@@ -39,6 +39,14 @@ test('deployment preparation rejects mismatched Auth, invalid keys and unsafe or
   assert.throws(() => createDeployEnv(backend, frontend, {}, 'https://goiamchoem.vercel.app/path'), /HTTPS/);
 });
 
+test('seller invitation is exported only as a backend variable', () => {
+  const env = createDeployEnv({ ...backend, SELLER_REGISTRATION_CODE: 'test-invitation' },
+    { ...frontend, VITE_SELLER_REGISTRATION_CODE: 'must-not-export' });
+  assert.equal(env.SELLER_REGISTRATION_CODE, 'test-invitation');
+  assert.equal(env.VITE_SELLER_REGISTRATION_CODE, undefined);
+  assert.equal(createDeployEnv(backend, frontend).SELLER_REGISTRATION_CODE, undefined);
+});
+
 test('CORS allows exact Vercel deployment origins without enabling wildcard or localhost', () => {
   const origins = allowedOrigins({ VERCEL: '1', CORS_ALLOWED_ORIGINS: 'https://goiamchoem.vercel.app', VERCEL_URL: 'goiamchoem-preview-team.vercel.app', VERCEL_PROJECT_PRODUCTION_URL: 'goiamchoem.vercel.app' });
   assert.deepEqual(origins, ['https://goiamchoem.vercel.app', 'https://goiamchoem-preview-team.vercel.app']);

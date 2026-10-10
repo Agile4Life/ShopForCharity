@@ -1,4 +1,10 @@
 const messages: Record<string, string> = {
+  INVALID_SELLER_CODE: "Mã đăng ký người bán chưa đúng. Kiểm tra mã shop đã cung cấp.",
+  SELLER_EMAIL_EXISTS: "Email này đã được sử dụng. Đăng nhập hoặc dùng email khác để tạo tài khoản người bán.",
+  SELLER_REGISTRATION_INPUT: "Kiểm tra email, họ tên (2–100 ký tự) và mật khẩu (8–128 ký tự).",
+  SELLER_REGISTRATION_UNAVAILABLE: "Đăng ký người bán đang chưa khả dụng. Vui lòng thử lại sau.",
+  SELLER_REGISTRATION_UNKNOWN: "Chưa xác nhận được kết quả tạo tài khoản. Thử đăng nhập bằng email và mật khẩu vừa nhập trước khi đăng ký lại.",
+  SELLER_PROFILE_PENDING: "Tài khoản đã tạo nhưng chưa kết nối được kho hàng. Chờ một lát rồi đăng nhập bằng email và mật khẩu vừa tạo.",
   NETWORK_ERROR: "Không thể kết nối. Kiểm tra mạng rồi thử lại.",
   REQUEST_TIMEOUT: "Phản hồi đang chậm. Kiểm tra kết nối rồi thử tải lại.",
   WRITE_TIMEOUT: "Chưa xác nhận được kết quả. Kiểm tra dữ liệu hoặc trạng thái đơn trước khi thử lại.",

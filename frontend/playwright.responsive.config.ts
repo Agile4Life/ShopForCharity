@@ -10,7 +10,7 @@ export default defineConfig({
     command: `${process.env.E2E_REUSE_BUILD ? '' : 'npm run build && '}npm run preview -- --host 127.0.0.1 --port 4174 --strictPort`,
     url: 'http://127.0.0.1:4174',
   },
-  testMatch: /(?:responsive|hover|catalog-checkout|controls|pickup-schedule)\.spec\.ts/,
+  testMatch: /(?:responsive|hover|catalog-checkout|controls|pickup-schedule|seller-registration)\.spec\.ts/,
   outputDir: './.tools/responsive-cross-browser',
   reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report/responsive-cross-browser' }], ['junit', { outputFile: '.tools/responsive-cross-browser.xml' }]],
   projects: [
