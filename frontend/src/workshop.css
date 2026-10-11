@@ -2071,11 +2071,50 @@ tbody tr {
   padding-bottom: 38px;
   color: var(--ink);
 }
-.footer-brand > p {
+.footer-contact {
+  margin-top: 24px;
+}
+.footer-contact-heading {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.footer-contact-name {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+.footer-contact-avatar {
+  display: block;
+  width: 104px;
+  height: 104px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: contain;
+  padding: 5px;
+}
+.footer-contact-details {
+  margin-top: 12px;
   font-size: 0.78rem;
-  color: var(--text-muted);
   line-height: 1.9;
-  margin-top: 18px;
+  overflow-wrap: anywhere;
+}
+.footer-contact-details a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+}
+.footer-contact-details a svg {
+  flex-shrink: 0;
+}
+.footer-contact-details a span {
+  min-width: 0;
+}
+.footer-contact-details a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .footer-links {
   display: flex;
