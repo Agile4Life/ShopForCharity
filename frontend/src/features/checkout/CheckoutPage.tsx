@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -20,6 +20,7 @@ import { ErrorMessage } from "../../components/ErrorMessage";
 import { PurchaseSteps } from "../../components/Usability";
 import { PickupDateTimePicker } from "../seller/PickupDateTimePicker";
 import type { QuoteResponse, PaymentMethod } from "../../types/api";
+import { getBuyNowItem } from "./buy-now";
 
 const checkoutSchema = z.object({
   fullName: z
@@ -57,7 +58,11 @@ const checkoutSchema = z.object({
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
 export const CheckoutPage: React.FC = () => {
-  const { items, clearCart } = useCart();
+  const { items: cartItems, clearCart } = useCart();
+  const location = useLocation();
+  const buyNowItem = useMemo(() => getBuyNowItem(location.state), [location.state]);
+  const directItems = useMemo(() => buyNowItem ? [buyNowItem] : null, [buyNowItem]);
+  const items = directItems ?? cartItems;
   const { isAuthenticated, profile } = useAuth();
   const {
     data: shop,
@@ -216,8 +221,9 @@ export const CheckoutPage: React.FC = () => {
 
       const result = await orderMutation.mutateAsync(orderPayload);
       orderCreated.current = true;
-      clearCart();
+      if (!buyNowItem) clearCart();
       navigate("/order-success", {
+        replace: !!buyNowItem,
         state: {
           order: result,
           buyer: orderPayload.buyer,
@@ -255,10 +261,11 @@ export const CheckoutPage: React.FC = () => {
     <div className="checkout-page container">
       <PurchaseSteps step={2} />
       <h1 className="page-title">Đặt hàng</h1>
+      {buyNowItem && <p className="text-muted text-sm mb-4">Đơn này chỉ gồm món và số lượng bạn vừa chọn.</p>}
       {!isAuthenticated && (
         <p className="guest-checkout-hint">
           Đặt hàng không cần tài khoản.{" "}
-          <Link to="/login" state={{ from: { pathname: "/checkout" } }}>
+          <Link to="/login" state={{ from: { pathname: "/checkout", state: location.state } }}>
             Đăng nhập
           </Link>
         </p>
@@ -612,8 +619,8 @@ export const CheckoutPage: React.FC = () => {
               : "Xác nhận đặt hàng"}
           </button>
 
-          <Link to="/cart" className="btn-secondary full-width mt-2">
-            Quay lại giỏ hàng
+          <Link to={buyNowItem ? `/${buyNowItem.kind === "PRODUCT" ? "products" : "combos"}/${encodeURIComponent(buyNowItem.catalogId)}` : "/cart"} className="btn-secondary full-width mt-2">
+            {buyNowItem ? "Quay lại chọn món" : "Quay lại giỏ hàng"}
           </Link>
         </div>
       </form>

@@ -32,7 +32,7 @@ export const LoginPage: React.FC = () => {
     try {
       const res = await login(email.trim(), password);
       if (res.success) {
-        navigate(from, { replace: true });
+        navigate(from, { replace: true, state: (location.state as { from?: { state?: unknown } } | null)?.from?.state });
       } else {
         setErrorMsg(res.error || "Email hoặc mật khẩu không chính xác");
       }

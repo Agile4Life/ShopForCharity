@@ -1,4 +1,4 @@
-import { test, expect, ids } from './fixtures';
+import { test, expect, ids, submit } from './fixtures';
 
 for (const width of [1280, 390, 320]) {
   for (const [path, kind, catalogId] of [
@@ -22,15 +22,67 @@ for (const width of [1280, 390, 320]) {
   }
 }
 
-test('buy now preserves other cart items', async ({ page, scenario }) => {
+test('buy now excludes other cart items and preserves the cart after purchase', async ({ page, scenario }) => {
   await scenario.cart();
   await page.goto('/combos/combo-thu');
   await page.getByRole('button', { name: 'Mua ngay', exact: true }).click();
   await expect(page).toHaveURL('/checkout');
   await expect.poll(() => scenario.mutations('/checkout/quote').length).toBeGreaterThan(0);
-  expect(scenario.mutations('/checkout/quote')[0].postDataJSON().items).toEqual([
-    { kind: 'PRODUCT', catalogId: ids.product, quantity: 1 }, { kind: 'COMBO', catalogId: ids.combo, quantity: 1 },
-  ]);
+  expect(scenario.mutations('/checkout/quote')[0].postDataJSON().items).toEqual([{ kind: 'COMBO', catalogId: ids.combo, quantity: 1 }]);
+  await page.locator('#fullName').fill('Nguyễn Văn Test');
+  await page.locator('#phone').fill('0912345678');
+  await page.locator('#email').fill('test@example.com');
+  await submit(page);
+  await expect(page).toHaveURL('/order-success');
+  expect(scenario.mutations('/orders')[0].postDataJSON().items).toEqual([{ kind: 'COMBO', catalogId: ids.combo, quantity: 1 }]);
+  const cart = await page.evaluate(() => JSON.parse(localStorage.getItem('school_shop_cart_v1')!));
+  expect(cart).toHaveLength(1);
+  expect(cart[0]).toMatchObject({ kind: 'PRODUCT', catalogId: ids.product, quantity: 1 });
+});
+
+test('buy now does not add quantities of the same item already in cart, including after reload', async ({ page, scenario }) => {
+  await scenario.cart();
+  await page.addInitScript(() => {
+    const cart = JSON.parse(localStorage.getItem('school_shop_cart_v1')!);
+    cart[0].quantity = 4;
+    localStorage.setItem('school_shop_cart_v1', JSON.stringify(cart));
+  });
+  await page.goto('/products/banh-thu');
+  await page.getByRole('button', { name: 'Mua ngay', exact: true }).click();
+  await expect(page).toHaveURL('/checkout');
+  await expect.poll(() => scenario.mutations('/checkout/quote').length).toBeGreaterThan(0);
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeEnabled();
+  for (const request of scenario.mutations('/checkout/quote')) {
+    expect(request.postDataJSON().items).toEqual([{ kind: 'PRODUCT', catalogId: ids.product, quantity: 1 }]);
+  }
+  const cart = await page.evaluate(() => JSON.parse(localStorage.getItem('school_shop_cart_v1')!));
+  expect(cart[0].quantity).toBe(4);
+  await page.locator('#fullName').fill('Nguyễn Văn Test');
+  await page.locator('#phone').fill('0912345678');
+  await page.locator('#email').fill('test@example.com');
+  await submit(page);
+  await expect(page).toHaveURL('/order-success');
+  expect(scenario.mutations('/orders')[0].postDataJSON().items).toEqual([{ kind: 'PRODUCT', catalogId: ids.product, quantity: 1 }]);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('school_shop_cart_v1')!)[0].quantity)).toBe(4);
+});
+
+test('buy now selection survives logging in before checkout', async ({ page, scenario }) => {
+  await scenario.cart();
+  await page.goto('/combos/combo-thu');
+  await page.getByRole('button', { name: 'Mua ngay', exact: true }).click();
+  await expect(page).toHaveURL('/checkout');
+  await page.locator('main a[href="/login"]').click();
+  scenario.me.role = 'CUSTOMER';
+  scenario.role = 'CUSTOMER';
+  await page.locator('#loginEmail').fill('test@example.com');
+  await page.locator('#loginPass').fill('password-test');
+  await submit(page);
+  await expect(page).toHaveURL('/checkout');
+  await expect(page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeEnabled();
+  const quotes = scenario.mutations('/checkout/quote');
+  expect(quotes.at(-1)!.postDataJSON().items).toEqual([{ kind: 'COMBO', catalogId: ids.combo, quantity: 1 }]);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('school_shop_cart_v1')!)[0])).toMatchObject({ catalogId: ids.product, quantity: 1 });
 });
 
 test('buy now stays on detail when stock becomes unavailable', async ({ page, scenario }) => {

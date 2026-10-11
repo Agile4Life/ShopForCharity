@@ -45,14 +45,18 @@ export function AddToCartButton({
       const item = await (kind === "PRODUCT" ? getProductDetail(catalogId) : getComboDetail(catalogId));
       if (!mounted.current) return;
       if (item.isSoldOut || item.availableStock <= 0) throw new Error("Món này vừa hết hàng. Bạn chọn món khác nhé.");
+      if (buyNow) {
+        if (!Number.isInteger(quantity) || quantity < 1 || quantity > Math.min(20, item.availableStock)) {
+          throw new Error(`Món này chỉ còn tối đa ${Math.min(20, item.availableStock)} phần có thể đặt.`);
+        }
+        // Immediate checkout uses its own selection and never changes the saved cart.
+        navigate("/checkout", { state: { buyNowItem: { kind, catalogId, quantity } } });
+        return;
+      }
       const result = addItem({ kind, catalogId, quantity, name: item.name,
         price: item.price, imageUrl: item.imageUrl, slug: item.slug,
         availableStock: item.availableStock });
       if (!result.success) throw new Error(result.message || "Chưa thể thêm món vào giỏ.");
-      if (buyNow) {
-        navigate("/checkout");
-        return;
-      }
       setState("added");
       notify(`Đã thêm ${quantity} × ${item.name} vào giỏ.`, { tone: "success", to: "/cart" });
     } catch (error) {
