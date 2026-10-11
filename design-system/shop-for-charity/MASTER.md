@@ -1,8 +1,8 @@
-# Gói Ấm Cho Em
+# Gói Ấm Trao Em
 
 ## Direction
 
-Playful school-market storefront: warm paper, forest ink, terracotta, pink stationery, and small original cut-paper illustrations. The visible identity is **Gói Ấm Cho Em**, used consistently in the navigation, homepage, account illustration, footer, and browser metadata. Copy names the products, actions, and pickup steps directly. No repeated slogans, decorative English captions, or long welcome paragraphs.
+Playful school-market storefront: warm paper, forest ink, terracotta, pink stationery, and small original cut-paper illustrations. The visible identity is **Gói Ấm Trao Em**, used consistently in the navigation, homepage, account illustration, footer, and browser metadata. Copy names the products, actions, and pickup steps directly. No repeated slogans, decorative English captions, or long welcome paragraphs.
 
 Guidance: [UI UX Pro Max](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill), read from its `SKILL.md` and local design-system/style/React searches. The initial high-variance recommendation leaned toward brutalism; the organic-style search and the user's workshop brief informed the final softer paper treatment. Existing React, Vite, React Query, Supabase, and native CSS architecture are retained.
 

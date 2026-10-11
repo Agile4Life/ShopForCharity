@@ -55,7 +55,7 @@ export function LandingPage() {
           <h1 id="hero-title">
             Gói Ấm
             <br />
-            <span>Cho Em</span>
+            <span>Trao Em</span>
           </h1>
           <p>
             Đồ ăn vặt &amp; quà lưu niệm.

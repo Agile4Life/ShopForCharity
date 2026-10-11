@@ -124,11 +124,11 @@ export function RouteCompanion() {
 
 export function AuthCompanion() {
   return (
-    <aside className="auth-companion" aria-label="Gói Ấm Cho Em">
+    <aside className="auth-companion" aria-label="Gói Ấm Trao Em">
       <h2>
         Gói Ấm
         <br />
-        Cho Em
+        Trao Em
       </h2>
       <WorkshopArt variant="bundle" />
       <Link to="/#catalog" className="text-link">

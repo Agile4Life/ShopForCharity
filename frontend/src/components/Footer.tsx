@@ -9,7 +9,7 @@ export function Footer() {
         <div className="footer-brand">
           <Link to="/" className="navbar-brand">
             <BrandMark className="brand-icon" />
-            <span className="brand-text brand-name">Gói Ấm Cho Em</span>
+            <span className="brand-text brand-name">Gói Ấm Trao Em</span>
           </Link>
         </div>
         <div className="footer-links">
@@ -25,7 +25,7 @@ export function Footer() {
         </div>
       </div>
       <div className="footer-bottom">
-        <span>© {currentYear} Gói Ấm Cho Em</span>
+        <span>© {currentYear} Gói Ấm Trao Em</span>
       </div>
     </footer>
   );

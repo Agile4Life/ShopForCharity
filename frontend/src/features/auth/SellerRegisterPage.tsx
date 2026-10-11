@@ -46,7 +46,7 @@ export function SellerRegisterPage() {
       <div className="auth-header text-center mb-6">
         <div className="auth-icon"><Store size={32} /></div>
         <h1 id="seller-register-title" className="auth-title">Đăng ký người bán</h1>
-        <p className="text-muted text-sm mt-2">Dùng mã được cấp để tham gia quản lý Gói Ấm Cho Em. Các người bán cùng quản lý sản phẩm, kho hàng, đơn hàng và thiết lập của shop.</p>
+        <p className="text-muted text-sm mt-2">Dùng mã được cấp để tham gia quản lý Gói Ấm Trao Em. Các người bán cùng quản lý sản phẩm, kho hàng, đơn hàng và thiết lập của shop.</p>
       </div>
       {error && <div className="mb-4"><ErrorMessage error={new Error(error)} /></div>}
       {success ? <div role="status" className="text-center">

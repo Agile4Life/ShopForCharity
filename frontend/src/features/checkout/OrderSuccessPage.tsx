@@ -50,7 +50,7 @@ export const OrderSuccessPage: React.FC = () => {
   const downloadCredentials = () => {
     const blob = new Blob(
       [
-        `Gói Ấm Cho Em\nMã đơn: ${order.orderCode}\nKhóa truy cập: ${order.guestAccessToken}\nTra cứu: ${window.location.origin}/guest-order`,
+        `Gói Ấm Trao Em\nMã đơn: ${order.orderCode}\nKhóa truy cập: ${order.guestAccessToken}\nTra cứu: ${window.location.origin}/guest-order`,
       ],
       { type: "text/plain;charset=utf-8" },
     );

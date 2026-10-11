@@ -67,10 +67,10 @@ export function Navbar() {
           <Link
             to="/"
             className="navbar-brand"
-            aria-label="Gói Ấm Cho Em — về trang chủ"
+            aria-label="Gói Ấm Trao Em — về trang chủ"
           >
             <BrandMark className="brand-icon" />
-            <span className="brand-text brand-name">Gói Ấm Cho Em</span>
+            <span className="brand-text brand-name">Gói Ấm Trao Em</span>
           </Link>
           <nav className="desktop-nav" aria-label="Điều hướng chính">
             <NavLink to="/" end className="nav-link">
