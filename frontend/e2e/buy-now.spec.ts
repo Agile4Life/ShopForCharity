@@ -18,6 +18,11 @@ for (const width of [1280, 390, 320]) {
       await expect.poll(() => scenario.mutations('/checkout/quote').length).toBeGreaterThan(0);
       expect(scenario.mutations('/checkout/quote')[0].postDataJSON()).toMatchObject({ items: [{ kind, catalogId, quantity: 2 }] });
       expect(scenario.mutations('/orders')).toHaveLength(0);
+      const back = page.getByRole('link', { name: kind === 'PRODUCT' ? 'Quay lại sản phẩm' : 'Quay lại combo', exact: true }).first();
+      await expect(back).toBeVisible();
+      await back.click();
+      await expect(page).toHaveURL(`/${kind === 'PRODUCT' ? 'products' : 'combos'}/${catalogId}`);
+      await expect(page.getByRole('button', { name: 'Mua ngay', exact: true })).toBeVisible();
     });
   }
 }

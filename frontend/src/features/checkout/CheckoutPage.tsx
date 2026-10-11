@@ -10,6 +10,7 @@ import {
   Banknote,
   AlertCircle,
   RefreshCw,
+  ArrowLeft,
 } from "lucide-react";
 import { useCart } from "../cart/cart-context";
 import { useAuth } from "../auth/auth-context";
@@ -63,6 +64,10 @@ export const CheckoutPage: React.FC = () => {
   const buyNowItem = useMemo(() => getBuyNowItem(location.state), [location.state]);
   const directItems = useMemo(() => buyNowItem ? [buyNowItem] : null, [buyNowItem]);
   const items = directItems ?? cartItems;
+  const buyNowProductPath = buyNowItem
+    ? `/${buyNowItem.kind === "PRODUCT" ? "products" : "combos"}/${encodeURIComponent(buyNowItem.catalogId)}`
+    : "/cart";
+  const backLabel = buyNowItem?.kind === "COMBO" ? "Quay lại combo" : "Quay lại sản phẩm";
   const { isAuthenticated, profile } = useAuth();
   const {
     data: shop,
@@ -259,6 +264,9 @@ export const CheckoutPage: React.FC = () => {
 
   return (
     <div className="checkout-page container">
+      {buyNowItem && <Link to={buyNowProductPath} className="btn-secondary-sm mb-4">
+        <ArrowLeft size={16} aria-hidden="true" /> {backLabel}
+      </Link>}
       <PurchaseSteps step={2} />
       <h1 className="page-title">Đặt hàng</h1>
       {buyNowItem && <p className="text-muted text-sm mb-4">Đơn này chỉ gồm món và số lượng bạn vừa chọn.</p>}
@@ -619,8 +627,8 @@ export const CheckoutPage: React.FC = () => {
               : "Xác nhận đặt hàng"}
           </button>
 
-          <Link to={buyNowItem ? `/${buyNowItem.kind === "PRODUCT" ? "products" : "combos"}/${encodeURIComponent(buyNowItem.catalogId)}` : "/cart"} className="btn-secondary full-width mt-2">
-            {buyNowItem ? "Quay lại chọn món" : "Quay lại giỏ hàng"}
+          <Link to={buyNowProductPath} className="btn-secondary full-width mt-2">
+            <ArrowLeft size={16} aria-hidden="true" /> {buyNowItem ? backLabel : "Quay lại giỏ hàng"}
           </Link>
         </div>
       </form>
