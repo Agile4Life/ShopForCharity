@@ -59,7 +59,7 @@ test('dashboard, order filters and audit filters', async ({ page, scenario }) =>
       && u.searchParams.get('paymentStatus') === 'UNPAID' && u.searchParams.get('orderCode') === 'ORD-TEST001';
   })).toBe(true);
   await page.goto('/seller/logs');
-  await page.getByLabel('Lọc theo hành động').fill('ORDER_CREATED');
+  await page.getByLabel('Lọc theo hành động').selectOption('ORDER_CREATED');
   await expect.poll(() => scenario.calls.some(r => new URL(r.url()).searchParams.get('action') === 'ORDER_CREATED')).toBe(true);
 });
 
@@ -80,7 +80,7 @@ test('seller records contact, accepts, prepares, receives payment and completes'
   await expectMutation(scenario, '/ready', { expectedVersion: 10 });
   await expect(page.getByRole('button', { name: 'Bàn giao & Hoàn tất đơn', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: /Xác nhận đã thu đủ tiền/ }).click();
-  await page.getByRole('button', { name: 'Xác nhận PAID', exact: true }).click();
+  await page.getByRole('button', { name: 'Xác nhận thanh toán', exact: true }).click();
   await expectMutation(scenario, '/confirm-payment', { expectedVersion: 11, amount: 10000 });
   await page.getByRole('button', { name: 'Bàn giao & Hoàn tất đơn', exact: true }).click();
   await expectMutation(scenario, '/complete', { expectedVersion: 12 });
@@ -115,7 +115,7 @@ for (const received of [5000, 15000]) {
     scenario.order.paymentStatus = 'REFUND_PENDING';
     scenario.order.receivedAmount = received;
     await page.goto(`/seller/orders/${ids.order}`);
-    await page.getByRole('button', { name: /Xác nhận đã hoàn tiền đủ/ }).click();
+    await page.getByRole('button', { name: 'Ghi nhận hoàn tiền', exact: true }).click();
     await page.locator('#sellerorderdetailpage-field-12').fill('REFUND-TEST');
     await page.getByRole('button', { name: 'Xác nhận đã hoàn đủ tiền', exact: true }).click();
     await expectMutation(scenario, '/confirm-refund', { expectedVersion: 7, amount: received, bankReference: 'REFUND-TEST' });

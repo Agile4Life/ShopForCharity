@@ -9,6 +9,7 @@ import {
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { EmptyState } from "../../components/EmptyState";
+import { OrderCode } from "../../components/OrderCode";
 
 export const CustomerOrdersPage: React.FC = () => {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ export const CustomerOrdersPage: React.FC = () => {
                   <tr key={order.id}>
                     <td data-label="Mã đơn">
                       <strong className="order-code-highlight">
-                        {order.orderCode}
+                        <OrderCode value={order.orderCode} />
                       </strong>
                     </td>
                     <td data-label="Ngày đặt">

@@ -12,6 +12,7 @@ import {
 import { PurchaseSteps, notify } from "../../components/Usability";
 import type { CreateOrderResponse } from "../../types/api";
 import { withRequestDeadline } from "../../lib/request-state";
+import { OrderCode, CopyOrderCode } from "../../components/OrderCode";
 import {
   OrderStatusBadge,
   PaymentStatusBadge,
@@ -79,9 +80,11 @@ export const OrderSuccessPage: React.FC = () => {
           <div className="summary-field">
             <span className="field-label">Mã đơn hàng:</span>
             <strong className="field-value order-code-highlight">
-              {order.orderCode}
+              <OrderCode value={order.orderCode} />
             </strong>
           </div>
+
+          <CopyOrderCode value={order.orderCode} />
 
           <div className="summary-field">
             <span className="field-label">Tổng tiền đơn hàng:</span>

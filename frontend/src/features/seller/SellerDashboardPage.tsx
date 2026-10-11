@@ -18,6 +18,7 @@ import {
 } from "./api";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
+import { AUDIT_ACTION_LABELS } from "./audit-display";
 
 export const SellerDashboardPage: React.FC = () => {
   const {
@@ -185,7 +186,7 @@ export const SellerDashboardPage: React.FC = () => {
                 >
                   <div className="notif-content">
                     <span className="notif-type badge badge-blue text-xs">
-                      {notif.type}
+                      {AUDIT_ACTION_LABELS[notif.type] ?? "Cập nhật đơn hàng"}
                     </span>
                     <span className="notif-time text-xs text-muted ml-2">
                       {new Date(notif.createdAt).toLocaleTimeString("vi-VN")}
@@ -195,7 +196,7 @@ export const SellerDashboardPage: React.FC = () => {
                         to={`/seller/orders/${notif.orderId}`}
                         className="notif-link block text-sm mt-1"
                       >
-                        Xem đơn hàng #{notif.orderId.substring(0, 8)}
+                        Xem đơn hàng
                       </Link>
                     )}
                   </div>

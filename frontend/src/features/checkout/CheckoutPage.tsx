@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -18,6 +18,7 @@ import { useCheckoutQuote, useCreateOrder, createGuestSession } from "./api";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { PurchaseSteps } from "../../components/Usability";
+import { PickupDateTimePicker } from "../seller/PickupDateTimePicker";
 import type { QuoteResponse, PaymentMethod } from "../../types/api";
 
 const checkoutSchema = z.object({
@@ -46,7 +47,7 @@ const checkoutSchema = z.object({
     .string()
     .optional()
     .refine(
-      (value) => !value || new Date(value).getTime() > Date.now(),
+      (value) => !value || new Date(`${value}+07:00`).getTime() > Date.now(),
       "Chọn thời gian nhận trong tương lai.",
     ),
   paymentMethod: z.enum(["CASH", "BANK_TRANSFER"] as const),
@@ -80,6 +81,7 @@ export const CheckoutPage: React.FC = () => {
 
   const {
     register,
+    control,
     handleSubmit,
     setValue,
     watch,
@@ -206,7 +208,7 @@ export const CheckoutPage: React.FC = () => {
         },
         pickupPointId: data.pickupPointId,
         requestedPickupAt: data.requestedPickupAt
-          ? new Date(data.requestedPickupAt).toISOString()
+          ? new Date(`${data.requestedPickupAt}+07:00`).toISOString()
           : undefined,
         paymentMethod: data.paymentMethod as PaymentMethod,
         note: data.note || undefined,
@@ -449,16 +451,11 @@ export const CheckoutPage: React.FC = () => {
               <label htmlFor="requestedPickupAt" className="form-label">
                 Thời gian muốn nhận (tùy chọn)
               </label>
-              <input
-                id="requestedPickupAt"
-                type="datetime-local"
-                aria-invalid={!!errors.requestedPickupAt}
-                aria-describedby={
-                  errors.requestedPickupAt ? "pickup-time-error" : undefined
-                }
-                className="input-field"
-                {...register("requestedPickupAt")}
-              />
+              <Controller name="requestedPickupAt" control={control} render={({ field }) => (
+                <PickupDateTimePicker triggerId="requestedPickupAt" label="Thời gian muốn nhận (tùy chọn)"
+                  value={field.value || ""} onChange={field.onChange} inputRef={field.ref} onBlur={field.onBlur} optional
+                  invalid={!!errors.requestedPickupAt} errorId="pickup-time-error" />
+              )} />
               {errors.requestedPickupAt && (
                 <span id="pickup-time-error" className="field-error">
                   {errors.requestedPickupAt.message}

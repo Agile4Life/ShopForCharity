@@ -9,6 +9,7 @@ import {
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { EmptyState } from "../../components/EmptyState";
+import { OrderCode, normalizeOrderCode } from "../../components/OrderCode";
 
 export const SellerOrdersPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -19,7 +20,7 @@ export const SellerOrdersPage: React.FC = () => {
   const { data, isLoading, error, refetch } = useSellerOrders({
     status: statusFilter || undefined,
     paymentStatus: paymentStatusFilter || undefined,
-    orderCode: orderCodeSearch.trim() || undefined,
+    orderCode: normalizeOrderCode(orderCodeSearch) || undefined,
     page,
     size: 20,
   });
@@ -139,7 +140,7 @@ export const SellerOrdersPage: React.FC = () => {
                   <tr key={order.id}>
                     <td data-label="Mã đơn">
                       <strong className="order-code-highlight">
-                        {order.orderCode}
+                        <OrderCode value={order.orderCode} />
                       </strong>
                     </td>
                     <td data-label="Người mua">

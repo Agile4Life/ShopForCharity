@@ -24,6 +24,8 @@ import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import type { ContactChannel, ContactOutcome } from "../../types/api";
 import { PickupDateTimePicker } from "./PickupDateTimePicker";
+import { OrderCode, CopyOrderCode } from "../../components/OrderCode";
+import { AUDIT_ACTION_LABELS } from "./audit-display";
 import { pickupInstant } from "./pickup-time";
 import { ApiError } from "../../lib/api-client";
 
@@ -244,10 +246,10 @@ export const SellerOrderDetailPage: React.FC = () => {
       <div className="order-detail-header card flex-between mb-4">
         <div>
           <span className="text-xs text-muted">Mã đơn hàng:</span>
-          <h1 className="order-code-title">{order.orderCode}</h1>
+          <h1 className="order-code-title"><OrderCode value={order.orderCode} /></h1>
+          <CopyOrderCode value={order.orderCode} />
           <span className="text-xs text-muted">
-            Tạo lúc: {new Date(order.createdAt).toLocaleString("vi-VN")} |
-            Version: {order.version}
+            Tạo lúc: {new Date(order.createdAt).toLocaleString("vi-VN")}
           </span>
         </div>
 
@@ -427,7 +429,7 @@ export const SellerOrderDetailPage: React.FC = () => {
               <div className="payment-events-list">
                 {order.paymentEvents.map((evt, idx) => (
                   <div key={idx} className="payment-event-item text-xs">
-                    <span className="font-bold text-primary">{evt.type}</span>
+                    <span className="font-bold text-primary">{AUDIT_ACTION_LABELS[evt.type] ?? "Cập nhật thanh toán"}</span>
                     <span>
                       {evt.amount
                         ? `${evt.amount.toLocaleString("vi-VN")} đ`
@@ -541,7 +543,7 @@ export const SellerOrderDetailPage: React.FC = () => {
                 {order.paymentStatus !== "PAID" && (
                   <p className="text-xs text-red mt-2">
                     * Chưa thể hoàn tất: Đơn hàng cần được xác nhận thanh toán
-                    (PAID) trước khi hoàn tất bàn giao.
+                    trước khi hoàn tất bàn giao.
                   </p>
                 )}
               </div>
@@ -584,7 +586,7 @@ export const SellerOrderDetailPage: React.FC = () => {
                   }}
                   className="btn-primary full-width"
                 >
-                  <DollarSign size={16} /> Xác nhận đã thu đủ tiền (PAID)
+                  <DollarSign size={16} /> Xác nhận đã thu đủ tiền
                 </button>
               </div>
             )}
@@ -614,7 +616,7 @@ export const SellerOrderDetailPage: React.FC = () => {
                   onClick={() => setConfirmRefundModalOpen(true)}
                   className="btn-primary full-width"
                 >
-                  Xác nhận đã hoàn tiền đủ (REFUNDED)
+                  Ghi nhận hoàn tiền
                 </button>
               </div>
             )}
@@ -871,7 +873,7 @@ export const SellerOrderDetailPage: React.FC = () => {
         isOpen={confirmPaymentModalOpen}
         closeDisabled={actions.confirmPayment.isPending}
         onClose={() => setConfirmPaymentModalOpen(false)}
-        title="Xác nhận thanh toán đủ (PAID)"
+        title="Xác nhận đã thu đủ tiền"
       >
         <form onSubmit={handleConfirmPayment}>
           <div className="form-group">
@@ -938,7 +940,7 @@ export const SellerOrderDetailPage: React.FC = () => {
               disabled={actions.confirmPayment.isPending}
               className="btn-primary"
             >
-              Xác nhận PAID
+              Xác nhận thanh toán
             </button>
           </div>
         </form>
@@ -983,7 +985,7 @@ export const SellerOrderDetailPage: React.FC = () => {
               disabled={actions.dismissPaymentReport.isPending}
               className="btn-danger"
             >
-              Bác báo cáo về UNPAID
+              Xác nhận chưa nhận được tiền
             </button>
           </div>
         </form>

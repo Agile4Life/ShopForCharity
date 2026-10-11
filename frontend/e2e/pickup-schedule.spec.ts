@@ -71,7 +71,8 @@ test('calendar and footer remain usable on a short phone viewport', async ({ pag
 test('calendar matches the shop on desktop and mobile', async ({ page }, testInfo) => {
   if (testInfo.project.name === 'desktop-chromium') await page.setViewportSize({ width: 1280, height: 960 });
   await page.getByRole('button', { name: 'Tháng sau', exact: true }).click();
-  await expect(page.getByText('Tháng 11, 2026', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Chọn tháng', exact: true })).toHaveText('Tháng 11');
+  await expect(page.getByRole('button', { name: 'Chọn năm', exact: true })).toHaveText('2026');
   await page.getByRole('button', { name: 'Tháng trước', exact: true }).click();
   await page.locator('.pickup-schedule-dialog .modal-body').evaluate(el => { el.scrollTop = 0; });
   await page.screenshot({ path: testInfo.outputPath('pickup-schedule.png') });

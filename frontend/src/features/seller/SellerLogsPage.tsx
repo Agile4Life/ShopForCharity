@@ -1,9 +1,12 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { FileText } from "lucide-react";
 import { useSellerAuditLogs } from "./api";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { EmptyState } from "../../components/EmptyState";
+import { DatePicker } from "../../components/DatePicker";
+import { AUDIT_ACTION_LABELS, AUDIT_ACTOR_LABELS, AUDIT_ENTITY_LABELS, formatAuditDetails } from "./audit-display";
 
 export const SellerLogsPage: React.FC = () => {
   const [actionFilter, setActionFilter] = useState("");
@@ -29,8 +32,7 @@ export const SellerLogsPage: React.FC = () => {
             <FileText size={24} /> Nhật ký
           </h1>
           <p className="text-muted text-sm">
-            Hệ thống ghi nhận bất biến các thao tác nghiệp vụ quan trọng (chỉ
-            đọc)
+            Xem lịch sử đơn hàng, tồn kho và thiết lập cửa hàng.
           </p>
         </div>
       </div>
@@ -38,39 +40,44 @@ export const SellerLogsPage: React.FC = () => {
       {/* Filter toolbar */}
       <div className="card mb-4">
         <div className="filter-grid">
-          <input
-            type="text"
+          <select
             aria-label="Lọc theo hành động"
-            placeholder="Lọc theo hành động (VD: ORDER_CREATED, STOCK_ADJUSTED...)"
             value={actionFilter}
             onChange={(e) => {
               setActionFilter(e.target.value);
               setPage(0);
             }}
             className="input-field"
-          />
+          >
+            <option value="">Tất cả hành động</option>
+            {Object.entries(AUDIT_ACTION_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
 
-          <input
-            type="text"
+          <select
             aria-label="Loại đối tượng"
-            placeholder="Loại đối tượng (ORDER, PRODUCT, COMBO...)"
             value={entityFilter}
             onChange={(e) => {
               setEntityFilter(e.target.value);
               setPage(0);
             }}
             className="input-field"
-          />
+          >
+            <option value="">Tất cả đối tượng</option>
+            {Object.entries(AUDIT_ENTITY_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
 
-          <input
-            type="date"
-            aria-label="Ngày ghi nhật ký"
+          <DatePicker
+            label="Ngày ghi nhật ký"
+            placeholder="Tất cả ngày"
             value={dateFilter}
-            onChange={(e) => {
-              setDateFilter(e.target.value);
+            onChange={(value) => {
+              setDateFilter(value);
               setPage(0);
             }}
-            className="input-field"
           />
         </div>
       </div>
@@ -91,11 +98,11 @@ export const SellerLogsPage: React.FC = () => {
               <thead>
                 <tr>
                   <th>Thời gian</th>
-                  <th>Tác nhân</th>
+                  <th>Người thực hiện</th>
                   <th>Hành động</th>
                   <th>Đối tượng</th>
-                  <th>Mã Request ID</th>
-                  <th>Chi tiết an toàn</th>
+                  <th>Mã hỗ trợ</th>
+                  <th>Chi tiết</th>
                 </tr>
               </thead>
               <tbody>
@@ -105,34 +112,38 @@ export const SellerLogsPage: React.FC = () => {
                       className="text-xs text-muted whitespace-nowrap"
                       data-label="Thời gian"
                     >
-                      {new Date(log.createdAt).toLocaleString("vi-VN")}
+                      <time dateTime={log.createdAt}>
+                        {new Date(log.createdAt).toLocaleString("vi-VN")}
+                      </time>
                     </td>
                     <td data-label="Người thực hiện">
                       <span className="badge badge-gray text-xs">
-                        {log.actorType}
+                        {AUDIT_ACTOR_LABELS[log.actorType] ?? "Người thực hiện khác"}
                       </span>
                     </td>
                     <td data-label="Hành động">
                       <strong className="text-xs text-primary">
-                        {log.action}
+                        {AUDIT_ACTION_LABELS[log.action] ?? "Hoạt động khác"}
                       </strong>
                     </td>
                     <td className="text-xs" data-label="Đối tượng">
-                      {log.entityType} (
-                      {log.entityId ? log.entityId.substring(0, 8) : "-"})
+                      {log.entityId && ["ORDER", "PRODUCT", "COMBO"].includes(log.entityType) ? (
+                        <Link to={log.entityType === "ORDER" ? `/seller/orders/${log.entityId}`
+                          : `/seller/${log.entityType === "PRODUCT" ? "products" : "combos"}/${log.entityId}/edit`}>
+                          Xem {AUDIT_ENTITY_LABELS[log.entityType].toLocaleLowerCase("vi-VN")}
+                        </Link>
+                      ) : <span>{AUDIT_ENTITY_LABELS[log.entityType] ?? "Đối tượng khác"}</span>}
                     </td>
                     <td
                       className="text-xs text-muted font-mono"
                       data-label="Mã hỗ trợ"
                     >
-                      {log.requestId ? log.requestId.substring(0, 8) : "-"}
+                      {log.requestId ? <details className="support-code-details"><summary>Xem mã</summary>
+                        <span className="support-code-value">{log.requestId}</span>
+                      </details> : "—"}
                     </td>
                     <td className="text-xs" data-label="Chi tiết">
-                      {log.safeAfter && (
-                        <code className="text-xs bg-gray-100 p-1 rounded block max-w-xs truncate">
-                          {log.safeAfter}
-                        </code>
-                      )}
+                      <span className="audit-details">{formatAuditDetails(log.safeAfter)}</span>
                     </td>
                   </tr>
                 ))}

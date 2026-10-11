@@ -1,0 +1,11 @@
+.readable-order-code { display: inline-flex; flex-wrap: wrap; column-gap: .25em; font-family: "Be Vietnam Pro", sans-serif; font-variant-numeric: tabular-nums; letter-spacing: .015em; max-width: 100%; line-height: 1.5; }
+.readable-order-code > span { white-space: nowrap; }
+.order-code-title { font-size: clamp(1.25rem, 3vw, 2rem); }
+.order-detail-header .copy-order-code + span { display: block; margin-top: 4px; }
+.copy-order-code { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; min-height: 40px; max-width: 100%; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-card); color: var(--ink); font: inherit; font-size: 12px; cursor: pointer; margin-block: 6px; }
+.copy-order-code:disabled { opacity: .6; cursor: wait; }
+.copy-order-code:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.support-code-details summary { color: var(--ink); cursor: pointer; font-family: "Be Vietnam Pro", sans-serif; }
+.support-code-value { display: block; overflow-wrap: anywhere; font-size: 11px; margin-top: 8px; user-select: all; }
+.seller-logs-page .audit-details { font-family: "Be Vietnam Pro", sans-serif; }
+@media (hover: hover) and (pointer: fine) { .copy-order-code:not(:disabled):hover { background: var(--sage); } }

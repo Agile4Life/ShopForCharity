@@ -20,6 +20,7 @@ import { Modal } from "../../components/Modal";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { AssetImage } from "../../components/AssetImage";
+import { OrderCode, CopyOrderCode } from "../../components/OrderCode";
 
 interface OrderDetailViewProps {
   order: OrderDetail;
@@ -81,7 +82,8 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
       <div className="order-view-header card">
         <div className="header-meta">
           <span className="text-muted text-sm">Mã đơn hàng:</span>
-          <h1 className="order-code-title">{order.orderCode}</h1>
+          <h1 className="order-code-title"><OrderCode value={order.orderCode} /></h1>
+          <CopyOrderCode value={order.orderCode} />
           <span className="order-date text-xs text-muted">
             Tạo lúc: {new Date(order.createdAt).toLocaleString("vi-VN")}
           </span>

@@ -9,6 +9,7 @@ import {
   useReportGuestPayment,
 } from "./api";
 import { OrderDetailView } from "./OrderDetailView";
+import { normalizeOrderCode } from "../../components/OrderCode";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 
@@ -54,8 +55,8 @@ export const GuestOrderLookupPage: React.FC = () => {
     setAccessLoading(true);
     setAccessError(null);
     try {
-      await accessGuestOrder(orderCodeInput.trim(), guestTokenInput.trim());
-      setCurrentOrderCode(orderCodeInput.trim());
+      await accessGuestOrder(normalizeOrderCode(orderCodeInput), guestTokenInput.trim());
+      setCurrentOrderCode(normalizeOrderCode(orderCodeInput));
     } catch (err) {
       setAccessError(err);
     } finally {

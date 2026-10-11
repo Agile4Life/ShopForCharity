@@ -1,4 +1,18 @@
 /* Content adapts to available space; scrolling is confined to data tables/menus. */
+.seller-logs-page .logs-table { table-layout: fixed; }
+.seller-logs-page .logs-table th:nth-child(1) { width: 17%; }
+.seller-logs-page .logs-table th:nth-child(2) { width: 13%; }
+.seller-logs-page .logs-table th:nth-child(3) { width: 23%; }
+.seller-logs-page .logs-table th:nth-child(4) { width: 15%; }
+.seller-logs-page .logs-table th:nth-child(5) { width: 11%; }
+.seller-logs-page .logs-table td { overflow-wrap: anywhere; }
+.seller-logs-page .logs-table td:first-child { white-space: normal; }
+.audit-entity-id { display: block; color: var(--text-muted); font-family: monospace; }
+.audit-details { display: block; white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 768px) {
+  .seller-logs-page .logs-table tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .seller-logs-page .logs-table td:last-child { grid-column: 1 / -1; }
+}
 :root { --page-gutter: clamp(16px, 3vw, 40px); }
 .container { padding-inline: var(--page-gutter); }
 :is(.cart-layout, .checkout-layout, .detail-layout, .order-view-grid, .seller-order-grid,

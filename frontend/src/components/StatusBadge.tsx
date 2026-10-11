@@ -27,16 +27,16 @@ export const PRODUCT_STATUS_MAP: Record<ProductStatus, { label: string; colorCla
 };
 
 export const OrderStatusBadge: React.FC<{ status: OrderStatus }> = ({ status }) => {
-  const info = ORDER_STATUS_MAP[status] || { label: status, colorClass: 'badge-gray' };
+  const info = ORDER_STATUS_MAP[status] || { label: 'Chưa xác định', colorClass: 'badge-gray' };
   return <span className={`badge ${info.colorClass}`}>{info.label}</span>;
 };
 
 export const PaymentStatusBadge: React.FC<{ status: PaymentStatus }> = ({ status }) => {
-  const info = PAYMENT_STATUS_MAP[status] || { label: status, colorClass: 'badge-gray' };
+  const info = PAYMENT_STATUS_MAP[status] || { label: 'Chưa xác định', colorClass: 'badge-gray' };
   return <span className={`badge ${info.colorClass}`}>{info.label}</span>;
 };
 
 export const ProductStatusBadge: React.FC<{ status: ProductStatus }> = ({ status }) => {
-  const info = PRODUCT_STATUS_MAP[status] || { label: status, colorClass: 'badge-gray' };
+  const info = PRODUCT_STATUS_MAP[status] || { label: 'Chưa xác định', colorClass: 'badge-gray' };
   return <span className={`badge ${info.colorClass}`}>{info.label}</span>;
 };

@@ -1,0 +1,26 @@
+.themed-date-picker { min-width: 0; position: relative; }
+.themed-date-picker .pickup-date-trigger { min-height: 48px; font-size: 14px; }
+.themed-date-picker .pickup-date-trigger span { min-width: 0; overflow-wrap: anywhere; }
+.date-picker-panel { position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; width: 100%; max-width: 360px; padding: 10px; border: 1px solid var(--border-color); border-radius: 16px; background: var(--bg-card); box-shadow: 0 12px 32px rgb(36 73 52 / .14); }
+.date-picker-panel .pickup-calendar { margin-top: 0; }
+.themed-calendar { width: 100%; min-width: 0; }
+.themed-calendar button { font-family: inherit; cursor: pointer; }
+.calendar-period { display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 0; }
+.pickup-calendar-heading .calendar-period-button { width: auto; min-width: 0; padding: 6px 8px; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.calendar-choice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-block: 8px; }
+.calendar-choice-grid button { min-height: 44px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-card); color: var(--ink); font-size: 13px; }
+.calendar-choice-grid button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.themed-calendar button:disabled { opacity: .35; cursor: not-allowed; }
+.themed-calendar button:focus-visible, .calendar-footer button:focus-visible, .calendar-back:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.calendar-footer { display: flex; justify-content: space-between; gap: 12px; padding: 10px 4px; }
+.calendar-footer button, .calendar-back { min-height: 40px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); padding: 8px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.calendar-footer button:disabled { opacity: .4; cursor: not-allowed; }
+.calendar-back { margin-top: 6px; }
+@media (hover: hover) and (pointer: fine) {
+  .calendar-choice-grid button:not(:disabled):not([aria-pressed="true"]):hover,
+  .calendar-footer button:not(:disabled):hover, .calendar-back:hover { background: var(--sage); }
+}
+@media (max-width: 640px) {
+  .date-picker-panel { max-width: none; }
+  .pickup-calendar-heading .calendar-period-button { padding-inline: 4px; font-size: 13px; }
+}

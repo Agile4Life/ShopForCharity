@@ -37,7 +37,7 @@ export const SellerRoute: React.FC<{ children: React.ReactNode }> = ({ children 
     return (
       <div className="unauthorized-page container">
         <h2>Truy cập bị từ chối</h2>
-        <p>Tài khoản của bạn không có quyền quản trị người bán (SELLER).</p>
+        <p>Tài khoản của bạn chưa được cấp quyền quản lý cửa hàng.</p>
       </div>
     );
   }

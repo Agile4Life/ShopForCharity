@@ -67,9 +67,6 @@ export const SellerCombosPage: React.FC = () => {
                         )}
                         <div>
                           <strong>{c.name}</strong>
-                          <span className="block text-xs text-muted">
-                            {c.slug}
-                          </span>
                         </div>
                       </div>
                     </td>
