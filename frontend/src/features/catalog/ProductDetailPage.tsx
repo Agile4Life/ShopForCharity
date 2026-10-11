@@ -12,6 +12,7 @@ import { AddToCartButton } from "../cart/AddToCartButton";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { AssetImage } from "../../components/AssetImage";
+import { AskProductButton } from '../chat/ChatEntry';
 
 export const ProductDetailPage: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -122,6 +123,7 @@ export const ProductDetailPage: React.FC = () => {
           )}
 
           {/* Quantity Selector & Add to Cart */}
+          <AskProductButton product={product} />
           {!isSoldOut && (
             <div className="add-cart-section">
               <QuantityControl

@@ -126,6 +126,7 @@ export function Navbar() {
                   </div>
                   <NavLink to="/account/profile" tabIndex={0}><User size={17} aria-hidden="true" />Thông tin tài khoản</NavLink>
                   <NavLink to="/account/orders" tabIndex={0}><ShoppingBag size={17} aria-hidden="true" />Đơn hàng của tôi</NavLink>
+                  <NavLink to={isSeller ? '/seller/chat' : '/account/chat'} tabIndex={0}>Tin nhắn</NavLink>
                   {isSeller && <NavLink to="/seller" tabIndex={0}><ArrowUpRight size={17} aria-hidden="true" />Bàn làm việc</NavLink>}
                   <button type="button" onClick={handleLogout} disabled={loggingOut} aria-busy={loggingOut} className="account-dropdown-logout">
                     <LogOut size={17} aria-hidden="true" />Đăng xuất
@@ -170,6 +171,7 @@ export function Navbar() {
               <>
                 <NavLink to="/account/orders">Đơn hàng của tôi</NavLink>
                 <NavLink to="/account/profile">Thông tin tài khoản</NavLink>
+                <NavLink to={isSeller ? '/seller/chat' : '/account/chat'}>Tin nhắn</NavLink>
                 {isSeller && <NavLink to="/seller">Bàn làm việc</NavLink>}
                 <button onClick={handleLogout} disabled={loggingOut} aria-busy={loggingOut} className="logout-link">
                   Đăng xuất

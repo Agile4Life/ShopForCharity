@@ -43,7 +43,7 @@ export const RegisterPage: React.FC = () => {
       );
       if (res.success) {
         setSuccessMsg(
-          "Đã tạo tài khoản. Kiểm tra email xác minh nếu được yêu cầu.",
+          res.error || "Đã tạo tài khoản thành công. Bạn có thể sử dụng tài khoản ngay.",
         );
       } else {
         setErrorMsg(res.error || "Đăng ký không thành công");

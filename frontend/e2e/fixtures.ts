@@ -92,10 +92,12 @@ export class Scenario {
         if (url.pathname.endsWith('/recover') || url.pathname.endsWith('/logout')) return ok({});
         if (url.pathname.endsWith('/user')) return ok(user);
       }
+      if (path === '/auth/register') return ok({ success: true });
       if (path === '/me') {
         if (method === 'PATCH') this.me = { ...this.me, ...body, version: this.me.version! + 1 };
         return ok(this.me);
       }
+      if (path === '/chat/unread') return ok({ count: 0 });
       if (path === '/shop') return ok(this.shop);
       if (path === '/categories') return ok([{ id: ids.category, code: 'SNACK', name: 'Đồ ăn vặt', active: true }]);
       if (path === '/checkout/session') return this.sessionError ? error(503, 'SESSION_UNAVAILABLE') : ok({ success: true });

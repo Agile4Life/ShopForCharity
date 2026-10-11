@@ -8,7 +8,8 @@ for (const location of ['product-card', 'combo-card', 'product-detail', 'combo-d
     await page.goto(location.endsWith('detail') ? `/${prefix}/${item.slug}` : '/');
     const button = location === 'product-card'
       ? page.getByRole('button', { name: `Thêm ${product.name} vào giỏ`, exact: true })
-      : page.locator(location === 'combo-card' ? '.combo-card .add-to-cart-button' : '.add-cart-section .add-to-cart-button');
+      : location === 'combo-card' ? page.locator('.combo-card .add-to-cart-button')
+      : page.locator('.add-cart-section .add-to-cart-button.btn-secondary');
     await expect(button).toBeEnabled();
     let release!: () => void;
     const pending = new Promise<void>(resolve => { release = resolve; });

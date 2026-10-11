@@ -7,6 +7,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/query-client";
 import { AuthProvider } from "./features/auth/auth-context";
 import { CartProvider } from "./features/cart/cart-context";
+import { ChatLauncher } from "./features/chat/ChatEntry";
 
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
@@ -151,6 +152,8 @@ const SellerLogsPage = lazyPage(() =>
     default: module.SellerLogsPage,
   })),
 );
+const CustomerChatPage = lazyPage(() => import('./features/chat/ChatPage').then(m => ({ default: m.CustomerChatPage })));
+const SellerChatPage = lazyPage(() => import('./features/chat/ChatPage').then(m => ({ default: m.SellerChatPage })));
 
 export const App: React.FC = () => {
   return (
@@ -210,6 +213,8 @@ export const App: React.FC = () => {
                       />
 
                       {/* Customer Account (Protected) */}
+                      <Route path="/account/chat" element={<ProtectedRoute><CustomerChatPage /></ProtectedRoute>} />
+                      <Route path="/seller/chat" element={<SellerRoute><SellerChatPage /></SellerRoute>} />
                       <Route
                         path="/account/orders"
                         element={
@@ -333,6 +338,7 @@ export const App: React.FC = () => {
               </main>
               <Footer />
               <MobileNavigation />
+              <ChatLauncher />
               <FeedbackNotice />
               <NetworkActivity />
             </div>

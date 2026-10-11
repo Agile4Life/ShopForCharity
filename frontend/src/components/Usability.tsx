@@ -268,6 +268,7 @@ export function AccountNavigation() {
   return (
     <nav className="account-navigation container" aria-label="Tài khoản">
       <NavLink to="/account/orders">Đơn hàng</NavLink>
+      <NavLink to="/account/chat">Tin nhắn</NavLink>
       <NavLink to="/account/profile">Thông tin cá nhân</NavLink>
     </nav>
   );

@@ -6,6 +6,12 @@ import { apiFetch } from "../../lib/api-client";
 import { ErrorMessage } from "../../components/ErrorMessage";
 
 export const ProfilePage: React.FC = () => {
+  const { profile } = useAuth();
+  if (!profile) return <div className="container max-w-lg mx-auto" role="status">Đang tải thông tin tài khoản...</div>;
+  return <ProfileForm key={profile.id} />;
+};
+
+const ProfileForm: React.FC = () => {
   const { profile, refreshProfile } = useAuth();
   const [fullName, setFullName] = useState(profile?.fullName || "");
   const [phone, setPhone] = useState(profile?.phone || "");

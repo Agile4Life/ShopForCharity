@@ -7,6 +7,7 @@ import "./controls.css";
 import "./responsive.css";
 import "./calendar.css";
 import "./readable-data.css";
+import "./chat.css";
 import App from "./App.tsx";
 
 createRoot(document.getElementById("root")!).render(

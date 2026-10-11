@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.e2e.json",
+  "compilerOptions": { "allowJs": true },
+  "include": ["playwright.chat-live.config.ts", "e2e-chat-live/**/*.ts"]
+}

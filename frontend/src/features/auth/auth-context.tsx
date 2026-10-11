@@ -131,23 +131,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     fullName: string,
     phone: string,
   ) => {
-    const { data, error } = await withRequestDeadline(() => supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          phone,
-        },
-      },
-    }), { write: true });
-
-    if (error) {
+    try {
+      await apiFetch('/auth/register', { method: 'POST', skipIdempotency: true, silent: true,
+        body: { email, password, fullName, phone } });
+    } catch (error) {
       return { success: false, error: userErrorMessage(error, "Chưa tạo được tài khoản. Vui lòng thử lại.") };
     }
-
-    if (data.session) {
-      await fetchProfile();
+    try {
+      const result = await login(email.trim(), password);
+      if (!result.success) return { success: true, error: 'Đã tạo tài khoản. Bạn có thể đăng nhập bằng email và mật khẩu vừa đăng ký.' };
+    } catch {
+      return { success: true, error: 'Đã tạo tài khoản. Bạn có thể đăng nhập bằng email và mật khẩu vừa đăng ký.' };
     }
 
     return { success: true };

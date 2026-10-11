@@ -95,6 +95,7 @@ export function PageExperience() {
 const sellerLinks = [
   ["/seller", "Tổng quan"],
   ["/seller/orders", "Đơn hàng"],
+  ["/seller/chat", "Tin nhắn"],
   ["/seller/products", "Sản phẩm"],
   ["/seller/combos", "Combo"],
   ["/seller/settings", "Cài đặt"],

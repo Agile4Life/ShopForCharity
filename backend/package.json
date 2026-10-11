@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --import ./tests/setup.js --test tests/**/*.test.js",
+    "test": "node --import ./tests/setup.js --test --test-concurrency=1 tests/**/*.test.js",
     "migrate": "node src/migrations/migrate.js",
     "migrate:upgrade-node": "node scripts/upgrade-node-db.js"
   },

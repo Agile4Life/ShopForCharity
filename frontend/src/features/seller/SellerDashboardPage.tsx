@@ -11,6 +11,7 @@ import {
   FileText,
   Bell,
   ArrowRight,
+  MessageCircle,
 } from "lucide-react";
 import {
   useSellerDashboard,
@@ -114,6 +115,7 @@ export const SellerDashboardPage: React.FC = () => {
         <div className="card">
           <h2 className="section-subtitle">Sắp xếp gian hàng</h2>
           <div className="shortcuts-grid mt-3">
+            <Link to="/seller/chat" className="shortcut-card"><MessageCircle size={24} className="text-primary" /><div><strong>Hộp thư khách hàng</strong><p className="text-xs text-muted">Cùng trả lời tin nhắn và câu hỏi về sản phẩm</p></div></Link>
             <Link to="/seller/orders" className="shortcut-card">
               <ShoppingBag size={24} className="text-primary" />
               <div>

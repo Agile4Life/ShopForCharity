@@ -12,11 +12,13 @@ import { shopRouter } from './shop/shop-controller.js';
 import { catalogRouter } from './catalog/catalog-controller.js';
 import { identityRouter } from './identity/identity-controller.js';
 import { sellerRegistrationRouter } from './identity/seller-registration.js';
+import { customerRegistrationRouter } from './identity/customer-registration.js';
 import { checkoutRouter } from './order/checkout-controller.js';
 import { orderRouter } from './order/order-controller.js';
 import { inventoryRouter } from './inventory/inventory-controller.js';
 import { assetRouter } from './infrastructure/asset-controller.js';
 import { sellerReadRouter } from './audit/seller-read-controller.js';
+import { chatRouter } from './chat/chat-controller.js';
 
 import { getOrderService } from './order/order-service.js';
 import { getAssetService } from './infrastructure/asset-service.js';
@@ -89,11 +91,13 @@ v1.use(shopRouter);
 v1.use(catalogRouter);
 v1.use('/me', identityRouter);
 v1.use(sellerRegistrationRouter);
+v1.use(customerRegistrationRouter);
 v1.use(checkoutRouter);
 v1.use(orderRouter);
 v1.use('/seller/products', inventoryRouter);
 v1.use('/seller/assets', assetRouter);
 v1.use('/seller', sellerReadRouter);
+v1.use(chatRouter);
 
 app.use('/api/v1', v1);
 

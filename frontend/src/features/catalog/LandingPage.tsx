@@ -18,6 +18,7 @@ import { ErrorMessage } from "../../components/ErrorMessage";
 import { AssetImage } from "../../components/AssetImage";
 import { EmptyState } from "../../components/EmptyState";
 import { WorkshopArt } from "../../components/WorkshopArt";
+import { AskProductButton } from '../chat/ChatEntry';
 
 export function LandingPage() {
   const [search, setSearch] = useState("");
@@ -277,6 +278,7 @@ export function LandingPage() {
                     </div>
                     <AddToCartButton kind="PRODUCT" catalogId={p.id} name={p.name} compact className="product-add" disabled={p.isSoldOut || p.availableStock <= 0} />
                   </div>
+                  <AskProductButton product={p} compact />
                 </div>
               </article>
             ))}

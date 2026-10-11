@@ -17,7 +17,10 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as any)?.from?.pathname || "/";
+  const destination = (location.state as { from?: { pathname?: string; search?: string; hash?: string } } | null)?.from;
+  const from = destination?.pathname
+    ? `${destination.pathname}${destination.search || ''}${destination.hash || ''}`
+    : "/";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

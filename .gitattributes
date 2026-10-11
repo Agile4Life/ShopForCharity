@@ -1,0 +1,2 @@
+backend/src/main/resources/db/migration/V5__customer_chat.sql text eol=lf
+backend/src/main/resources/db/migration/V6__chat_customer_index.sql text eol=lf

@@ -6,6 +6,11 @@ REVOKE UPDATE, DELETE ON shop.audit_logs, shop.inventory_movements,
  shop.payment_events, shop.order_status_history, shop.order_contact_attempts,
  shop.payment_settings_versions FROM shop_runtime;
 DO $$ BEGIN
+ IF to_regclass('shop.chat_messages') IS NOT NULL THEN
+   REVOKE UPDATE, DELETE ON shop.chat_messages FROM shop_runtime;
+ END IF;
+END $$;
+DO $$ BEGIN
  IF to_regclass('shop.flyway_schema_history') IS NOT NULL THEN
    REVOKE ALL ON shop.flyway_schema_history FROM shop_runtime;
  END IF;

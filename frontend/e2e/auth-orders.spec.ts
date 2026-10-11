@@ -20,7 +20,7 @@ test('invalid login shows error', async ({ page, scenario }) => {
   await expect(page).toHaveURL('/login');
 });
 
-test('registration submits metadata and asks user to verify email', async ({ page, scenario }) => {
+test('registration creates account and signs in without email verification', async ({ page, scenario }) => {
   await page.goto('/register');
   await page.locator('#regName').fill('Nguyễn Văn Test');
   await page.locator('#regPhone').fill('0912345678');
@@ -28,7 +28,23 @@ test('registration submits metadata and asks user to verify email', async ({ pag
   await page.locator('#regPass').fill('test-password');
   await submit(page);
   await expect(page.getByRole('status').filter({ hasText: 'Đã tạo tài khoản' })).toBeVisible();
-  expect(scenario.mutations('/signup')[0].postDataJSON()).toMatchObject({ data: { full_name: 'Nguyễn Văn Test', phone: '0912345678' } });
+  expect(scenario.mutations('/auth/register')[0].postDataJSON()).toMatchObject({ fullName: 'Nguyễn Văn Test', phone: '0912345678' });
+  expect(scenario.mutations('/signup')).toHaveLength(0);
+  expect(scenario.mutations('/token')).toHaveLength(1);
+  await expect(page.getByRole('status').filter({ hasText: 'Đã tạo tài khoản' })).not.toContainText('xác minh');
+  await page.goto('/account/profile');
+  await expect(page.locator('#profName')).toHaveValue('Nguyễn Văn Test');
+});
+
+test('registration rejects duplicate email without trying to sign in', async ({ page, scenario }) => {
+  await page.route('**/api/v1/auth/register', route => route.fulfill({ status: 409, json: { code: 'CUSTOMER_EMAIL_EXISTS' } }));
+  await page.goto('/register');
+  await page.locator('#regName').fill('Nguyễn Văn Test');await page.locator('#regPhone').fill('0912345678');
+  await page.locator('#regEmail').fill('test@example.com');await page.locator('#regPass').fill('test-password');await submit(page);
+  await expect(page.getByText('Email này đã được sử dụng. Đăng nhập hoặc dùng email khác để đăng ký.', { exact: true })).toBeVisible();
+  expect(scenario.mutations('/token')).toHaveLength(0);
+  await expect(page.locator('#regEmail')).toHaveValue('test@example.com');
+  await expect(page.locator('main form button[type="submit"]')).toBeEnabled();
 });
 
 test('forgot password submits recovery email', async ({ page, scenario }) => {
@@ -68,6 +84,21 @@ test('profile update sends version and excludes identity/role', async ({ page, s
   await expectMutation(scenario, '/me', { fullName: 'Tên mới', phone: '0912345678', expectedVersion: 3 });
   expect(scenario.mutations('/me')[0].postDataJSON()).not.toHaveProperty('role');
   expect(scenario.mutations('/me')[0].postDataJSON()).not.toHaveProperty('email');
+});
+
+test('profile form waits for the saved profile after a fresh page load', async ({ page, scenario }) => {
+  await scenario.authenticate('CUSTOMER');
+  let release!: () => void;
+  const ready = new Promise<void>(resolve => { release = resolve; });
+  await page.route('**/api/v1/me', async route => {
+    await ready;
+    await route.fulfill({ json: scenario.me });
+  });
+  await page.goto('/account/profile');
+  await expect(page.locator('#profName')).toHaveCount(0);
+  release();
+  await expect(page.locator('#profName')).toHaveValue('Nguyễn Văn Test');
+  await expect(page.locator('#profPhone')).toHaveValue('0912345678');
 });
 
 test('authenticated checkout prefills profile and does not create guest session', async ({ page, scenario }) => {

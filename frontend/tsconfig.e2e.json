@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2023", "lib": ["ES2023", "DOM"], "module": "ESNext",
-    "moduleResolution": "bundler", "types": ["node"], "strict": true,
+    "moduleResolution": "bundler", "types": ["node", "vite/client"], "strict": true,
     "noEmit": true, "skipLibCheck": true
   },
-  "include": ["playwright.config.ts", "playwright.responsive.config.ts", "e2e/**/*.ts"]
+  "include": ["playwright.config.ts", "playwright.responsive.config.ts", "playwright.chat-browsers.config.ts", "e2e/**/*.ts"]
 }

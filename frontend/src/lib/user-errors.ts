@@ -1,4 +1,9 @@
 const messages: Record<string, string> = {
+  CUSTOMER_EMAIL_EXISTS: "Email này đã được sử dụng. Đăng nhập hoặc dùng email khác để đăng ký.",
+  CUSTOMER_REGISTRATION_INPUT: "Kiểm tra email, họ tên (2–100 ký tự) và mật khẩu (6–128 ký tự).",
+  CUSTOMER_REGISTRATION_UNAVAILABLE: "Đăng ký tài khoản đang chưa khả dụng. Vui lòng thử lại sau.",
+  CUSTOMER_REGISTRATION_UNKNOWN: "Chưa xác nhận được kết quả đăng ký. Thử đăng nhập bằng email và mật khẩu vừa nhập trước khi đăng ký lại.",
+  CUSTOMER_PROFILE_PENDING: "Tài khoản đã tạo. Vui lòng đăng nhập bằng email và mật khẩu vừa đăng ký để tải thông tin.",
   INVALID_SELLER_CODE: "Mã đăng ký người bán chưa đúng. Kiểm tra mã shop đã cung cấp.",
   SELLER_EMAIL_EXISTS: "Email này đã được sử dụng. Đăng nhập hoặc dùng email khác để tạo tài khoản người bán.",
   SELLER_REGISTRATION_INPUT: "Kiểm tra email, họ tên (2–100 ký tự) và mật khẩu (8–128 ký tự).",
