@@ -2,7 +2,7 @@ import { userErrorMessage } from "../../lib/user-errors";
 import { PasswordField } from "../../components/Usability";
 import { AuthCompanion } from "../../components/PageExperience";
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { UserPlus } from "lucide-react";
 import { useAuth } from "./auth-context";
 import { ErrorMessage } from "../../components/ErrorMessage";
@@ -17,6 +17,7 @@ export const RegisterPage: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const { register } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +43,10 @@ export const RegisterPage: React.FC = () => {
         phone.trim(),
       );
       if (res.success) {
+        if (!res.error) {
+          navigate("/", { replace: true });
+          return;
+        }
         setSuccessMsg(
           res.error || "Đã tạo tài khoản thành công. Bạn có thể sử dụng tài khoản ngay.",
         );

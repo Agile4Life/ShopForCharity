@@ -1,6 +1,6 @@
 # Customer registration without email verification
 
-The website submits registration to `POST /api/v1/auth/register`. The backend validates the fields and creates a customer through Supabase Admin Auth with `email_confirm: true`, then persists the customer profile. The browser signs in with the submitted email and password immediately. No verification email is required for this flow.
+The website submits registration to `POST /api/v1/auth/register`. The backend validates the fields and creates a customer through Supabase Admin Auth with `email_confirm: true`, then persists the customer profile. The browser signs in with the submitted email and password immediately and redirects to `/`, replacing the registration history entry. No verification email is required for this flow. If account creation succeeds but automatic login fails, the registration page retains the guidance to log in manually.
 
 Duplicate email returns HTTP 409 (`CUSTOMER_EMAIL_EXISTS`). Registration never resets an existing user's password, changes their role, or confirms an existing account. Existing accounts awaiting email confirmation retain their prior state. Supabase's global email-confirmation setting for direct client signups is unchanged.
 

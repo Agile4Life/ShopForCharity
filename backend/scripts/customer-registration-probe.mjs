@@ -18,7 +18,8 @@ try{
  await page.locator('#regName').fill('Khách đăng ký thử');await page.locator('#regPhone').fill('0912345678');
  await page.locator('#regEmail').fill(email);await page.locator('#regPass').fill(password);
  await page.locator('main form button[type="submit"]').click();
- await expect(page.getByRole('status').filter({hasText:'Đã tạo tài khoản thành công'})).toBeVisible({timeout:25000});
+ await expect(page).toHaveURL('http://127.0.0.1:5173/',{timeout:25000});
+ await expect(page.getByRole('button',{name:'Menu tài khoản'})).toBeVisible();
  authId=await page.evaluate(()=>{
   const key=Object.keys(localStorage).find(k=>k.startsWith('sb-')&&k.endsWith('-auth-token'));
   return key?JSON.parse(localStorage.getItem(key)).user.id:null;

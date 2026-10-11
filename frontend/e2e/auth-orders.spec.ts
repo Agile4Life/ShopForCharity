@@ -20,18 +20,21 @@ test('invalid login shows error', async ({ page, scenario }) => {
   await expect(page).toHaveURL('/login');
 });
 
-test('registration creates account and signs in without email verification', async ({ page, scenario }) => {
+test('registration signs in and replaces the registration page with the homepage', async ({ page, scenario }) => {
+  await page.goto('/login');
   await page.goto('/register');
   await page.locator('#regName').fill('Nguyễn Văn Test');
   await page.locator('#regPhone').fill('0912345678');
   await page.locator('#regEmail').fill('test@example.com');
   await page.locator('#regPass').fill('test-password');
   await submit(page);
-  await expect(page.getByRole('status').filter({ hasText: 'Đã tạo tài khoản' })).toBeVisible();
+  await expect(page).toHaveURL('/');
+  await expect(page.getByRole('button', { name: 'Menu tài khoản' })).toBeVisible();
   expect(scenario.mutations('/auth/register')[0].postDataJSON()).toMatchObject({ fullName: 'Nguyễn Văn Test', phone: '0912345678' });
   expect(scenario.mutations('/signup')).toHaveLength(0);
   expect(scenario.mutations('/token')).toHaveLength(1);
-  await expect(page.getByRole('status').filter({ hasText: 'Đã tạo tài khoản' })).not.toContainText('xác minh');
+  await page.goBack();
+  await expect(page).toHaveURL('/login');
   await page.goto('/account/profile');
   await expect(page.locator('#profName')).toHaveValue('Nguyễn Văn Test');
 });
@@ -45,6 +48,16 @@ test('registration rejects duplicate email without trying to sign in', async ({ 
   expect(scenario.mutations('/token')).toHaveLength(0);
   await expect(page.locator('#regEmail')).toHaveValue('test@example.com');
   await expect(page.locator('main form button[type="submit"]')).toBeEnabled();
+  await expect(page).toHaveURL('/register');
+});
+
+test('created account with failed automatic login keeps the login guidance visible', async ({ page, scenario }) => {
+  scenario.loginError = true;
+  await page.goto('/register');
+  await page.locator('#regName').fill('Nguyễn Văn Test');await page.locator('#regPhone').fill('0912345678');
+  await page.locator('#regEmail').fill('test@example.com');await page.locator('#regPass').fill('test-password');await submit(page);
+  await expect(page).toHaveURL('/register');
+  await expect(page.getByRole('status').filter({ hasText: 'Đã tạo tài khoản' })).toContainText('Bạn có thể đăng nhập');
 });
 
 test('forgot password submits recovery email', async ({ page, scenario }) => {
