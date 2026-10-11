@@ -11,6 +11,7 @@ import { getInventoryService } from '../inventory/inventory-service.js';
 import { getIdempotencyService } from '../infrastructure/idempotency-service.js';
 import { getAuditService } from '../audit/audit-service.js';
 import { getCatalogService } from '../catalog/catalog-service.js';
+import { getOrderEmailService } from '../infrastructure/order-email-service.js';
 
 export class OrderService {
   constructor(
@@ -20,7 +21,8 @@ export class OrderService {
     inventoryServiceInstance = getInventoryService(),
     idempotencyServiceInstance = getIdempotencyService(),
     auditServiceInstance = getAuditService(),
-    catalogServiceInstance = getCatalogService()
+    catalogServiceInstance = getCatalogService(),
+    emailServiceInstance = getOrderEmailService()
   ) {
     this.profiles = profileServiceInstance;
     this.access = orderAccessInstance;
@@ -29,6 +31,7 @@ export class OrderService {
     this.idem = idempotencyServiceInstance;
     this.audit = auditServiceInstance;
     this.catalog = catalogServiceInstance;
+    this.email = emailServiceInstance;
   }
 
   async detail(actor, id, seller = false) {
@@ -252,7 +255,7 @@ export class OrderService {
   async action(actor, id, seller, action, key, input) {
     if (seller) this.profiles.seller(actor);
 
-    return withTx(async (client) => {
+    const result = await withTx(async (client) => {
       await lockShop(client, config.shopId);
       const o = await this.access.owned(id, actor, seller, client);
 
@@ -334,6 +337,7 @@ export class OrderService {
           }
 
           await this.transition(client, o, to, actor, input.reason || null);
+          if (to === 'ACCEPTED') await this.email.enqueue(client, o);
 
           const updatedRes = await client.query(
             'SELECT * FROM shop.orders WHERE id = $1',
@@ -343,6 +347,10 @@ export class OrderService {
         }
       );
     });
+    // Await sending after COMMIT so serverless can finish it before responding.
+    // An email outage cannot roll back or hide a successful order confirmation.
+    if (seller && action === 'accept') await this.email.deliverSafely(id);
+    return result;
   }
 
   async contact(actor, id, key, input) {

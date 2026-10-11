@@ -10,6 +10,8 @@ npm.cmd run dev
 
 Copy .env.example to .env for local development. Vercel uses Environment Variables. Tests use fixture keys and an isolated embedded PostgreSQL database.
 
+Order acceptance sends a Vietnamese confirmation email through Resend. Set `RESEND_API_KEY` and `ORDER_EMAIL_FROM`, apply migration V7, and see [email setup and retries](../docs/order-confirmation-email.md).
+
 Run migrations separately with MIGRATION_DATABASE_URL or MIGRATION_DB_URL and owner credentials. Runtime credentials are separate. Keep MIGRATIONS_ENABLED=false on Vercel. Existing Flyway databases can use the explicit migrate:upgrade-node command after checksum verification and approval to change the database.
 
 ## Legacy Java backend

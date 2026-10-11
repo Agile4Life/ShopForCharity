@@ -14,6 +14,10 @@ export const config = {
   port: parseInt(process.env.PORT || '8080', 10),
   db: databaseConfig(process.env),
   cronSecret: process.env.CRON_SECRET || '',
+  email: {
+    apiKey: process.env.RESEND_API_KEY || '',
+    from: process.env.ORDER_EMAIL_FROM || '',
+  },
   shopId: process.env.APP_SHOP_ID || '00000000-0000-0000-0000-000000000001',
   jwt: {
     issuer: process.env.JWT_ISSUER_URI,

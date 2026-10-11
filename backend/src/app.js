@@ -22,6 +22,7 @@ import { chatRouter } from './chat/chat-controller.js';
 
 import { getOrderService } from './order/order-service.js';
 import { getAssetService } from './infrastructure/asset-service.js';
+import { getOrderEmailService } from './infrastructure/order-email-service.js';
 
 const app = express();
 
@@ -86,6 +87,12 @@ app.get('/api/v1/cron/cleanup', requireCron, async (req, res, next) => {
 });
 
 // API v1 routes
+app.get('/api/v1/cron/order-emails', requireCron, async (req, res, next) => {
+  try {
+    res.json(await getOrderEmailService().flush());
+  } catch (err) { next(err); }
+});
+
 const v1 = express.Router();
 v1.use(shopRouter);
 v1.use(catalogRouter);

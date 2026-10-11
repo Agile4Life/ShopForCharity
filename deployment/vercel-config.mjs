@@ -55,6 +55,7 @@ export function createVercelConfig(env) {
     ...(isServerless ? { crons: [
       { path: '/api/v1/cron/expire', schedule: env.VERCEL_CRON_FREQUENT === 'true' ? '* * * * *' : '0 0 * * *' },
       { path: '/api/v1/cron/cleanup', schedule: env.VERCEL_CRON_FREQUENT === 'true' ? '0 * * * *' : '0 1 * * *' },
+      { path: '/api/v1/cron/order-emails', schedule: env.VERCEL_CRON_FREQUENT === 'true' ? '* * * * *' : '0 2 * * *' },
     ] } : {}),
     rewrites: [
       {

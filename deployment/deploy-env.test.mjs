@@ -47,6 +47,14 @@ test('seller invitation is exported only as a backend variable', () => {
   assert.equal(createDeployEnv(backend, frontend).SELLER_REGISTRATION_CODE, undefined);
 });
 
+test('order email credentials export to backend only', () => {
+  const env = createDeployEnv({ ...backend, RESEND_API_KEY: 'test-email-key', ORDER_EMAIL_FROM: 'Shop <orders@example.com>' },
+    { ...frontend, VITE_RESEND_API_KEY: 'must-not-export' });
+  assert.equal(env.RESEND_API_KEY, 'test-email-key');
+  assert.equal(env.ORDER_EMAIL_FROM, 'Shop <orders@example.com>');
+  assert.equal(env.VITE_RESEND_API_KEY, undefined);
+});
+
 test('CORS allows exact Vercel deployment origins without enabling wildcard or localhost', () => {
   const origins = allowedOrigins({ VERCEL: '1', CORS_ALLOWED_ORIGINS: 'https://goiamchoem.vercel.app', VERCEL_URL: 'goiamchoem-preview-team.vercel.app', VERCEL_PROJECT_PRODUCTION_URL: 'goiamchoem.vercel.app' });
   assert.deepEqual(origins, ['https://goiamchoem.vercel.app', 'https://goiamchoem-preview-team.vercel.app']);

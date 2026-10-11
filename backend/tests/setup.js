@@ -1,5 +1,7 @@
 // Unit/embedded tests must never depend on private .env or a real shop database.
 process.env.NODE_ENV = 'test';
+process.env.RESEND_API_KEY = '';
+process.env.ORDER_EMAIL_FROM = '';
 process.env.IDEMPOTENCY_ENCRYPTION_KEY = Buffer.alloc(32, 1).toString('base64');
 process.env.GUEST_SESSION_SIGNING_KEY = Buffer.alloc(32, 2).toString('base64');
 process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';

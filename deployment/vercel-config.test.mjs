@@ -63,6 +63,7 @@ test('serverless backend config routes /api to /api/index.js without requiring B
   assert.deepEqual(config.crons, [
     { path: '/api/v1/cron/expire', schedule: '0 0 * * *' },
     { path: '/api/v1/cron/cleanup', schedule: '0 1 * * *' },
+    { path: '/api/v1/cron/order-emails', schedule: '0 2 * * *' },
   ]);
 });
 
@@ -70,6 +71,7 @@ test('frequent cron schedule is opt-in for eligible plans', () => {
   const config = createVercelConfig({ ...authEnv, SERVERLESS_BACKEND: 'true', VERCEL_CRON_FREQUENT: 'true' });
   assert.equal(config.crons[0].schedule, '* * * * *');
   assert.equal(config.crons[1].schedule, '0 * * * *');
+  assert.equal(config.crons[2].schedule, '* * * * *');
 });
 
 test('monorepo uses Node backend by default; flags cannot silently select a broken proxy', () => {

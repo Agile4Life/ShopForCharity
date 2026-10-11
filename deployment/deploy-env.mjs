@@ -7,6 +7,7 @@ const runtimeKeys = [
   'JWT_EXPECTED_AUDIENCE', 'APP_SHOP_ID', 'IDEMPOTENCY_ENCRYPTION_KEY', 'GUEST_SESSION_SIGNING_KEY',
   'PENDING_ORDER_TTL_HOURS', 'GUEST_TOKEN_TTL_DAYS', 'PUBLIC_PRODUCT_BUCKET', 'PRIVATE_PAYMENT_BUCKET',
   'DB_SSL_CA', 'DB_POOL_MAX', 'SELLER_REGISTRATION_CODE',
+  'RESEND_API_KEY', 'ORDER_EMAIL_FROM',
 ];
 
 export function createDeployEnv(backend, frontend, previous = {}, origin = 'https://goiamchoem.vercel.app') {
