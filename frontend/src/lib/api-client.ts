@@ -36,6 +36,7 @@ export interface RequestOptions extends Omit<RequestInit, "body"> {
   idempotencyKey?: string;
   timeoutMs?: number;
   silent?: boolean;
+  showGlobalActivity?: boolean;
   validate?: (data: unknown) => boolean;
 }
 
@@ -76,6 +77,7 @@ async function executeApiRequest<T>(
     timeoutMs,
     validate,
     silent = method.toUpperCase() === "GET",
+    showGlobalActivity = true,
     ...restOptions
   } = options;
 
@@ -169,7 +171,7 @@ async function executeApiRequest<T>(
       const result: unknown = response.status === 204 ? {} : await response.json();
       if (validate && !validate(result)) throw new ApiError(502, "INVALID_RESPONSE", "");
       return result as T;
-    }, { timeoutMs, signal: restOptions.signal, write: !["GET", "HEAD"].includes(method.toUpperCase()) });
+    }, { timeoutMs, signal: restOptions.signal, write: !["GET", "HEAD"].includes(method.toUpperCase()), showGlobalActivity });
   } catch (error) {
     if (restOptions.signal?.aborted) throw error;
     const invalidWriteResponse = !["GET", "HEAD"].includes(method.toUpperCase())

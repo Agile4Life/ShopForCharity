@@ -9,8 +9,8 @@ export function subscribeRequests(listener: () => void) {
 }
 
 export async function withRequestDeadline<T>(operation: (signal: AbortSignal) => Promise<T>, {
-  timeoutMs = 15000, signal: externalSignal, write = false, allowOffline = false,
-}: { timeoutMs?: number; signal?: AbortSignal | null; write?: boolean; allowOffline?: boolean } = {}): Promise<T> {
+  timeoutMs = 15000, signal: externalSignal, write = false, allowOffline = false, showGlobalActivity = true,
+}: { timeoutMs?: number; signal?: AbortSignal | null; write?: boolean; allowOffline?: boolean; showGlobalActivity?: boolean } = {}): Promise<T> {
   if (!allowOffline && !navigator.onLine) throw new UserFacingError("Không thể kết nối. Kiểm tra mạng rồi thử lại.", "NETWORK_ERROR");
   const controller = new AbortController();
   const abortExternal = () => controller.abort(externalSignal?.reason);
@@ -21,8 +21,10 @@ export async function withRequestDeadline<T>(operation: (signal: AbortSignal) =>
       : "Phản hồi đang chậm. Kiểm tra kết nối rồi thử tải lại.",
     write ? "WRITE_TIMEOUT" : "REQUEST_TIMEOUT",
   )), timeoutMs);
-  snapshot = { active: snapshot.active + 1, writes: snapshot.writes + Number(write) };
-  listeners.forEach(listener => listener());
+  if (showGlobalActivity) {
+    snapshot = { active: snapshot.active + 1, writes: snapshot.writes + Number(write) };
+    listeners.forEach(listener => listener());
+  }
   let stopAbort: (() => void) | undefined;
   try {
     const aborted = new Promise<never>((_, reject) => {
@@ -36,7 +38,9 @@ export async function withRequestDeadline<T>(operation: (signal: AbortSignal) =>
     clearTimeout(timer);
     stopAbort?.();
     externalSignal?.removeEventListener("abort", abortExternal);
-    snapshot = { active: snapshot.active - 1, writes: snapshot.writes - Number(write) };
-    listeners.forEach(listener => listener());
+    if (showGlobalActivity) {
+      snapshot = { active: snapshot.active - 1, writes: snapshot.writes - Number(write) };
+      listeners.forEach(listener => listener());
+    }
   }
 }

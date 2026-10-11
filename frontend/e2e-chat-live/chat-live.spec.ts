@@ -20,6 +20,9 @@ async function api(page: Page, path: string, method='GET', body?: unknown) {
 }
 
 test('real Supabase: two sellers share inbox, product context, unread and realtime replies',async({browser,page},info)=>{
+  // Four real sessions, security checks and browser cleanup share this total budget.
+  // Individual realtime assertions retain their 10-second deadline.
+  test.setTimeout(240000);
   const [buyer,other,seller1,seller2]=readState().users;
   const sellerContext1=await browser.newContext(info.project.use),sellerContext2=await browser.newContext(info.project.use),otherContext=await browser.newContext(info.project.use);
   const s1=await sellerContext1.newPage(),s2=await sellerContext2.newPage(),outsider=await otherContext.newPage();
@@ -47,22 +50,31 @@ test('real Supabase: two sellers share inbox, product context, unread and realti
     await s1.goto(`/seller/chat?conversation=${id}`);await expect(s1.locator('.chat-connection')).toHaveText('Đã kết nối trò chuyện');
     await page.getByRole('textbox',{name:'Nội dung tin nhắn'}).fill(text);
     await page.getByRole('button',{name:'Gửi tin',exact:true}).click();
+    await expect(page.locator('.chat-message').filter({hasText:text})).toHaveAttribute('data-delivery','sent');
     await s1.bringToFront();
     await expect(s1.getByRole('log')).toContainText(text,{timeout:10000});
     await expect(s1.locator('.chat-product-card').last()).toContainText(product.name);
+    // Reading is acknowledged only while this seller's room is visible.
+    await expect.poll(async()=>(await api(s1,`/chat/conversations/${id}`)).data.unreadCount).toBe(0);
     await s2.bringToFront();
     await expect(s2.locator('.chat-launcher .chat-unread')).toBeVisible({timeout:10000});
-    await expect.poll(async()=>(await api(sellerContext2.pages()[0],'/chat/unread')).data.count).toBeGreaterThan(0);
-    await expect.poll(async()=>(await api(s1,'/chat/unread')).data.count).toBe(0);
+    await expect.poll(async()=>(await api(s2,`/chat/conversations/${id}`)).data.unreadCount).toBeGreaterThan(0);
     await s2.getByRole('button',{name:'Mở hộp thư khách hàng'}).click();await s2.getByRole('button',{name:new RegExp(buyer.fullName)}).click();await expect(s2.locator('.chat-connection')).toHaveText('Đã kết nối trò chuyện');
     const reply1=`Lan hỗ trợ ${Date.now()}`,reply2=`An hỗ trợ ${Date.now()}`;
     await s1.getByRole('textbox',{name:'Nội dung tin nhắn'}).fill(reply1);await s2.getByRole('textbox',{name:'Nội dung tin nhắn'}).fill(reply2);
     await Promise.all([s1.getByRole('button',{name:'Gửi tin',exact:true}).click(),s2.getByRole('button',{name:'Gửi tin',exact:true}).click()]);
+    await Promise.all([
+      expect(s1.locator('.chat-message').filter({hasText:reply1})).toHaveAttribute('data-delivery','sent'),
+      expect(s2.locator('.chat-message').filter({hasText:reply2})).toHaveAttribute('data-delivery','sent'),
+    ]);
     await page.bringToFront();
     await expect.poll(()=>broadcasts.get(page)||0,{timeout:10000}).toBeGreaterThan(0);
     await expect(page.getByRole('log')).toContainText(reply1,{timeout:10000});await expect(page.getByRole('log')).toContainText(reply2,{timeout:10000});
     await expect(s1.getByRole('log')).toContainText(reply2,{timeout:10000});await expect(s2.getByRole('log')).toContainText(reply1,{timeout:10000});
     await expect(page.getByRole('log')).toContainText(seller1.fullName);await expect(page.getByRole('log')).toContainText(seller2.fullName);
+    await s1.screenshot({path:info.outputPath('shared-seller-inbox.png'),fullPage:true});
+    // Release seller polling/WS sessions before the independent outsider checks.
+    await Promise.all([sellerContext1.close(),sellerContext2.close()]);
     // A second customer is denied history, replies and the private WS room.
     await login(outsider,other,'/account/chat');
     expect((await api(outsider,`/chat/conversations/${id}/messages`)).status).toBe(404);
@@ -82,10 +94,10 @@ test('real Supabase: two sellers share inbox, product context, unread and realti
     },{id,url:env.VITE_SUPABASE_URL,key:env.VITE_SUPABASE_PUBLISHABLE_KEY});
     expect(denied).toBe('CHANNEL_ERROR');
     await page.reload();await expect(page.getByRole('log')).toContainText(text);await expect(page.getByRole('log')).toContainText(reply2);
-    await page.screenshot({path:info.outputPath('customer-chat.png'),fullPage:true});await s1.screenshot({path:info.outputPath('shared-seller-inbox.png'),fullPage:true});
+    await page.screenshot({path:info.outputPath('customer-chat.png'),fullPage:true});
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
     expect(errors).toEqual([]);
-  } finally { await sellerContext1.close();await sellerContext2.close();await otherContext.close(); }
+  } finally { await Promise.allSettled([sellerContext1.close(),sellerContext2.close(),otherContext.close()]); }
 });
 
 test('real Supabase: guest must login, product retained, lost response retries only once',async({page},info)=>{
@@ -104,6 +116,8 @@ test('real Supabase: guest must login, product retained, lost response retries o
   const text=`Gửi lại an toàn ${info.project.name} ${Date.now()}`;
   await page.getByRole('textbox',{name:'Nội dung tin nhắn'}).fill(text);await page.getByRole('button',{name:'Gửi tin',exact:true}).click();await expect(page.locator('.chat-send-error')).toBeVisible();
   await expect(page.getByRole('textbox',{name:'Nội dung tin nhắn'})).toHaveValue(text);await page.getByRole('button',{name:'Gửi lại',exact:true}).click();await expect(page.getByRole('log')).toContainText(text);
+  await expect(page.locator('.chat-message[data-delivery="sending"]')).toHaveCount(0);
+  await expect(page.locator('.chat-message').filter({hasText:text})).toHaveCount(1);
   expect(intents).toHaveLength(2);expect(intents[0]).toBe(intents[1]);
   const own=await api(page,'/chat/conversation','POST',{}),history=await api(page,`/chat/conversations/${own.data.id}/messages`);
   expect(history.data.content.filter((m:{content:string})=>m.content===text)).toHaveLength(1);

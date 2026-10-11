@@ -13,12 +13,13 @@ export interface ChatMessage {
   content: string; product: ChatProduct | null; createdAt: string;
 }
 export interface MessagePage { content: ChatMessage[]; nextBefore: number | null }
+const localActivity = { showGlobalActivity: false, silent: true };
 export const chatApi = {
-  own: () => apiFetch<Conversation>('/chat/conversation', { method: 'POST', skipIdempotency: true }),
-  unread: () => apiFetch<{ count: number }>('/chat/unread'),
-  inbox: (page: number, q: string) => apiFetch<PageResponse<Conversation>>('/seller/chat/conversations', { params: { page, q, size: 20 } }),
-  detail: (id: string) => apiFetch<Conversation>(`/chat/conversations/${id}`),
-  messages: (id: string, before: number | null) => apiFetch<MessagePage>(`/chat/conversations/${id}/messages`, { params: { before } }),
-  send: (id: string, input: { clientMessageId: string; content: string; productId?: string }) => apiFetch<ChatMessage>(`/chat/conversations/${id}/messages`, { method: 'POST', body: input }),
-  read: (id: string, sequence: number) => apiFetch<{ success: boolean }>(`/chat/conversations/${id}/read`, { method: 'POST', body: { sequence }, skipIdempotency: true, silent: true }),
+  own: () => apiFetch<Conversation>('/chat/conversation', { ...localActivity, method: 'POST', skipIdempotency: true }),
+  unread: () => apiFetch<{ count: number }>('/chat/unread', localActivity),
+  inbox: (page: number, q: string) => apiFetch<PageResponse<Conversation>>('/seller/chat/conversations', { ...localActivity, params: { page, q, size: 20 } }),
+  detail: (id: string) => apiFetch<Conversation>(`/chat/conversations/${id}`, localActivity),
+  messages: (id: string, before: number | null) => apiFetch<MessagePage>(`/chat/conversations/${id}/messages`, { ...localActivity, params: { before } }),
+  send: (id: string, input: { clientMessageId: string; content: string; productId?: string }) => apiFetch<ChatMessage>(`/chat/conversations/${id}/messages`, { ...localActivity, method: 'POST', body: input }),
+  read: (id: string, sequence: number) => apiFetch<{ success: boolean }>(`/chat/conversations/${id}/read`, { ...localActivity, method: 'POST', body: { sequence }, skipIdempotency: true }),
 };

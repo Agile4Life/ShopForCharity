@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowLeft, Check, CheckCheck, MessageCircle, Package, Plus, Search, Send, X } from 'lucide-react';
+import type { InfiniteData } from '@tanstack/react-query';
+import { ArrowDown, ArrowLeft, Check, CheckCheck, LoaderCircle, MessageCircle, Package, Plus, Search, Send, X } from 'lucide-react';
 import { useAuth } from '../auth/auth-context';
 import { getProductDetail, useProducts } from '../catalog/api';
 import { Modal } from '../../components/Modal';
@@ -11,7 +12,7 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { AssetImage } from '../../components/AssetImage';
 import { userErrorMessage } from '../../lib/user-errors';
 import { chatApi } from './api';
-import type { ChatMessage, ChatProduct, Conversation } from './api';
+import type { ChatMessage, ChatProduct, Conversation, MessagePage } from './api';
 import { refreshChat, useChatRealtime } from './realtime';
 
 const money = (price: number) => `${price.toLocaleString('vi-VN')} đ`;
@@ -49,15 +50,31 @@ function ChatRoom({ conversation, onBack }: { conversation: Conversation; onBack
   const [product, setProduct] = useState<ChatProduct | null>(null);
   const [picker, setPicker] = useState(false);
   const [sending, setSending] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState<ChatMessage | null>(null);
+  const [animatedIntents, setAnimatedIntents] = useState(() => new Set<string>());
   const [sendError, setSendError] = useState<string | null>(null);
   const [newMessages, setNewMessages] = useState(false);
   const timeline = useRef<HTMLDivElement>(null);
+  const room = useRef<HTMLElement>(null);
+  const sendInFlight = useRef(false);
   const nearBottom = useRef(true);
   const readThrough = useRef(0);
   const pendingIntent = useRef<{ signature: string; clientMessageId: string } | null>(null);
   const initialScroll = useRef(true);
   const connected = useChatRealtime(`chat:room:${conversation.id}`);
   const selectedProduct = params.get('product');
+  useLayoutEffect(() => {
+    const viewport = window.visualViewport;
+    const resize = () => {
+      const top = Math.max(0, (room.current?.getBoundingClientRect().top || 0) - (viewport?.offsetTop || 0));
+      room.current?.style.setProperty('--chat-available-height', `${Math.max(240, (viewport?.height || window.innerHeight) - top - 12)}px`);
+    };
+    resize();
+    window.addEventListener('resize', resize);
+    viewport?.addEventListener('resize', resize);
+    viewport?.addEventListener('scroll', resize);
+    return () => { window.removeEventListener('resize', resize); viewport?.removeEventListener('resize', resize); viewport?.removeEventListener('scroll', resize); };
+  }, []);
   const productQuery = useQuery({ queryKey: ['product', selectedProduct], queryFn: () => getProductDetail(selectedProduct!), enabled: !!selectedProduct && !isSeller, retry: 1 });
   useEffect(() => {
     if (selectedProduct && productQuery.data) {
@@ -75,6 +92,8 @@ function ChatRoom({ conversation, onBack }: { conversation: Conversation; onBack
     messages.data?.pages.forEach(p => p.content.forEach(m => map.set(m.id, m)));
     return [...map.values()].sort((a, b) => a.sequence - b.sequence);
   }, [messages.data]);
+  const displayed = pendingMessage && !ordered.some(m => m.clientMessageId === pendingMessage.clientMessageId && m.senderId === pendingMessage.senderId)
+    ? [...ordered, pendingMessage] : ordered;
   const latest = ordered.at(-1);
   const latestSequence = latest?.sequence;
   const latestSenderId = latest?.senderId;
@@ -92,14 +111,14 @@ function ChatRoom({ conversation, onBack }: { conversation: Conversation; onBack
     return () => { document.removeEventListener('visibilitychange', markRead); window.removeEventListener('focus', markRead); };
   });
   useLayoutEffect(() => {
-    if (!latestSequence || !timeline.current) return;
+    if ((!latestSequence && !pendingMessage) || !timeline.current) return;
     if (initialScroll.current || nearBottom.current || latestSenderId === profile?.id) {
       timeline.current.scrollTop = timeline.current.scrollHeight;
       initialScroll.current = false;
       nearBottom.current = true;
       setNewMessages(false);
     } else setNewMessages(true);
-  }, [latestSequence, latestSenderId, profile?.id]);
+  }, [latestSequence, latestSenderId, profile?.id, pendingMessage]);
   async function older() {
     const el = timeline.current;
     const height = el?.scrollHeight || 0;
@@ -109,20 +128,35 @@ function ChatRoom({ conversation, onBack }: { conversation: Conversation; onBack
   }
   async function send(e: FormEvent) {
     e.preventDefault();
-    if (sending || (!content.trim() && !product)) return;
+    if (sendInFlight.current || (!content.trim() && !product) || !profile) return;
     const body = { content: content.trim(), ...(product ? { productId: product.id } : {}) };
     const signature = JSON.stringify(body);
     if (pendingIntent.current?.signature !== signature) pendingIntent.current = { signature, clientMessageId: crypto.randomUUID() };
+    const clientMessageId = pendingIntent.current.clientMessageId;
+    sendInFlight.current = true;
+    setAnimatedIntents(previous => new Set(previous).add(clientMessageId));
+    nearBottom.current = true;
+    setPendingMessage({ id: clientMessageId, clientMessageId, conversationId: conversation.id,
+      sequence: conversation.lastSequence + 1, senderId: profile.id, senderName: profile.fullName || 'Bạn',
+      senderRole: isSeller ? 'SELLER' : 'CUSTOMER', content: body.content, product,
+      createdAt: new Date(performance.timeOrigin + e.timeStamp).toISOString() });
     setSending(true); setSendError(null);
     try {
-      await chatApi.send(conversation.id, { ...body, clientMessageId: pendingIntent.current.clientMessageId });
+      const sent = await chatApi.send(conversation.id, { ...body, clientMessageId });
+      queryClient.setQueryData<InfiniteData<MessagePage>>(['chat', profile.id, 'messages', conversation.id], previous => {
+        if (!previous) return { pages: [{ content: [sent], nextBefore: null }], pageParams: [null] };
+        const pages = previous.pages.map(page => ({ ...page, content: page.content.filter(m => m.id !== sent.id && !(m.clientMessageId === sent.clientMessageId && m.senderId === sent.senderId)) }));
+        pages[0] = { ...pages[0], content: [...pages[0].content, sent] };
+        return { ...previous, pages };
+      });
       pendingIntent.current = null;
+      setPendingMessage(null);
       setContent(''); setProduct(null); nearBottom.current = true;
-      await refreshChat(queryClient);
+      void refreshChat(queryClient).catch(() => { /* The confirmed message stays visible while polling recovers. */ });
     } catch (error) { setSendError(userErrorMessage(error, 'Chưa gửi được tin. Nội dung của bạn vẫn được giữ lại để thử lại.')); }
-    finally { setSending(false); }
+    finally { sendInFlight.current = false; setSending(false); }
   }
-  return <section className="chat-room" aria-label="Cuộc trò chuyện">
+  return <section className="chat-room" ref={room} aria-label="Cuộc trò chuyện">
     <header className="chat-room-header">
       {onBack && <button type="button" className="chat-icon-button chat-inbox-back" aria-label="Quay lại hộp thư" onClick={onBack}><ArrowLeft size={20} /></button>}
       <span className="chat-avatar"><MessageCircle size={23} aria-hidden="true" /></span>
@@ -136,15 +170,17 @@ function ChatRoom({ conversation, onBack }: { conversation: Conversation; onBack
       {messages.hasNextPage && <button type="button" className="btn-secondary-sm chat-older" onClick={older} disabled={messages.isFetchingNextPage}>{messages.isFetchingNextPage ? 'Đang tải…' : 'Xem tin nhắn trước'}</button>}
       {messages.isLoading && <LoadingSpinner message="Đang mở cuộc trò chuyện…" />}
       {messages.isError && <ErrorMessage error={messages.error} onRetry={messages.refetch} />}
-      {!messages.isLoading && !messages.isError && !ordered.length && <div className="chat-welcome"><span className="chat-welcome-icon"><MessageCircle size={38} aria-hidden="true" /></span><h3>Một lời nhắn, thêm chút ấm áp</h3><p>Bạn muốn hỏi về món nào? Gửi sản phẩm kèm câu hỏi để gian hàng hỗ trợ nhé.</p></div>}
-      {ordered.map((m, index) => {
+      {!messages.isLoading && !messages.isError && !displayed.length && <div className="chat-welcome"><span className="chat-welcome-icon"><MessageCircle size={38} aria-hidden="true" /></span><h3>Một lời nhắn, thêm chút ấm áp</h3><p>Bạn muốn hỏi về món nào? Gửi sản phẩm kèm câu hỏi để gian hàng hỗ trợ nhé.</p></div>}
+      {displayed.map((m, index) => {
         const own = m.senderId === profile?.id;
+        const pending = pendingMessage?.clientMessageId === m.clientMessageId && own;
         const day = new Date(m.createdAt).toLocaleDateString('vi-VN');
-        const newDay = !index || day !== new Date(ordered[index - 1].createdAt).toLocaleDateString('vi-VN');
-        return <div key={m.id}>{newDay && <div className="chat-day">{day}</div>}<article className={`chat-message ${own ? 'chat-message-own' : ''}`} data-sequence={m.sequence}>
+        const newDay = !index || day !== new Date(displayed[index - 1].createdAt).toLocaleDateString('vi-VN');
+        return <div key={`${m.senderId}:${m.clientMessageId}`}>{newDay && <div className="chat-day">{day}</div>}<article className={`chat-message ${own ? 'chat-message-own' : ''} ${animatedIntents.has(m.clientMessageId) ? 'chat-message-enter' : ''}`} data-sequence={pending ? undefined : m.sequence} data-delivery={pending ? sending ? 'sending' : 'failed' : 'sent'}>
           <span className="chat-sender">{own ? 'Bạn' : m.senderName}{m.senderRole === 'SELLER' && <span className="chat-seller-tag">Người bán</span>}</span>
           <div className="chat-bubble">{m.product && <ProductCard product={m.product} />}{m.content && <p>{m.content}</p>}</div>
-          <span className="chat-message-meta"><time dateTime={m.createdAt}>{time(m.createdAt)}</time>{own && (conversation.recipientReadSequence >= m.sequence ? <span><CheckCheck size={14} aria-hidden="true" />Đã đọc</span> : <span><Check size={14} aria-hidden="true" />Đã gửi</span>)}</span>
+          <span className="chat-message-meta"><time dateTime={m.createdAt}>{time(m.createdAt)}</time>{own && (pending ? sending ? <span role="status" className="chat-delivery-pending"><LoaderCircle size={13} className="chat-delivery-spinner" aria-hidden="true" />Đang gửi</span> : <span className="chat-delivery-failed">Chưa gửi được</span> : conversation.recipientReadSequence >= m.sequence ? <span><CheckCheck size={14} aria-hidden="true" />Đã đọc</span> : <span><Check size={14} aria-hidden="true" />Đã gửi</span>)}</span>
+          {pending && sendError && <p className="chat-send-error chat-message-error" role="alert">{sendError}</p>}
         </article></div>;
       })}
     </div>
@@ -152,11 +188,10 @@ function ChatRoom({ conversation, onBack }: { conversation: Conversation; onBack
     <form className="chat-composer" onSubmit={send} aria-label="Gửi tin nhắn">
       {productQuery.isError && selectedProduct && <div role="alert" className="chat-send-error">Chưa tải được sản phẩm đã chọn. <button type="button" onClick={() => productQuery.refetch()}>Thử lại</button></div>}
       {product && <div className="chat-attachment"><Package size={20} aria-hidden="true" /><span><strong>{product.name}</strong><small>{money(product.price)} · Sản phẩm sẽ được gửi kèm</small></span><button type="button" className="chat-icon-button" disabled={sending} aria-label="Bỏ sản phẩm đính kèm" onClick={() => setProduct(null)}><X size={18} /></button></div>}
-      {sendError && <p className="chat-send-error" role="alert">{sendError}</p>}
       <label className="sr-only" htmlFor="chat-message-input">Nội dung tin nhắn</label>
       <textarea id="chat-message-input" rows={2} maxLength={4000} placeholder={isSeller ? 'Nhắn lời hỗ trợ khách hàng…' : 'Bạn muốn hỏi gian hàng điều gì?'} value={content} disabled={sending} onChange={e => setContent(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
-      <div className="chat-composer-actions"><button type="button" className="btn-secondary-sm" disabled={sending} onClick={() => setPicker(true)}><Plus size={17} aria-hidden="true" />Thêm sản phẩm</button><span className="chat-character-count">{content.length} / 4.000</span><button type="submit" className="btn-primary" disabled={sending || (!content.trim() && !product)}><Send size={17} aria-hidden="true" />{sending ? 'Đang gửi…' : sendError ? 'Gửi lại' : 'Gửi tin'}</button></div>
+      <div className="chat-composer-actions"><button type="button" className="btn-secondary-sm" disabled={sending} onClick={() => setPicker(true)}><Plus size={17} aria-hidden="true" />Thêm sản phẩm</button><span className="chat-character-count">{content.length} / 4.000</span><button type="submit" className="btn-primary" disabled={sending || (!content.trim() && !product)}><Send size={17} aria-hidden="true" />{sendError ? 'Gửi lại' : 'Gửi tin'}</button></div>
     </form>
     <Modal isOpen={picker} onClose={() => setPicker(false)} title="Chọn sản phẩm để trò chuyện" className="chat-picker-modal"><ProductPicker onSelect={p => { setProduct(p); setPicker(false); document.getElementById('chat-message-input')?.focus(); }} /></Modal>
   </section>;

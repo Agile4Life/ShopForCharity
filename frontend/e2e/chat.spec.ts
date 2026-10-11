@@ -14,6 +14,7 @@ class ChatScenario {
   attempts: { clientMessageId: string; content: string; productId?: string }[] = [];
   reads: number[] = [];
   failSend = false; failHistory = false; failInbox = false; unread = 0;
+  sendGate: Promise<void> | null = null;
   constructor(private page: Page) {}
   summary(): Conversation { return { id: conversationId, customerName: 'Khách hàng Test', lastSequence: this.messages.length, unreadCount: this.unread, recipientReadSequence: 0,
     lastMessage: this.messages.at(-1)?.content || '', lastMessageAt: this.messages.at(-1)?.createdAt || null, createdAt: '2026-10-11T09:00:00Z', updatedAt: '2026-10-11T09:00:00Z' }; }
@@ -42,7 +43,7 @@ class ChatScenario {
         const existing=this.messages.find(m=>m.clientMessageId===body.clientMessageId);
         if(existing)return ok(existing);
         const next={...message(this.messages.length+1,body.content),clientMessageId:body.clientMessageId,product:body.productId?{id:product.id,slug:product.slug!,name:product.name,price:product.price}:null};
-        this.messages.push(next);return ok(next);
+        this.messages.push(next);if(this.sendGate)await this.sendGate;return ok(next);
       }
       return route.fulfill({status:404,json:{code:'NOT_FOUND',message:'Không tìm thấy'}});
     });
@@ -83,6 +84,7 @@ test('customer sends product and text, history persists after reload',async({pag
   await expect(page.locator('.chat-attachment')).toContainText(product.name);
   await page.getByRole('textbox',{name:'Nội dung tin nhắn'}).fill('Món này có vị gì?');await page.getByRole('button',{name:'Gửi tin',exact:true}).click();
   await expect(page.getByRole('log')).toContainText('Món này có vị gì?');await expect(page.locator('.chat-product-card')).toContainText(product.name);
+  await expect(page.locator('.chat-message[data-delivery="sent"]')).toHaveCount(1);
   expect(chat.attempts[0]).toMatchObject({productId:ids.product,content:'Món này có vị gì?'});
   await expect(page.locator('.chat-attachment')).toHaveCount(0);await page.reload();await expect(page.getByRole('log')).toContainText('Món này có vị gì?');
 });
@@ -93,7 +95,7 @@ test('product picker searches, adds, removes and sends product without text',asy
   await page.getByRole('button',{name:`Chọn ${product.name}`,exact:true}).click();await expect(page.locator('.chat-attachment')).toContainText(product.name);
   await page.getByRole('button',{name:'Bỏ sản phẩm đính kèm'}).click();await expect(page.getByRole('button',{name:'Gửi tin',exact:true})).toBeDisabled();
   await page.getByRole('button',{name:'Thêm sản phẩm',exact:true}).click();await page.getByRole('button',{name:`Chọn ${product.name}`,exact:true}).click();await page.getByRole('button',{name:'Gửi tin',exact:true}).click();
-  await expect(page.locator('.chat-product-card')).toContainText(product.name);expect(chat.attempts[0].content).toBe('');
+  await expect(page.locator('.chat-product-card')).toContainText(product.name);await expect(page.locator('.chat-message[data-delivery="sent"]')).toHaveCount(1);expect(chat.attempts[0].content).toBe('');
 });
 test('failed send retains draft and attachment and retry uses same client intent',async({page,scenario})=>{
   await scenario.authenticate('CUSTOMER');const chat=new ChatScenario(page);chat.failSend=true;await chat.install();
@@ -101,13 +103,14 @@ test('failed send retains draft and attachment and retry uses same client intent
   await page.getByRole('textbox',{name:'Nội dung tin nhắn'}).fill('Giữ lại câu hỏi');await page.getByRole('button',{name:'Gửi tin',exact:true}).click();
   await expect(page.locator('.chat-send-error')).toBeVisible();await expect(page.getByRole('textbox',{name:'Nội dung tin nhắn'})).toHaveValue('Giữ lại câu hỏi');await expect(page.locator('.chat-attachment')).toBeVisible();
   chat.failSend=false;await page.getByRole('button',{name:'Gửi lại',exact:true}).click();await expect(page.getByRole('log')).toContainText('Giữ lại câu hỏi');
+  await expect(page.locator('.chat-message[data-delivery="sent"]')).toHaveCount(1);await expect(page.locator('.chat-message')).toHaveCount(1);
   expect(chat.attempts).toHaveLength(2);expect(chat.attempts[0].clientMessageId).toBe(chat.attempts[1].clientMessageId);expect(chat.messages).toHaveLength(1);
 });
 test('keyboard supports multiline and Enter sends once; empty input and length limit',async({page,scenario})=>{
   await scenario.authenticate('CUSTOMER');const chat=new ChatScenario(page);await chat.install();await page.goto('/account/chat');
   const input=page.getByRole('textbox',{name:'Nội dung tin nhắn'});await input.fill('   ');await expect(page.getByRole('button',{name:'Gửi tin',exact:true})).toBeDisabled();
   await input.fill('Dòng một');await input.press('Shift+Enter');await expect(input).toHaveValue('Dòng một\n');await input.press('Control+End');await input.press('A');await input.press('Enter');
-  await expect(page.getByRole('log')).toContainText('Dòng một');expect(chat.attempts).toHaveLength(1);expect(chat.attempts[0].content).toContain('\n');await expect(input).toHaveAttribute('maxlength','4000');
+  await expect(page.getByRole('log')).toContainText('Dòng một');await expect(page.locator('.chat-message[data-delivery="sent"]')).toHaveCount(1);expect(chat.attempts).toHaveLength(1);expect(chat.attempts[0].content).toContain('\n');await expect(input).toHaveAttribute('maxlength','4000');
 });
 test('older messages load without duplicates and latest message remains present',async({page,scenario})=>{
   await scenario.authenticate('CUSTOMER');const chat=new ChatScenario(page);chat.messages=Array.from({length:75},(_,i)=>message(i+1,`Tin cũ ${i+1}`,true));await chat.install();await page.goto('/account/chat');
@@ -139,4 +142,59 @@ test('chat layout keeps composer, attachment and picker within viewport',async({
   await page.locator('.chat-composer').scrollIntoViewIfNeeded();await expect(page.getByRole('button',{name:'Gửi tin',exact:true})).toBeInViewport();
   await page.screenshot({path:info.outputPath('chat-theme.png'),fullPage:true});
   await page.getByRole('button',{name:'Thêm sản phẩm',exact:true}).click();await expect(page.getByRole('dialog')).toBeInViewport();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
+});
+
+test('slow send shows progress below its bubble without global loading or duplicate messages',async({page,scenario})=>{
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  await scenario.authenticate('CUSTOMER');const chat=new ChatScenario(page);
+  let release!:()=>void;chat.sendGate=new Promise<void>(resolve=>{release=resolve;});await chat.install();
+  try{
+    await page.goto(`/account/chat?product=${ids.product}`);await expect(page.locator('.chat-attachment')).toBeVisible();
+    await expect(page.locator('.network-activity')).toHaveCount(0);
+    await page.getByRole('textbox',{name:'Nội dung tin nhắn'}).fill('Tin đang gửi mượt mà');
+    await page.getByRole('button',{name:'Gửi tin',exact:true}).click();
+    const pending=page.locator('.chat-message[data-delivery="sending"]');await expect(pending).toHaveCount(1);
+    expect(await pending.evaluate(el=>getComputedStyle(el).animationName)).toBe('chat-message-arrive');
+    await expect(pending).toContainText(product.name);await expect(pending.getByRole('status')).toHaveText('Đang gửi');
+    const bubble=await pending.locator('.chat-bubble').boundingBox(),status=await pending.getByRole('status').boundingBox();
+    expect(status!.y).toBeGreaterThanOrEqual(bubble!.y+bubble!.height);expect(status!.x+status!.width).toBeLessThanOrEqual(bubble!.x+bubble!.width+1);
+    const node=await pending.elementHandle();
+    await page.waitForTimeout(700);await expect(page.locator('.network-activity')).toHaveCount(0);
+    await expect(page.getByRole('button',{name:'Gửi tin',exact:true})).toBeDisabled();
+    release();await expect(page.locator('.chat-message[data-delivery="sent"]')).toHaveCount(1);
+    await expect(page.locator('.chat-message')).toHaveCount(1);await expect(page.getByRole('log')).toContainText('Đã gửi');
+    expect(await node!.evaluate(el=>el.isConnected)).toBe(true);
+    await expect(page.getByRole('textbox',{name:'Nội dung tin nhắn'})).toHaveValue('');expect(chat.attempts).toHaveLength(1);
+  }finally{release();}
+});
+
+for(const role of ['CUSTOMER','SELLER'] as const){
+  test(`${role} chat fits small mobile, tablet, desktop and short viewport`,async({page,scenario},info)=>{
+    await scenario.authenticate(role);const chat=new ChatScenario(page);chat.messages=[{...message(1,'Tên sản phẩm và câu hỏi dài '.repeat(12),true),product:{...product,name:'Sản phẩm với tên rất dài '.repeat(8),slug:product.slug!}}];await chat.install();
+    await page.setViewportSize({width:320,height:568});await page.goto(role==='SELLER'?`/seller/chat?conversation=${conversationId}`:`/account/chat?product=${ids.product}`);
+    for(const [width,height] of [[320,568],[375,667],[768,1024],[1440,900],[568,320]]){
+      await page.setViewportSize({width,height});
+      await expect(page.locator('.chat-room')).toBeVisible();await expect(page.locator('.chat-product-card')).toBeVisible();
+      if(role==='CUSTOMER')await expect(page.locator('.chat-attachment')).toBeVisible();
+      await page.locator('.chat-composer').scrollIntoViewIfNeeded();
+      await expect(page.getByRole('button',{name:'Gửi tin',exact:true})).toBeInViewport();
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+      const room=await page.locator('.chat-room').boundingBox();expect(room!.width).toBeLessThanOrEqual(width);
+      expect(await page.locator('.chat-timeline').evaluate(el=>el.clientHeight)).toBeGreaterThan(35);
+      if(width===320)await page.screenshot({path:info.outputPath(`${role.toLowerCase()}-chat-320.png`),fullPage:true});
+      if(height===320)await page.screenshot({path:info.outputPath(`${role.toLowerCase()}-chat-landscape.png`)});
+    }
+  });
+}
+
+test('chat send motion respects reduced motion preferences',async({page,scenario})=>{
+  await page.emulateMedia({reducedMotion:'reduce'});await scenario.authenticate('CUSTOMER');const chat=new ChatScenario(page);
+  let release!:()=>void;chat.sendGate=new Promise<void>(resolve=>{release=resolve;});await chat.install();
+  try{
+    await page.goto('/account/chat');await page.getByRole('textbox',{name:'Nội dung tin nhắn'}).fill('Giảm chuyển động');await page.getByRole('button',{name:'Gửi tin',exact:true}).click();
+    await expect(page.locator('.chat-delivery-pending')).toBeVisible();
+    expect(await page.locator('.chat-message-enter').evaluate(el=>getComputedStyle(el).animationName)).toBe('none');
+    expect(await page.locator('.chat-delivery-spinner').evaluate(el=>getComputedStyle(el).animationName)).toBe('none');
+    release();await expect(page.locator('.chat-message[data-delivery="sent"]')).toHaveCount(1);
+  }finally{release();}
 });

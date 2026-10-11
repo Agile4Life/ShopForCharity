@@ -81,3 +81,19 @@ Nếu browser được cài tại `frontend/.browsers`, đặt `PLAYWRIGHT_BROWS
 Ảnh giao diện Supabase thật: [khách desktop](../frontend/.tools/chat-live-results/chat-live-real-Supabase-tw-50dc7-unread-and-realtime-replies-desktop-chromium/customer-chat.png), [khách mobile](../frontend/.tools/chat-live-results/chat-live-real-Supabase-tw-50dc7-unread-and-realtime-replies-mobile-chromium/customer-chat.png), [hộp thư seller](../frontend/.tools/chat-live-results/chat-live-real-Supabase-tw-50dc7-unread-and-realtime-replies-desktop-chromium/shared-seller-inbox.png).
 
 Supabase security advisor không báo vấn đề của phần chat. Cảnh báo Auth có sẵn về [leaked password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) vẫn giữ nguyên cấu hình hiện tại.
+
+## Responsive và trạng thái gửi tin
+
+Tin nhắn và sản phẩm đính kèm xuất hiện ngay khi gửi. Trạng thái `Đang gửi` cùng vòng xoay nhỏ nằm dưới góc phải tin nhắn; server xác nhận thì đổi thành `Đã gửi`. UI giữ cùng phần tử qua clientMessageId để không nhấp nháy hoặc nhân đôi khi nhận phản hồi/realtime. Gửi lỗi hiển thị dưới tin, giữ bản nháp và dùng lại clientMessageId khi thử lại. API chat giữ timeout và xử lý lỗi nhưng không kích hoạt thanh loading/toast chung; thao tác giỏ hàng, đơn hàng vẫn giữ loading chung.
+
+Hiệu ứng gửi dùng transform/opacity trong 240ms và tắt khi `prefers-reduced-motion`. Trên mobile, khung chat theo chiều cao visual viewport; ẩn điều hướng cố định phía dưới khi đang mở cuộc trò chuyện. Ô nhập 16px, nút chạm 44px, tên dài tự xuống dòng. Màn hình thấp dùng ô nhập và nút gửi trên cùng hàng để giữ vùng đọc tin.
+
+Ca Playwright bổ sung kiểm tra gửi chậm, vị trí indicator, không loading chung, không remount/nhân đôi sau xác nhận, giảm chuyển động, tên sản phẩm dài, khách/seller tại 320px, 375px, 768px, 1440px và màn hình ngang 568×320. Bộ feedback kiểm tra loading chung và timeout của thao tác ngoài chat vẫn hoạt động.
+
+Kiểm tra bản responsive: đủ 34 ca chat Chromium desktop/mobile đã đạt (32 trong full run, hai ca customer sizing gặp lỗi tài nguyên browser đã đạt khi kiểm tra lại thay đổi viewport trực tiếp; bộ sizing 4/4 đạt). Giỏ hàng/feedback 40/40 đạt. Firefox/WebKit cho gửi chậm, sizing khách/seller và reduced motion đạt 8/8. Production build, TypeScript app/e2e/live và lint đạt; không thêm lỗi lint.
+
+Log: [chat Chromium](../frontend/.tools/chat-responsive-final.log), [sizing chạy lại](../frontend/.tools/chat-responsive-sizes.log), [giỏ hàng/feedback](../frontend/.tools/chat-responsive-playwright.log), [Firefox/WebKit](../frontend/.tools/chat-responsive-browser.log).
+
+Live tests chờ trạng thái `Đã gửi` của sender trước khi đo nhận realtime; tin hiển thị trước phản hồi không được coi là đã được server ghi. Kiểm tra unread theo cuộc trò chuyện thử, vì seller có thể còn unread từ khách thật khác. Test bốn phiên Auth có ngân sách tổng 240 giây cho đăng nhập, bảo mật và đóng browser; assertion nhận realtime vẫn giữ 10 giây.
+
+Supabase thật: ca hai seller/realtime/unread/quyền truy cập đã đạt ở desktop và mobile; ca mất phản hồi rồi gửi lại đã đạt ở cả desktop/mobile. [Desktop live](../frontend/.tools/chat-responsive-live-verified.log), [mobile live](../frontend/.tools/chat-responsive-live-mobile-verified.log), [mất phản hồi](../frontend/.tools/chat-responsive-live-final.log). Lượt mobile cuối đạt assertion nhưng teardown bị timeout khi đợi API test đóng pool, nên lệnh test trả lỗi ngoài test. Đã xác nhận API 8081 dừng, dọn đúng ID trong state của lượt thử bằng script cleanup, và kiểm tra Supabase còn 0 Auth account/0 profile `chat-e2e`. Đây là lỗi teardown test; frontend/backend local 5173/8080 vẫn trả HTTP 200.
