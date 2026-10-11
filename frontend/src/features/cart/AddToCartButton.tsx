@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, LoaderCircle, Plus, ShoppingCart } from "lucide-react";
+import { Check, LoaderCircle, Plus, ShoppingCart, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { getComboDetail, getProductDetail } from "../catalog/api";
 import { notify } from "../../components/Usability";
 import { ApiError } from "../../lib/api-client";
@@ -9,7 +10,7 @@ import type { ItemKind } from "../../types/api";
 
 export function AddToCartButton({
   kind, catalogId, name, quantity = 1, disabled = false,
-  className = "btn-primary", compact = false,
+  className = "btn-primary", compact = false, buyNow = false,
 }: {
   kind: ItemKind;
   catalogId: string;
@@ -18,8 +19,10 @@ export function AddToCartButton({
   disabled?: boolean;
   className?: string;
   compact?: boolean;
+  buyNow?: boolean;
 }) {
   const { addItem } = useCart();
+  const navigate = useNavigate();
   const [state, setState] = useState<"idle" | "loading" | "added">("idle");
   const busy = useRef(false);
   const mounted = useRef(true);
@@ -46,6 +49,10 @@ export function AddToCartButton({
         price: item.price, imageUrl: item.imageUrl, slug: item.slug,
         availableStock: item.availableStock });
       if (!result.success) throw new Error(result.message || "Chưa thể thêm món vào giỏ.");
+      if (buyNow) {
+        navigate("/checkout");
+        return;
+      }
       setState("added");
       notify(`Đã thêm ${quantity} × ${item.name} vào giỏ.`, { tone: "success", to: "/cart" });
     } catch (error) {
@@ -61,7 +68,7 @@ export function AddToCartButton({
       busy.current = false;
     }
   }
-  const label = kind === "COMBO" ? "Thêm combo vào giỏ" : "Thêm vào giỏ";
+  const label = buyNow ? "Mua ngay" : kind === "COMBO" ? "Thêm combo vào giỏ" : "Thêm vào giỏ";
   return (
     <button type="button" className={`${className} add-to-cart-button`}
       disabled={disabled || state === "loading"} aria-busy={state === "loading"}
@@ -69,8 +76,8 @@ export function AddToCartButton({
       data-cart-state={state} onClick={add}>
       {state === "loading" ? <LoaderCircle size={compact ? 23 : 18} className="cart-loading-icon" aria-hidden="true" />
         : state === "added" ? <Check size={compact ? 23 : 18} aria-hidden="true" />
-          : compact ? <Plus size={23} aria-hidden="true" /> : <ShoppingCart size={18} aria-hidden="true" />}
-      {!compact && <span>{state === "loading" ? "Đang thêm…" : state === "added" ? "Đã thêm vào giỏ" : label}</span>}
+          : buyNow ? <ArrowRight size={18} aria-hidden="true" /> : compact ? <Plus size={23} aria-hidden="true" /> : <ShoppingCart size={18} aria-hidden="true" />}
+      {!compact && <span>{state === "loading" ? (buyNow ? "Đang kiểm tra…" : "Đang thêm…") : state === "added" ? "Đã thêm vào giỏ" : label}</span>}
     </button>
   );
 }

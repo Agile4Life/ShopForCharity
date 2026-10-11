@@ -136,9 +136,9 @@ test('failed notification action ends loading and does not mark it read', async 
     orderId: ids.order, isRead: false, createdAt: new Date().toISOString() }];
   await page.route('**/api/v1/seller/notifications/*/read', route => route.fulfill({ status: 500, json: technicalError }));
   await page.goto('/seller');
-  await page.getByRole('button', { name: 'Đã đọc', exact: true }).click();
+  await page.getByRole('button', { name: 'Đánh dấu đã đọc', exact: true }).click();
   await expect(page.locator('.feedback-notice')).toContainText('Dịch vụ đang gặp sự cố');
-  await expect(page.getByRole('button', { name: 'Đã đọc', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Đánh dấu đã đọc', exact: true })).toBeEnabled();
   await expect(page.getByRole('heading', { name: 'Thông báo mới (1)', exact: true })).toBeVisible();
   await expectNoTechnicalDetails(page);
 });

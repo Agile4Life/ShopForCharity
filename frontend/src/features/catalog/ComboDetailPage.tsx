@@ -93,7 +93,10 @@ export const ComboDetailPage: React.FC = () => {
                 onChange={setQuantity}
               />
 
-              <AddToCartButton kind="COMBO" catalogId={combo.id} name={combo.name} quantity={quantity} />
+              <div className="detail-purchase-actions">
+                <AddToCartButton kind="COMBO" catalogId={combo.id} name={combo.name} quantity={quantity} className="btn-secondary" />
+                <AddToCartButton kind="COMBO" catalogId={combo.id} name={combo.name} quantity={quantity} buyNow />
+              </div>
             </div>
           )}
         </div>

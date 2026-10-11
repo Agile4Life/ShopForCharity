@@ -5,7 +5,7 @@ test('seller reads notification and opens referenced order', async ({ page, scen
   scenario.notifications = [{ id: 'notification-test', recipientProfileId: ids.user, type: 'ORDER_CREATED',
     orderId: ids.order, isRead: false, createdAt: new Date().toISOString() }];
   await page.goto('/seller');
-  await page.getByRole('button', { name: 'Đã đọc', exact: true }).click();
+  await page.getByRole('button', { name: 'Đánh dấu đã đọc', exact: true }).click();
   await expect.poll(() => scenario.mutations('/read').length).toBe(1);
   await expect(page.getByRole('heading', { name: 'Thông báo mới (0)', exact: true })).toBeVisible();
   await page.locator(`.notifications-list a[href="/seller/orders/${ids.order}"]`).click();

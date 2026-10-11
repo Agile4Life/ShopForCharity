@@ -130,7 +130,10 @@ export const ProductDetailPage: React.FC = () => {
                 onChange={setQuantity}
               />
 
-              <AddToCartButton kind="PRODUCT" catalogId={product.id} name={product.name} quantity={quantity} />
+              <div className="detail-purchase-actions">
+                <AddToCartButton kind="PRODUCT" catalogId={product.id} name={product.name} quantity={quantity} className="btn-secondary" />
+                <AddToCartButton kind="PRODUCT" catalogId={product.id} name={product.name} quantity={quantity} buyNow />
+              </div>
             </div>
           )}
         </div>

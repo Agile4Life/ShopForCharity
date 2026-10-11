@@ -10,6 +10,7 @@ import {
   Settings,
   FileText,
   Bell,
+  ArrowRight,
 } from "lucide-react";
 import {
   useSellerDashboard,
@@ -185,33 +186,36 @@ export const SellerDashboardPage: React.FC = () => {
                   className={`notification-item ${!notif.isRead ? "unread" : ""}`}
                 >
                   <div className="notif-content">
-                    <span className="notif-type badge badge-blue text-xs">
+                    <strong className="notif-type text-sm">
                       {AUDIT_ACTION_LABELS[notif.type] ?? "Cập nhật đơn hàng"}
-                    </span>
+                    </strong>
                     <span className="notif-time text-xs text-muted ml-2">
                       {new Date(notif.createdAt).toLocaleTimeString("vi-VN")}
                     </span>
+                    <div className="notification-actions">
                     {notif.orderId && (
                       <Link
                         to={`/seller/orders/${notif.orderId}`}
-                        className="notif-link block text-sm mt-1"
+                        className="notif-link btn-primary-sm"
                       >
-                        Xem đơn hàng
+                        Xem đơn hàng <ArrowRight size={16} aria-hidden="true" />
                       </Link>
                     )}
-                  </div>
                   {!notif.isRead && (
                     <button
                       type="button"
                       onClick={() => markReadMutation.mutate(notif.id)}
                       disabled={markReadMutation.isPending}
                       aria-busy={markReadMutation.isPending && markReadMutation.variables === notif.id}
-                      className="btn-text-xs"
-                      title="Đánh dấu đã đọc"
+                      className="btn-secondary-sm notification-mark-read"
                     >
-                      {markReadMutation.isPending && markReadMutation.variables === notif.id ? "Đang lưu…" : "Đã đọc"}
+                      <CheckCircle2 size={16} aria-hidden="true" />
+                      {markReadMutation.isPending && markReadMutation.variables === notif.id ? "Đang lưu…" : "Đánh dấu đã đọc"}
                     </button>
                   )}
+                  {notif.isRead && <span className="notification-read-status"><CheckCircle2 size={15} aria-hidden="true" /> Đã đọc</span>}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

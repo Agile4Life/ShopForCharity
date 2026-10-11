@@ -8,4 +8,13 @@
 .support-code-details summary { color: var(--ink); cursor: pointer; font-family: "Be Vietnam Pro", sans-serif; }
 .support-code-value { display: block; overflow-wrap: anywhere; font-size: 11px; margin-top: 8px; user-select: all; }
 .seller-logs-page .audit-details { font-family: "Be Vietnam Pro", sans-serif; }
+.notification-item .notif-content { width: 100%; min-width: 0; }
+.notification-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+.notification-actions > :is(a, button) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 10px 14px; font-size: 12px; }
+.notification-actions svg { flex-shrink: 0; }
+.notification-read-status { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 12px; }
+.detail-info .add-cart-section { flex-wrap: wrap; }
+.detail-purchase-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; flex: 1 1 100%; width: 100%; min-width: 0; }
+.detail-info .detail-purchase-actions .add-to-cart-button { width: 100%; min-width: 0; min-height: 48px; font-size: 14px; }
+@media (max-width: 380px) { .detail-purchase-actions { grid-template-columns: minmax(0, 1fr); } }
 @media (hover: hover) and (pointer: fine) { .copy-order-code:not(:disabled):hover { background: var(--sage); } }
