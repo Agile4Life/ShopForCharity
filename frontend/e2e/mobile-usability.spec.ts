@@ -1,6 +1,9 @@
 import { test, expect } from './fixtures';
 import type { Locator } from '@playwright/test';
 
+// This suite exercises taps even when selected by the desktop project.
+test.use({ hasTouch: true });
+
 async function touchTarget(control: Locator) {
   const box = (await control.boundingBox())!;
   expect(box.width).toBeGreaterThanOrEqual(44);

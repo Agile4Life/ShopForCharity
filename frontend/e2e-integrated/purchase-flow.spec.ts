@@ -4,13 +4,13 @@ import fs from 'node:fs/promises';
 
 const require = createRequire(import.meta.url);
 const sharp = require('../../backend/node_modules/sharp');
-const baseURL = 'http://127.0.0.1:5173';
-const backendURL = 'http://127.0.0.1:8080';
+const baseURL = process.env.E2E_FRONTEND_ORIGIN || 'http://127.0.0.1:5173';
+const backendURL = `http://127.0.0.1:${process.env.E2E_APP_PORT || 8080}`;
 const key = process.env.E2E_HARNESS_KEY!;
 
 type State = {
   products: { id: string; name: string; price: string; status: string; stock_on_hand: number; stock_reserved: number }[];
-  orders: { id: string; order_code: string; status: string; payment_status: string; payment_method: string; total: string; received_amount: string }[];
+  orders: { id: string; order_code: string; status: string; payment_status: string; payment_method: string; total: string; received_amount: string; pickup_point_id: string | null; pickup_point_name: string; pickup_instructions: string | null }[];
   paymentEvents: { order_id: string; type: string; amount: string }[];
   audit: { action: string; entity_id: string }[];
 };
@@ -80,13 +80,16 @@ test('seller product → live catalog update → confirmation → bank transfer 
     await page.getByRole('button', { name: 'Tra cứu đơn hàng', exact: true }).click();
     await expect(page.locator('.header-status-badges')).toContainText('Chờ liên hệ');
   }
-  async function acceptOrder(orderId: string) {
+  async function acceptOrder(orderId: string, keepRequested = false) {
     await seller.goto(`/seller/orders/${orderId}`);
     await seller.getByRole('button', { name: /Ghi nhận liên hệ/ }).click();
     await mutation(seller, `/seller/orders/${orderId}/contact-attempts`, () => seller.getByRole('button', { name: 'Lưu liên hệ', exact: true }).click());
     await expect(seller.getByRole('dialog')).toHaveCount(0);
     await seller.getByRole('button', { name: 'Xác nhận đơn hàng', exact: true }).click();
-    await seller.locator('#sellerorderdetailpage-field-4').selectOption(pickupId);
+    if (keepRequested) {
+      await expect(seller.locator('#sellerorderdetailpage-field-4')).toHaveValue('KEEP_REQUESTED');
+      await expect(seller.getByRole('dialog')).toContainText('Sảnh thư viện kiểm thử');
+    } else await seller.locator('#sellerorderdetailpage-field-4').selectOption(pickupId);
     await seller.getByRole('button', { name: 'Ngày mai', exact: true }).click();
     const accepted = await mutation(seller, `/seller/orders/${orderId}/accept`, () => seller.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click());
     expect(accepted.status).toBe('ACCEPTED');
@@ -176,7 +179,9 @@ test('seller product → live catalog update → confirmation → bank transfer 
       await buyer.locator('#fullName').fill('Khách kiểm thử Playwright');
       await buyer.locator('#phone').fill('0912345678');
       await buyer.locator('#email').fill('buyer-playwright@example.com');
-      await buyer.locator('#pickupPointId').selectOption(pickupId);
+      await expect(buyer.getByRole('radio', { name: /Tự chọn địa điểm/ })).toBeChecked();
+      await buyer.locator('#customPickupLocation').fill('Sảnh thư viện kiểm thử');
+      await buyer.locator('#customPickupInstructions').fill('Gọi khi đến, ghế đá số 3.');
       await buyer.locator('input[value="BANK_TRANSFER"]').check();
       await expect(buyer.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeEnabled();
       const order = await mutation(buyer, '/orders', () => buyer.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true }).click());
@@ -186,6 +191,7 @@ test('seller product → live catalog update → confirmation → bank transfer 
       await expect(buyer).toHaveURL(baseURL + '/order-success');
       const saved = await state();
       expect(saved.orders).toHaveLength(1);
+      expect(saved.orders[0]).toMatchObject({ pickup_point_id: null, pickup_point_name: 'Sảnh thư viện kiểm thử', pickup_instructions: 'Gọi khi đến, ghế đá số 3.' });
       expect(saved.products[0].stock_reserved).toBe(2);
       expect(await buyer.evaluate(() => JSON.parse(localStorage.getItem('school_shop_cart_v1') || '[]'))).toEqual([]);
       await openGuestOrder(buyer);
@@ -195,7 +201,7 @@ test('seller product → live catalog update → confirmation → bank transfer 
       await seller.goto('/seller/orders');
       const saved = await state();
       await expect(seller.getByRole('row').filter({ hasText: saved.orders[0].order_code })).toBeVisible();
-      await acceptOrder(bankOrderId);
+      await acceptOrder(bankOrderId, true);
     });
     await step('10. Khách nhận QR và báo chuyển; trạng thái chỉ là REPORTED', buyer, async () => {
       await buyer.bringToFront();
@@ -232,6 +238,7 @@ test('seller product → live catalog update → confirmation → bank transfer 
       const saved = await state();
       expect(saved.products[0].stock_on_hand - saved.products[0].stock_reserved).toBe(6);
       expect(saved.orders[0].status).toBe('ACCEPTED');
+      expect(saved.orders[0].pickup_point_name).toBe('Sảnh thư viện kiểm thử');
     });
     await step('14. Mua 1 sản phẩm bằng tiền mặt và hoàn tất đối soát', buyer, async () => {
       await buyer.goto(`/products/${productId}`);
@@ -241,6 +248,7 @@ test('seller product → live catalog update → confirmation → bank transfer 
       await buyer.locator('#fullName').fill('Khách tiền mặt Playwright');
       await buyer.locator('#phone').fill('0912345678');
       await buyer.locator('#email').fill('cash-playwright@example.com');
+      await buyer.getByRole('radio', { name: /Chọn gợi ý của shop/ }).check();
       await buyer.locator('#pickupPointId').selectOption(pickupId);
       await buyer.locator('input[value="CASH"]').check();
       await expect(buyer.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeEnabled();

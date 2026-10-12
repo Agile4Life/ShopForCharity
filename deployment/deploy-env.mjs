@@ -10,7 +10,7 @@ const runtimeKeys = [
   'RESEND_API_KEY', 'ORDER_EMAIL_FROM',
 ];
 
-export function createDeployEnv(backend, frontend, previous = {}, origin = 'https://goiamchoem.vercel.app') {
+export function createDeployEnv(backend, frontend, previous = {}, origin = 'https://www.goiamtraoem.shop') {
   const env = Object.fromEntries(runtimeKeys.filter(key => backend[key]).map(key => [key, backend[key]]));
   const db = databaseConfig(backend);
   if (!db.connectionString) throw new Error('Configure a runtime PostgreSQL URL before preparing Vercel environment.');

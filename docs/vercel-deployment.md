@@ -2,7 +2,7 @@
 
 Runtime: Node.js 24. Entry serverless: `api/index.js`; `backend/src/server.js` chỉ dùng khi chạy server thông thường.
 
-Cấu hình cụ thể đã chuẩn bị cho [goiamchoem.vercel.app](deploy-goiamchoem.md). Tạo file import môi trường bằng `npm.cmd run prepare:vercel`; file private `.vercel/deploy.env` được Git ignore.
+Domain chính thức là `goiamtraoem.shop`, chuyển hướng sang `https://www.goiamtraoem.shop`. Project Vercel hiện tại là `shopforcharity`. Tạo file import môi trường bằng `npm.cmd run prepare:vercel`; Origin mặc định là domain sau chuyển hướng và file private `.vercel/deploy.env` được Git ignore. Không cần import lại các secret đang hoạt động chỉ để kiểm tra website. Tài liệu [triển khai ban đầu](deploy-goiamchoem.md) dùng địa chỉ Vercel cũ.
 
 ## Monorepo: một Vercel project
 

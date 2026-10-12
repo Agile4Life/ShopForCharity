@@ -21,7 +21,7 @@ test('deployment export uses runtime credentials, transaction pooler and HTTPS d
   assert.equal(db.port, '6543');
   assert.equal(decodeURIComponent(db.password), backend.DB_PASSWORD);
   assert.equal(db.searchParams.get('sslmode'), 'verify-full');
-  assert.equal(env.CORS_ALLOWED_ORIGINS, 'https://goiamchoem.vercel.app');
+  assert.equal(env.CORS_ALLOWED_ORIGINS, 'https://www.goiamtraoem.shop');
   assert.equal(env.MIGRATIONS_ENABLED, 'false');
   assert.equal(env.COOKIE_SECURE, 'true');
   assert.equal(env.VITE_API_BASE_URL, '/api/v1');

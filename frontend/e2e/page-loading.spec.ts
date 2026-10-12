@@ -42,6 +42,7 @@ test('copying saved order credentials still works offline', async ({ page, scena
   await page.locator('#fullName').fill('Nguyễn Văn Test');
   await page.locator('#phone').fill('0912345678');
   await page.locator('#email').fill('test@example.com');
+  await page.locator('#customPickupLocation').fill('Sảnh thư viện');
   const submit = page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true });
   await expect(submit).toBeEnabled();
   await submit.click();

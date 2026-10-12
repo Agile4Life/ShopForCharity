@@ -66,6 +66,7 @@ for (const [width, height] of screens) {
     await page.locator('#fullName').fill('Responsive customer');
     await page.locator('#phone').fill('0912345678');
     await page.locator('#email').fill('responsive@example.com');
+    await page.locator('#customPickupLocation').fill('Sảnh thư viện');
     await page.locator('input[value="BANK_TRANSFER"]').check();
     await expect(page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeEnabled();
     await submit(page);

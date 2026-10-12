@@ -5,7 +5,7 @@ test('seller types pickup form, saves through backend and public shop reflects a
   await page.locator('input[type="email"]').fill(process.env.E2E_SELLER_EMAIL!);
   await page.locator('input[type="password"]').fill(process.env.E2E_SELLER_PASSWORD!);
   await page.locator('form button[type="submit"]').click();
-  await expect(page).toHaveURL('http://127.0.0.1:5173/');
+  await expect(page).toHaveURL(`${process.env.E2E_FRONTEND_ORIGIN || 'http://127.0.0.1:5173'}/`);
   await page.goto('/seller/settings');
   await page.getByRole('button', { name: 'Thêm điểm nhận', exact: true }).click();
   const dialog = page.getByRole('dialog');

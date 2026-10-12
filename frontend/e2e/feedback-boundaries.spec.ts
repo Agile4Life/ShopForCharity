@@ -7,6 +7,7 @@ for (const response of ['empty-json', 'null-json', 'html'] as const) {
     await page.locator('#fullName').fill('Nguyễn Văn Test');
     await page.locator('#phone').fill('0912345678');
     await page.locator('#email').fill('test@example.com');
+    await page.locator('#customPickupLocation').fill('Sảnh thư viện');
     const submit = page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true });
     await expect(submit).toBeEnabled();
     const keys: string[] = [];
@@ -65,6 +66,7 @@ test('clipboard permission that never resolves cannot leave button loading', asy
   await page.locator('#fullName').fill('Nguyễn Văn Test');
   await page.locator('#phone').fill('0912345678');
   await page.locator('#email').fill('test@example.com');
+  await page.locator('#customPickupLocation').fill('Sảnh thư viện');
   const submit = page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true });
   await expect(submit).toBeEnabled();
   await submit.click();

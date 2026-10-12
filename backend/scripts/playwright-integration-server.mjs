@@ -10,13 +10,15 @@ const backendEnv = dotenv.parse(fs.readFileSync(new URL('../.env', import.meta.u
 const frontendEnv = dotenv.parse(fs.readFileSync(new URL('../../frontend/.env.local', import.meta.url)));
 const email = process.env.E2E_SELLER_EMAIL;
 const password = process.env.E2E_SELLER_PASSWORD;
+const appPort = Number(process.env.E2E_APP_PORT || 8080);
+const frontendOrigin = process.env.E2E_FRONTEND_ORIGIN || 'http://127.0.0.1:5173';
 if (!email || !password) throw new Error('Set E2E_SELLER_EMAIL and E2E_SELLER_PASSWORD.');
 if (!process.env.E2E_HARNESS_KEY || process.env.E2E_HARNESS_KEY.length < 16) throw new Error('Set a random E2E_HARNESS_KEY of at least 16 characters.');
 for (const key of ['SUPABASE_URL', 'SUPABASE_BACKEND_SECRET_KEY', 'JWT_ISSUER_URI', 'JWT_JWK_SET_URI', 'JWT_EXPECTED_AUDIENCE', 'PUBLIC_PRODUCT_BUCKET', 'PRIVATE_PAYMENT_BUCKET']) {
   if (backendEnv[key]) process.env[key] = backendEnv[key];
 }
 await import('../tests/setup.js');
-process.env.CORS_ALLOWED_ORIGINS = 'http://127.0.0.1:5173,http://localhost:5173';
+process.env.CORS_ALLOWED_ORIGINS = frontendOrigin;
 process.env.COOKIE_SECURE = 'false';
 process.env.APP_SHOP_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -83,7 +85,7 @@ harness.use('/__e2e', (req, res, next) => {
 harness.get('/__e2e/state', async (_req, res, next) => {
   try {
     const products = await pool.query('SELECT p.id,p.name,p.price,p.status,i.stock_on_hand,i.stock_reserved FROM shop.products p JOIN shop.product_inventory i ON i.id=p.id ORDER BY p.created_at');
-    const orders = await pool.query('SELECT id,order_code,status,payment_method,payment_status,total,received_amount FROM shop.orders ORDER BY created_at');
+    const orders = await pool.query('SELECT id,order_code,status,payment_method,payment_status,total,received_amount,pickup_point_id,pickup_name AS pickup_point_name,pickup_instructions FROM shop.orders ORDER BY created_at');
     const events = await pool.query('SELECT order_id,type,amount FROM shop.payment_events ORDER BY created_at');
     const audit = await pool.query('SELECT action,entity_type,entity_id FROM shop.audit_logs ORDER BY created_at');
     res.json({ products: products.rows, orders: orders.rows, paymentEvents: events.rows, audit: audit.rows });
@@ -93,7 +95,7 @@ harness.post('/__e2e/cleanup', async (_req, res, next) => {
   try { res.json({ deletedStorageObjects: await cleanStorage() }); } catch (error) { next(error); }
 });
 harness.use(app);
-const server = harness.listen(8080, '127.0.0.1', () => console.log('E2E backend ready: isolated PGlite DB, real Supabase Auth and Storage.'));
+const server = harness.listen(appPort, '127.0.0.1', () => console.log('E2E backend ready: isolated PGlite DB, real Supabase Auth and Storage.'));
 async function shutdown() {
   await cleanStorage();
   server.close();

@@ -9,6 +9,7 @@ import request from 'supertest';
 import { config } from '../src/config.js';
 import { pool } from '../src/common/db.js';
 import { applyMigrations } from '../src/migrations/migrate.js';
+import { rateLimiter } from '../src/identity/rate-limiter.js';
 
 test('chat: real controllers, PostgreSQL constraints, RLS and shared seller inbox', async t => {
   const db = new PGlite();
@@ -153,9 +154,14 @@ test('chat: real controllers, PostgreSQL constraints, RLS and shared seller inbo
       assert.equal((await send('seller1','revoked')).status,403);
     });
     await t.test('per-user send rate limit is enforced', async () => {
-      await db.query('DELETE FROM shop.rate_limit_windows');
-      for(let i=0;i<30;i++) assert.equal((await send('buyer',`rate ${i}`)).status,200);
-      assert.equal((await send('buyer','too fast')).status,429);
+      const originalQuery = rateLimiter.runQuery;
+      // Keep this burst in one SQL minute even if a slow test run crosses :00.
+      rateLimiter.runQuery = (text, params) => originalQuery(text.replace('clock_timestamp()', "timestamptz '2026-10-12 12:00:00+00'"), params);
+      try {
+        await db.query('DELETE FROM shop.rate_limit_windows');
+        for(let i=0;i<30;i++) assert.equal((await send('buyer',`rate ${i}`)).status,200);
+        assert.equal((await send('buyer','too fast')).status,429);
+      } finally { rateLimiter.runQuery = originalQuery; }
     });
   } finally {
     await new Promise(resolve=>server.close(resolve)); await db.close(); await pool.end();

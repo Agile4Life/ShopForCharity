@@ -6,6 +6,7 @@ async function fillCheckout(page: Page) {
   await page.locator('#fullName').fill('Nguyễn Văn Test');
   await page.locator('#phone').fill('0912345678');
   await page.locator('#email').fill('test@example.com');
+  await page.locator('#customPickupLocation').fill('Sảnh thư viện');
   await expect(page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeEnabled();
 }
 

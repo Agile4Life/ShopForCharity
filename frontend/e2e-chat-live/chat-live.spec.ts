@@ -103,8 +103,10 @@ test('real Supabase: two sellers share inbox, product context, unread and realti
 test('real Supabase: guest must login, product retained, lost response retries only once',async({page},info)=>{
   const buyer=readState().users[0];
   await page.goto('/');await page.getByRole('button',{name:'Chat với gian hàng',exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('button',{name:'Để sau',exact:true}).click();
-  const productLink=page.locator('.product-card-title a').first();await expect(productLink).toBeVisible();await productLink.click();
-  await page.getByRole('button',{name:/Hỏi về/}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('link',{name:'Đăng nhập để chat'}).click();
+  const productLink=page.locator('.product-card-title a').first();await expect(productLink).toBeVisible();
+  const productName=(await productLink.innerText()).trim();await productLink.click();
+  await expect(page).toHaveURL(/\/products\//);await expect(page.locator('main h1')).toHaveText(productName);
+  await page.getByRole('button',{name:`Hỏi về ${productName}`,exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByRole('link',{name:'Đăng nhập để chat'}).click();
   await page.locator('#loginEmail').fill(buyer.email);await page.locator('#loginPass').fill(buyer.password);await page.locator('main form button[type="submit"]').click();await expect(page).toHaveURL(/\/account\/chat/);await expect(page.locator('.chat-attachment')).toBeVisible();
   let dropped=false;const intents:string[]=[];
   await page.route('**/chat/conversations/*/messages',async route=>{

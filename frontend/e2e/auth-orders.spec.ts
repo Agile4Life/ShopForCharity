@@ -119,6 +119,7 @@ test('authenticated checkout prefills profile and does not create guest session'
   await scenario.cart();
   await page.goto('/checkout');
   await expect(page.locator('#fullName')).toHaveValue('Nguyễn Văn Test');
+  await page.locator('#customPickupLocation').fill('Sảnh thư viện');
   await expect(page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeEnabled();
   await submit(page);
   await expect(page).toHaveURL('/order-success');
