@@ -304,7 +304,7 @@ export class CheckoutService {
           ApiException.check(name.length >= 2, 400, 'INVALID_BUYER_NAME', 'Họ tên cần ít nhất 2 ký tự.');
 
           const orderId = crypto.randomUUID();
-          const orderCode = 'ORD-' + crypto.randomBytes(8).toString('hex').toUpperCase();
+          const orderCode = await this.newOrderCode(client);
           const phone = normalizePhone(buyer.phone);
           const email = (buyer.email || '').trim();
           const buyerClass = buyer.className || null;
@@ -437,6 +437,19 @@ export class CheckoutService {
         }
       );
     });
+  }
+
+  async newOrderCode(client) {
+    // 32 unambiguous symbols, 40 random bits. The shop lock held by create()
+    // serializes allocation; the existing unique constraint remains in force.
+    const alphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const suffix = [...crypto.randomBytes(8)].map(byte => alphabet[byte & 31]).join('');
+      const code = `ORD-${suffix}`;
+      const existing = await client.query('SELECT 1 FROM shop.orders WHERE order_code = $1', [code]);
+      if (existing.rows.length === 0) return code;
+    }
+    throw new ApiException(503, 'ORDER_CODE_UNAVAILABLE', 'Chưa tạo được mã đơn. Vui lòng thử lại.');
   }
 
   async resolvePickup(input, client) {

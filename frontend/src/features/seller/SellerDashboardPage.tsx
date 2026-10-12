@@ -20,6 +20,7 @@ import {
 } from "./api";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
+import { OrderCode, CopyOrderCode } from "../../components/OrderCode";
 import { AUDIT_ACTION_LABELS } from "./audit-display";
 
 export const SellerDashboardPage: React.FC = () => {
@@ -188,12 +189,22 @@ export const SellerDashboardPage: React.FC = () => {
                   className={`notification-item ${!notif.isRead ? "unread" : ""}`}
                 >
                   <div className="notif-content">
-                    <strong className="notif-type text-sm">
+                    <div className="notification-heading">
+                      <strong className="notification-order-code">
+                        {notif.orderCode ? <OrderCode value={notif.orderCode} />
+                          : notif.type === "ORDER_CREATED" ? "Đơn hàng mới" : AUDIT_ACTION_LABELS[notif.type] ?? "Cập nhật đơn hàng"}
+                      </strong>
+                      <time className="notif-time text-xs text-muted" dateTime={notif.createdAt}>
+                        {new Date(notif.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                      </time>
+                    </div>
+                    {(notif.buyerName || notif.orderTotal != null) && <p className="notification-order-summary">
+                      {notif.buyerName}{notif.buyerName && notif.orderTotal != null ? " · " : ""}
+                      {notif.orderTotal != null ? `${notif.orderTotal.toLocaleString("vi-VN")} đ` : ""}
+                    </p>}
+                    {notif.orderCode && notif.type !== "ORDER_CREATED" && <p className="text-xs text-muted">
                       {AUDIT_ACTION_LABELS[notif.type] ?? "Cập nhật đơn hàng"}
-                    </strong>
-                    <span className="notif-time text-xs text-muted ml-2">
-                      {new Date(notif.createdAt).toLocaleTimeString("vi-VN")}
-                    </span>
+                    </p>}
                     <div className="notification-actions">
                     {notif.orderId && (
                       <Link
@@ -203,6 +214,7 @@ export const SellerDashboardPage: React.FC = () => {
                         Xem đơn hàng <ArrowRight size={16} aria-hidden="true" />
                       </Link>
                     )}
+                    {notif.orderCode && <CopyOrderCode value={notif.orderCode} />}
                   {!notif.isRead && (
                     <button
                       type="button"

@@ -5,7 +5,7 @@ import { useState } from "react";
 
 // Visual spacing never changes the real order code used for lookup or payment.
 export function OrderCode({ value }: { value: string }) {
-  const standard = /^ORD-([A-Z0-9]{12,})$/.exec(value);
+  const standard = /^ORD-([A-Z0-9]{8,})$/.exec(value);
   return <span className="readable-order-code">
     {standard ? <><span>ORD-</span>{standard[1].match(/.{1,4}/g)!.map((part, index) => <span key={index}>{part}</span>)}</> : value}
   </span>;

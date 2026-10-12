@@ -86,6 +86,7 @@ test('customer order list, detail and success page keep the complete readable co
   await page.locator('#fullName').fill('Nguyễn Văn Test');
   await page.locator('#phone').fill('0912345678');
   await page.locator('#email').fill('test@example.com');
+  await page.locator('#customPickupLocation').fill('Sảnh nhà B');
   await submit(page);
   await expect(page).toHaveURL('/order-success');
   await expect(page.locator('.readable-order-code')).toHaveText(orderCode);

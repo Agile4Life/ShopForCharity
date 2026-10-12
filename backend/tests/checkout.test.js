@@ -3,10 +3,34 @@ import assert from 'node:assert/strict';
 import { CheckoutService } from '../src/order/checkout-service.js';
 import { CryptoService } from '../src/identity/crypto.js';
 import { ApiException } from '../src/common/api-exception.js';
+import crypto from 'node:crypto';
 
 function makeKey(byteVal) {
   return Buffer.alloc(32, byteVal).toString('base64');
 }
+
+test('short order code retries a collision before allocating a unique code', async t => {
+  let draws = 0;
+  t.mock.method(crypto, 'randomBytes', () => Buffer.alloc(8, draws++));
+  const checkout = new CheckoutService({}, {}, {}, {}, {}, {});
+  const candidates = [];
+  const code = await checkout.newOrderCode({ async query(sql, params) {
+    assert.match(sql, /WHERE order_code = \$1/);
+    candidates.push(params[0]);
+    return { rows: candidates.length === 1 ? [{}] : [] };
+  } });
+  assert.deepEqual(candidates, ['ORD-22222222', 'ORD-33333333']);
+  assert.equal(code, 'ORD-33333333');
+});
+
+test('short order code allocation fails safely when every candidate is taken', async t => {
+  t.mock.method(crypto, 'randomBytes', () => Buffer.alloc(8));
+  const checkout = new CheckoutService({}, {}, {}, {}, {}, {});
+  let checks = 0;
+  await assert.rejects(checkout.newOrderCode({ async query() { checks++; return { rows: [{}] }; } }),
+    { code: 'ORDER_CODE_UNAVAILABLE', status: 503 });
+  assert.equal(checks, 5);
+});
 
 test('CheckoutService resolves cart demand accurately for products and combos', async () => {
   const cryptoSvc = new CryptoService(makeKey(1), makeKey(2));

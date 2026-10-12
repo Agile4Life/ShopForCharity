@@ -47,6 +47,8 @@ test('customer pickup: checkout persists destinations, validates choices and sel
       const body = await input({ customPickupLocation: '  Sảnh nhà B  ', customPickupInstructions: '  Ghế đá số 3.\nGọi khi đến.  ' });
       const key = randomUUID();
       const created = await checkout.create(guest, key, body);
+      assert.match(created.orderCode, /^ORD-[2-9A-HJ-NP-Z]{8}$/);
+      assert.equal((await orders.access.code(created.orderCode, { guestOrderId: created.orderId, type: 'GUEST' })).id, created.orderId);
       assert.deepEqual(await checkout.create(guest, key, body), created);
       const row = (await db.query('SELECT * FROM shop.orders WHERE id=$1', [created.orderId])).rows[0];
       assert.equal(row.pickup_point_id, null);
