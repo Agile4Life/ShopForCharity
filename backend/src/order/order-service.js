@@ -12,6 +12,7 @@ import { getIdempotencyService } from '../infrastructure/idempotency-service.js'
 import { getAuditService } from '../audit/audit-service.js';
 import { getCatalogService } from '../catalog/catalog-service.js';
 import { getOrderEmailService } from '../infrastructure/order-email-service.js';
+import { logger } from '../common/logger.js';
 
 export class OrderService {
   constructor(
@@ -214,6 +215,15 @@ export class OrderService {
     }));
 
     if (seller) {
+      // Only expose delivery state, never the private message or provider errors.
+      const emailRes = await query(
+        "SELECT status, sent_at FROM shop.order_email_outbox WHERE order_id = $1 AND kind = 'ORDER_ACCEPTED'",
+        [o.id], client
+      );
+      const confirmation = emailRes.rows[0];
+      out.confirmationEmail = confirmation
+        ? { status: confirmation.status, sentAt: toIso(confirmation.sent_at) }
+        : null;
       out.receivedAmount = toNumber(o.received_amount);
       out.paymentSettingsVersionId = o.payment_settings_version_id;
 
@@ -349,7 +359,22 @@ export class OrderService {
     });
     // Await sending after COMMIT so serverless can finish it before responding.
     // An email outage cannot roll back or hide a successful order confirmation.
-    if (seller && action === 'accept') await this.email.deliverSafely(id);
+    if (seller && action === 'accept') {
+      await this.email.deliverSafely(id);
+      // The transaction/idempotency snapshot predates delivery. Return its current state.
+      try {
+        const { rows } = await query(
+          "SELECT status, sent_at FROM shop.order_email_outbox WHERE order_id = $1 AND kind = 'ORDER_ACCEPTED'", [id]
+        );
+        result.confirmationEmail = rows[0]
+          ? { status: rows[0].status, sentAt: toIso(rows[0].sent_at) }
+          : null;
+      } catch {
+        // A post-commit status read failure must not hide the confirmed order.
+        result.confirmationEmail = null;
+        logger.warn('Could not read confirmation email delivery state', { orderId: id });
+      }
+    }
     return result;
   }
 

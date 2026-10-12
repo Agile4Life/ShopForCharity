@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ShoppingBag, Search, ArrowRight } from "lucide-react";
 import { useSellerOrders } from "./api";
 import {
@@ -12,7 +12,8 @@ import { EmptyState } from "../../components/EmptyState";
 import { OrderCode, normalizeOrderCode } from "../../components/OrderCode";
 
 export const SellerOrdersPage: React.FC = () => {
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [searchParams] = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState<string>(() => searchParams.get("status") ?? "PENDING_CONTACT");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("");
   const [orderCodeSearch, setOrderCodeSearch] = useState<string>("");
   const [page, setPage] = useState<number>(0);
@@ -34,7 +35,7 @@ export const SellerOrdersPage: React.FC = () => {
           <h1 className="page-title">
             <ShoppingBag size={24} /> Đơn hàng
           </h1>
-          <p className="text-muted text-sm"></p>
+          <p className="text-muted text-sm">Liên hệ khách, chốt lịch nhận và xác nhận để gửi email. Đơn đã xác nhận là đã xử lý xong.</p>
         </div>
       </div>
 
@@ -66,11 +67,11 @@ export const SellerOrdersPage: React.FC = () => {
             className="select-field"
           >
             <option value="">-- Tất cả trạng thái đơn --</option>
-            <option value="PENDING_CONTACT">Chờ liên hệ</option>
-            <option value="ACCEPTED">Đã xác nhận</option>
-            <option value="PREPARING">Đang chuẩn bị</option>
-            <option value="READY">Sẵn sàng nhận</option>
-            <option value="COMPLETED">Hoàn tất</option>
+            <option value="PENDING_CONTACT">Chờ xác nhận</option>
+            <option value="ACCEPTED">Đã xác nhận · Đã xử lý</option>
+            <option value="PREPARING">Đang chuẩn bị (đơn cũ)</option>
+            <option value="READY">Sẵn sàng nhận (đơn cũ)</option>
+            <option value="COMPLETED">Hoàn tất (đơn cũ)</option>
             <option value="REJECTED">Từ chối</option>
             <option value="CANCELLED">Đã hủy</option>
             <option value="EXPIRED">Hết hạn</option>
@@ -163,6 +164,8 @@ export const SellerOrdersPage: React.FC = () => {
                     </td>
                     <td data-label="Trạng thái">
                       <OrderStatusBadge status={order.status} />
+                      {["ACCEPTED", "PREPARING", "READY", "COMPLETED"].includes(order.status) &&
+                        <span className="block text-xs text-muted mt-1">Đã xử lý</span>}
                     </td>
                     <td data-label="Thanh toán">
                       <PaymentStatusBadge status={order.paymentStatus} />
@@ -172,7 +175,7 @@ export const SellerOrdersPage: React.FC = () => {
                         to={`/seller/orders/${order.id}`}
                         className="btn-primary-sm"
                       >
-                        Xử lý đơn <ArrowRight size={14} />
+                        {order.status === "PENDING_CONTACT" ? "Xử lý đơn" : "Xem đơn"} <ArrowRight size={14} />
                       </Link>
                     </td>
                   </tr>

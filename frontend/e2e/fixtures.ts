@@ -116,7 +116,7 @@ export class Scenario {
         return ok({ ...this.order, orderId: ids.order, guestAccessToken: this.role === 'GUEST' ? 'secret-test-token' : undefined });
       }
       if (path === '/guest/orders/access') return this.accessError ? error(401, 'INVALID_GUEST_ACCESS') : ok({ success: true });
-      if (path === '/seller/dashboard') return ok({ pendingCount: 1, readyCount: 0, completedRevenue: 0, pendingRevenue: 10000 });
+      if (path === '/seller/dashboard') return ok({ pendingCount: 1, readyCount: 0, resolvedCount: 0, completedRevenue: 0, pendingRevenue: 10000 });
       if (path === '/seller/notifications') return ok(pageOf(this.notifications));
       if (path.startsWith('/seller/notifications/') && path.endsWith('/read')) {
         this.notifications.find(n => path.includes(n.id))!.isRead = true;
@@ -170,6 +170,10 @@ export class Scenario {
           const action = path.split('/').at(-1);
           const transitions: Record<string, OrderDetail['status']> = { accept: 'ACCEPTED', prepare: 'PREPARING', ready: 'READY', complete: 'COMPLETED', reject: 'REJECTED', cancel: 'CANCELLED' };
           if (action && transitions[action]) this.order.status = transitions[action];
+          if (action === 'accept') {
+            this.order.confirmedPickupAt = body.confirmedPickupAt;
+            this.order.confirmationEmail = { status: 'SENT', sentAt: new Date().toISOString() };
+          }
           if (action === 'contact-attempts') this.order.contactAttempts!.push({ ...body, id: 'contact-test', createdAt: new Date().toISOString() });
           if (action === 'payment-report') this.order.paymentStatus = 'REPORTED';
           if (action === 'dismiss-payment-report') this.order.paymentStatus = 'UNPAID';

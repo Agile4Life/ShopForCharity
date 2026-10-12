@@ -11,6 +11,7 @@ import { OrderService } from '../src/order/order-service.js';
 import { OrderAccess } from '../src/order/order-access.js';
 import { IdempotencyService } from '../src/infrastructure/idempotency-service.js';
 import { AuditService } from '../src/audit/audit-service.js';
+import { SellerReadService } from '../src/audit/seller-read-service.js';
 import { OrderEmailService, getOrderEmailService } from '../src/infrastructure/order-email-service.js';
 import { orderConfirmationEmail } from '../src/order/order-confirmation-email.js';
 
@@ -34,8 +35,9 @@ test('confirmation template escapes buyer/catalog data and uses confirmed Vietna
 test('order confirmation: transactional outbox, post-commit send, replay, failures and worker recovery', async t => {
   const db = new PGlite();
   const originalConnect = pool.connect, originalQuery = pool.query;
-  let tail = Promise.resolve(), inTransaction = false;
+  let tail = Promise.resolve(), inTransaction = false, failStatusRead = false;
   const sql = async (text, params) => {
+    if (failStatusRead && !inTransaction && text.startsWith('SELECT status, sent_at')) throw new Error('status-read-failed');
     if (text.includes('pg_advisory_xact_lock')) return { rows: [] };
     const result = params ? await db.query(text, params) : (await db.exec(text)).at(-1);
     if (text === 'BEGIN') inTransaction = true;
@@ -99,6 +101,11 @@ test('order confirmation: transactional outbox, post-commit send, replay, failur
         const id = await makeOrder(registered), key = randomUUID(), before = requests.length;
         const accepted = await orders.action(seller, id, true, 'accept', key, input);
         assert.equal(accepted.status, 'ACCEPTED');
+        assert.equal(accepted.confirmationEmail.status, 'SENT');
+        assert.ok(accepted.confirmationEmail.sentAt);
+        assert.deepEqual((await orders.detail(seller, id, true)).confirmationEmail, accepted.confirmationEmail);
+        const buyerDetail = await orders.detail(registered ? customer : { guestOrderId: id, type: 'GUEST' }, id);
+        assert.equal(Object.hasOwn(buyerDetail, 'confirmationEmail'), false);
         assert.equal((await outbox(id)).status, 'SENT');
         const body = JSON.parse(requests.at(-1).body);
         assert.deepEqual(body.to, ['buyer@example.com']);
@@ -113,6 +120,19 @@ test('order confirmation: transactional outbox, post-commit send, replay, failur
         await assert.rejects(orders.action(seller, id, true, 'accept', randomUUID(), input));
         assert.equal(requests.length, before + 1);
       }
+    });
+    await t.test('post-commit email status read failure still returns successful confirmation without duplicate mail', async () => {
+      const id = await makeOrder(), key = randomUUID(), before = requests.length;
+      failStatusRead = true;
+      let accepted;
+      try { accepted = await orders.action(seller, id, true, 'accept', key, input); }
+      finally { failStatusRead = false; }
+      assert.equal(accepted.status, 'ACCEPTED');
+      assert.equal(accepted.confirmationEmail, null);
+      assert.equal((await outbox(id)).status, 'SENT');
+      const replay = await orders.action(seller, id, true, 'accept', key, input);
+      assert.equal(replay.confirmationEmail.status, 'SENT');
+      assert.equal(requests.length, before + 1);
     });
     await t.test('invalid acceptance, wrong role and rollback never create/send an email', async () => {
       const before = requests.length, id = await makeOrder(), noContact = await makeOrder(false, false);
@@ -131,7 +151,9 @@ test('order confirmation: transactional outbox, post-commit send, replay, failur
     });
     await t.test('network failure preserves acceptance and retries identical message/key after config/catalog changes', async () => {
       const id = await makeOrder(); mode = 'network';
-      assert.equal((await orders.action(seller, id, true, 'accept', randomUUID(), input)).status, 'ACCEPTED');
+      const accepted = await orders.action(seller, id, true, 'accept', randomUUID(), input);
+      assert.equal(accepted.status, 'ACCEPTED');
+      assert.equal(accepted.confirmationEmail.status, 'PENDING');
       const row = await outbox(id), first = requests.at(-1);
       assert.equal(row.status, 'PENDING'); assert.equal(row.last_error, 'PROVIDER_UNAVAILABLE');
       assert.equal(await email.deliver(id), false);
@@ -142,11 +164,13 @@ test('order confirmation: transactional outbox, post-commit send, replay, failur
       assert.equal(requests.at(-1).body, first.body);
       assert.equal(requests.at(-1).headers['Idempotency-Key'], first.headers['Idempotency-Key']);
       assert.equal((await outbox(id)).status, 'SENT');
+      assert.equal((await orders.detail(seller, id, true)).confirmationEmail.status, 'SENT');
     });
     await t.test('missing email config queues safely and a later worker sends; overlapping workers claim once', async () => {
       const id = await makeOrder(); settings.email.apiKey = '';
       const before = requests.length;
-      await orders.action(seller, id, true, 'accept', randomUUID(), input);
+      const accepted = await orders.action(seller, id, true, 'accept', randomUUID(), input);
+      assert.equal(accepted.confirmationEmail.status, 'PENDING');
       assert.equal((await outbox(id)).status, 'PENDING');
       assert.equal((await outbox(id)).attempts, 0);
       assert.equal(requests.length, before);
@@ -183,6 +207,21 @@ test('order confirmation: transactional outbox, post-commit send, replay, failur
       assert.equal(requests.at(-1).body, claimed.body);
       assert.equal(requests.at(-1).headers['Idempotency-Key'], `order-confirmation/${claimed.id}`);
       assert.equal((await outbox(id)).status, 'SENT');
+    });
+    await t.test('dashboard treats confirmed orders as resolved and paid confirmed orders as revenue', async () => {
+      const id = await makeOrder();
+      const reads = new SellerReadService({ seller() {} });
+      const before = await reads.dashboard(seller);
+      await orders.action(seller, id, true, 'accept', randomUUID(), input);
+      const confirmed = await reads.dashboard(seller);
+      assert.equal(confirmed.pendingCount, before.pendingCount - 1);
+      assert.equal(confirmed.resolvedCount, before.resolvedCount + 1);
+      assert.equal(confirmed.completedRevenue, before.completedRevenue);
+      await db.query("UPDATE shop.orders SET payment_status='PAID', received_amount=total WHERE id=$1", [id]);
+      const paid = await reads.dashboard(seller);
+      assert.equal(paid.completedRevenue, before.completedRevenue + 20000);
+      assert.equal(paid.pendingRevenue, before.pendingRevenue);
+      assert.equal((await orders.detail(seller, id, true)).status, 'ACCEPTED');
     });
     await t.test('private outbox grants deny browser roles and cron needs its own secret', async () => {
       for (const role of ['anon', 'authenticated']) {

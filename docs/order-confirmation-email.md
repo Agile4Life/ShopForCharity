@@ -2,6 +2,10 @@
 
 Backend Node gửi email tới `buyer_email` khách đã nhập khi đặt hàng, cho cả khách có tài khoản và khách vãng lai. Email được tạo khi người bán duyệt đơn thành `ACCEPTED`; không gửi khi chỉ ghi nhận liên hệ hoặc xác nhận thanh toán.
 
+Luồng UI của người bán kết thúc tại xác nhận: liên hệ thành công → chốt điểm/lịch nhận → **Xác nhận và gửi email**. Đơn giữ `ACCEPTED`, được xem là đã xử lý; không cần chuyển qua chuẩn bị, sẵn sàng nhận hoặc hoàn tất. Thanh toán/hoàn tiền được ghi nhận riêng khi thực nhận/hoàn tiền. Hàng vẫn được dành cho đơn đã xác nhận, trừ khỏi tồn khả dụng; hủy đơn giải phóng phần giữ hàng theo quy tắc hiện tại.
+
+Danh sách mặc định lọc đơn chờ xác nhận. Đơn đã xác nhận có nhãn “Đã xử lý” và nút “Xem đơn”. Tổng quan tính đơn xác nhận vào số đơn đã xử lý và chỉ ghi doanh thu khi `PAID`, bao gồm các trạng thái của đơn cũ. Chi tiết người bán trả `confirmationEmail` với `status` và `sentAt`; UI phân biệt đã gửi, đang chờ gửi, lỗi gửi hoặc chưa có thông tin. `SENT` là nhà cung cấp đã tiếp nhận thư, chưa bảo đảm thư đến hộp thư khách. Không trả nội dung outbox/lỗi provider cho trình duyệt hoặc trạng thái gửi cho khách hàng.
+
 Nội dung tiếng Việt gồm mã đơn, tên khách, sản phẩm/số lượng/đơn giá/thành tiền, tổng tiền, phương thức và trạng thái thanh toán, điểm nhận, lịch nhận đã chốt theo giờ Việt Nam và hướng dẫn nhận. Thông tin liên hệ cửa hàng được thêm nếu đã cấu hình. Dữ liệu lấy từ bản chụp đơn hàng; không gửi token truy cập, ghi chú nội bộ hay thông tin đối soát của người bán.
 
 ## Cấu hình

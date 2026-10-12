@@ -15,7 +15,7 @@ type State = {
   audit: { action: string; entity_id: string }[];
 };
 
-test('seller product → live catalog update → bank transfer → cash → completion', async ({ browser, request }, testInfo) => {
+test('seller product → live catalog update → confirmation → bank transfer → cash', async ({ browser, request }, testInfo) => {
   const sellerContext = await browser.newContext({ baseURL });
   const buyerContext = await browser.newContext({ baseURL });
   const seller = await sellerContext.newPage();
@@ -85,16 +85,12 @@ test('seller product → live catalog update → bank transfer → cash → comp
     await seller.getByRole('button', { name: /Ghi nhận liên hệ/ }).click();
     await mutation(seller, `/seller/orders/${orderId}/contact-attempts`, () => seller.getByRole('button', { name: 'Lưu liên hệ', exact: true }).click());
     await expect(seller.getByRole('dialog')).toHaveCount(0);
-    await seller.getByRole('button', { name: 'Chấp nhận đơn hàng', exact: true }).click();
+    await seller.getByRole('button', { name: 'Xác nhận đơn hàng', exact: true }).click();
     await seller.locator('#sellerorderdetailpage-field-4').selectOption(pickupId);
     await seller.getByRole('button', { name: 'Ngày mai', exact: true }).click();
-    const accepted = await mutation(seller, `/seller/orders/${orderId}/accept`, () => seller.getByRole('button', { name: 'Xác nhận duyệt đơn', exact: true }).click());
+    const accepted = await mutation(seller, `/seller/orders/${orderId}/accept`, () => seller.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click());
     expect(accepted.status).toBe('ACCEPTED');
     await expect(seller.getByRole('dialog')).toHaveCount(0);
-  }
-  async function prepareAndReady(orderId: string) {
-    await mutation(seller, `/seller/orders/${orderId}/prepare`, () => seller.getByRole('button', { name: /Chuyển sang.*Đang chuẩn bị/ }).click());
-    await mutation(seller, `/seller/orders/${orderId}/ready`, () => seller.getByRole('button', { name: /Chuyển sang.*Sẵn sàng/ }).click());
   }
   try {
     await step('01. Đăng nhập seller qua Supabase thật', seller, async () => {
@@ -214,30 +210,28 @@ test('seller product → live catalog update → bank transfer → cash → comp
       expect(saved.orders[0].payment_status).toBe('REPORTED');
       expect(Number(saved.orders[0].received_amount)).toBe(0);
     });
-    await step('11. Chuẩn bị và sẵn sàng; không cho hoàn tất khi chưa PAID', seller, async () => {
+    await step('11. Đơn đã xử lý xong; đối soát thanh toán độc lập', seller, async () => {
       await seller.bringToFront();
       await expect(seller.locator('main')).toContainText('Đã báo chuyển khoản');
-      await prepareAndReady(bankOrderId);
-      await expect(seller.getByRole('button', { name: 'Bàn giao & Hoàn tất đơn', exact: true })).toBeDisabled();
+      await expect(seller.getByText('Đã xử lý xong', { exact: true })).toBeVisible();
+      await expect(seller.getByRole('button', { name: /Chuyển sang|Bàn giao/ })).toHaveCount(0);
     });
     await step('12. Seller xác nhận 30.000đ trong DB kiểm thử; khách thấy PAID', buyer, async () => {
       await seller.getByRole('button', { name: /Xác nhận đã thu đủ tiền/ }).click();
       await seller.locator('#sellerorderdetailpage-field-9').fill('PLAYWRIGHT-NO-REAL-TRANSFER');
       await seller.locator('#sellerorderdetailpage-field-10').fill('Mô phỏng trên DB kiểm thử, không có tiền thật.');
-      const paid = await mutation(seller, `/seller/orders/${bankOrderId}/confirm-payment`, () => seller.getByRole('button', { name: 'Xác nhận PAID', exact: true }).click());
+      const paid = await mutation(seller, `/seller/orders/${bankOrderId}/confirm-payment`, () => seller.getByRole('button', { name: 'Xác nhận thanh toán', exact: true }).click());
       expect(paid.paymentStatus).toBe('PAID');
       expect(paid.receivedAmount).toBe(30000);
       await buyer.bringToFront();
       await expect(buyer.locator('.header-status-badges')).toContainText('Đã thanh toán');
     });
-    await step('13. Hoàn tất đơn; khách tự cập nhật, tồn còn 6 và hết giữ hàng', buyer, async () => {
-      await mutation(seller, `/seller/orders/${bankOrderId}/complete`, () => seller.getByRole('button', { name: 'Bàn giao & Hoàn tất đơn', exact: true }).click());
+    await step('13. Đơn giữ trạng thái xác nhận; hàng vẫn được dành cho khách', buyer, async () => {
       await buyer.bringToFront();
-      await expect(buyer.locator('.header-status-badges')).toContainText('Hoàn tất');
+      await expect(buyer.locator('.header-status-badges')).toContainText('Đã xác nhận');
       const saved = await state();
-      expect(saved.products[0].stock_on_hand).toBe(6);
-      expect(saved.products[0].stock_reserved).toBe(0);
-      expect(saved.orders[0].status).toBe('COMPLETED');
+      expect(saved.products[0].stock_on_hand - saved.products[0].stock_reserved).toBe(6);
+      expect(saved.orders[0].status).toBe('ACCEPTED');
     });
     await step('14. Mua 1 sản phẩm bằng tiền mặt và hoàn tất đối soát', buyer, async () => {
       await buyer.goto(`/products/${productId}`);
@@ -257,20 +251,17 @@ test('seller product → live catalog update → bank transfer → cash → comp
       await expect(buyer).toHaveURL(baseURL + '/order-success');
       await openGuestOrder(buyer);
       await acceptOrder(order.orderId);
-      await prepareAndReady(order.orderId);
-      await expect(seller.getByRole('button', { name: 'Bàn giao & Hoàn tất đơn', exact: true })).toBeDisabled();
+      await expect(seller.getByText('Đã xử lý xong', { exact: true })).toBeVisible();
       await seller.getByRole('button', { name: /Xác nhận đã thu đủ tiền/ }).click();
       await seller.locator('#sellerorderdetailpage-field-10').fill('Tiền mặt mô phỏng trong DB kiểm thử.');
-      await mutation(seller, `/seller/orders/${order.orderId}/confirm-payment`, () => seller.getByRole('button', { name: 'Xác nhận PAID', exact: true }).click());
+      await mutation(seller, `/seller/orders/${order.orderId}/confirm-payment`, () => seller.getByRole('button', { name: 'Xác nhận thanh toán', exact: true }).click());
       await expect(seller.getByRole('dialog')).toHaveCount(0);
-      await mutation(seller, `/seller/orders/${order.orderId}/complete`, () => seller.getByRole('button', { name: 'Bàn giao & Hoàn tất đơn', exact: true }).click());
       await buyer.bringToFront();
-      await expect(buyer.locator('.header-status-badges')).toContainText('Hoàn tất');
+      await expect(buyer.locator('.header-status-badges')).toContainText('Đã xác nhận');
       const saved = await state();
-      expect(saved.products[0].stock_on_hand).toBe(5);
-      expect(saved.products[0].stock_reserved).toBe(0);
+      expect(saved.products[0].stock_on_hand - saved.products[0].stock_reserved).toBe(5);
       expect(saved.orders).toHaveLength(2);
-      expect(saved.orders.every(order => order.status === 'COMPLETED' && order.payment_status === 'PAID')).toBe(true);
+      expect(saved.orders.every(order => order.status === 'ACCEPTED' && order.payment_status === 'PAID')).toBe(true);
       expect(saved.audit.some(event => event.action === 'ORDER_CREATED')).toBe(true);
     });
     await step('15. Ẩn sản phẩm; gian hàng tự gỡ sản phẩm', buyer, async () => {

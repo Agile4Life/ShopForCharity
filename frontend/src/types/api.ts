@@ -291,6 +291,10 @@ export interface OrderDetail {
   items: OrderItemSnapshot[];
   statusHistory?: OrderStatusHistoryItem[];
   // Seller exclusive details
+  confirmationEmail?: {
+    status: 'PENDING' | 'PROCESSING' | 'SENT' | 'FAILED';
+    sentAt?: string;
+  } | null;
   contactAttempts?: ContactAttemptItem[];
   paymentEvents?: PaymentEventItem[];
 }
@@ -310,6 +314,7 @@ export interface PaymentInstructions {
 export interface SellerDashboardSummary {
   pendingCount: number;
   readyCount: number;
+  resolvedCount: number;
   completedRevenue: number;
   pendingRevenue: number;
 }

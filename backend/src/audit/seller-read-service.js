@@ -14,13 +14,13 @@ export class SellerReadService {
 
     const completedRes = await query(
       `SELECT coalesce(sum(total), 0) AS val FROM shop.orders
-       WHERE shop_id = $1 AND payment_status = 'PAID' AND status = 'COMPLETED'`,
+       WHERE shop_id = $1 AND payment_status = 'PAID' AND status IN ('ACCEPTED', 'PREPARING', 'READY', 'COMPLETED')`,
       [config.shopId]
     );
 
     const pendingRes = await query(
       `SELECT coalesce(sum(received_amount), 0) AS val FROM shop.orders
-       WHERE shop_id = $1 AND status IN ('PENDING_CONTACT', 'ACCEPTED', 'PREPARING', 'READY')`,
+       WHERE shop_id = $1 AND status = 'PENDING_CONTACT'`,
       [config.shopId]
     );
 
@@ -36,9 +36,16 @@ export class SellerReadService {
       [config.shopId]
     );
 
+    const resolvedCountRes = await query(
+      `SELECT count(*) FROM shop.orders
+       WHERE shop_id = $1 AND status IN ('ACCEPTED', 'PREPARING', 'READY', 'COMPLETED')`,
+      [config.shopId]
+    );
+
     return {
       pendingCount: parseInt(pendingCountRes.rows[0].count, 10),
       readyCount: parseInt(readyCountRes.rows[0].count, 10),
+      resolvedCount: parseInt(resolvedCountRes.rows[0].count, 10),
       completedRevenue: toNumber(completedRes.rows[0].val),
       pendingRevenue: toNumber(pendingRes.rows[0].val),
     };

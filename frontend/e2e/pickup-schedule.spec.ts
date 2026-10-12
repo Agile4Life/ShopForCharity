@@ -8,7 +8,7 @@ test.beforeEach(async ({ page, scenario }) => {
   await page.getByRole('button', { name: /Ghi nhận liên hệ/ }).click();
   await page.getByRole('button', { name: 'Lưu liên hệ', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Chấp nhận đơn hàng', exact: true }).click();
+  await page.getByRole('button', { name: 'Xác nhận đơn hàng', exact: true }).click();
   await expect(page.locator('#sellerorderdetailpage-field-4')).toHaveValue(ids.pickup);
   await page.locator('#sellerorderdetailpage-field-4').selectOption(ids.pickup);
 });
@@ -20,7 +20,7 @@ test('chooses date and 24-hour time, submits Vietnam time regardless of device t
   await page.getByRole('button', { name: 'Ngày mai', exact: true }).click();
   await page.getByLabel('Giờ', { exact: true }).selectOption('10');
   await page.getByLabel('Phút', { exact: true }).selectOption('30');
-  await page.getByRole('button', { name: 'Xác nhận duyệt đơn', exact: true }).click();
+  await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
   await expectMutation(scenario, '/accept', {
     expectedVersion: 8, confirmedPickupPointId: ids.pickup, confirmedPickupAt: '2026-10-11T03:30:00.000Z',
   });
@@ -28,16 +28,16 @@ test('chooses date and 24-hour time, submits Vietnam time regardless of device t
 });
 
 test('shows inline validation for missing date and elapsed time, allows correction', async ({ page, scenario }) => {
-  await page.getByRole('button', { name: 'Xác nhận duyệt đơn', exact: true }).click();
+  await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Vui lòng chọn');
   await page.getByRole('button', { name: 'Hôm nay', exact: true }).click();
   await page.getByLabel('Giờ', { exact: true }).selectOption('08');
-  await page.getByRole('button', { name: 'Xác nhận duyệt đơn', exact: true }).click();
+  await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Giờ hẹn đã qua');
   expect(scenario.mutations('/accept')).toHaveLength(0);
   await page.getByLabel('Giờ', { exact: true }).selectOption('10');
   await expect(page.getByRole('alert')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Xác nhận duyệt đơn', exact: true }).click();
+  await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
   await expectMutation(scenario, '/accept', { confirmedPickupAt: '2026-10-10T03:00:00.000Z' });
 });
 
@@ -48,7 +48,7 @@ test('navigates across month boundary using arrow keys', async ({ page, scenario
   const next = page.getByRole('button', { name: 'Chủ Nhật, 1 tháng 11, 2026', exact: true });
   await expect(next).toBeFocused();
   await next.press('Enter');
-  await page.getByRole('button', { name: 'Xác nhận duyệt đơn', exact: true }).click();
+  await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
   await expectMutation(scenario, '/accept', { confirmedPickupAt: '2026-11-01T02:00:00.000Z' });
 });
 
@@ -64,7 +64,7 @@ test('calendar and footer remain usable on a short phone viewport', async ({ pag
   await page.screenshot({ path: testInfo.outputPath('calendar-small.png') });
   await page.getByRole('button', { name: /11 tháng 10, 2026/ }).click();
   await page.getByLabel('Giờ', { exact: true }).selectOption('17');
-  await page.getByRole('button', { name: 'Xác nhận duyệt đơn', exact: true }).click();
+  await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
@@ -88,8 +88,8 @@ test('shows loading and protects the form until acceptance finishes', async ({ p
   const gate = new Promise<void>(resolve => { release = resolve; });
   await page.route('**/seller/orders/*/accept', async route => { await gate; await route.fallback(); });
   await page.getByRole('button', { name: 'Ngày mai', exact: true }).click();
-  await page.getByRole('button', { name: 'Xác nhận duyệt đơn', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Đang xác nhận…', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Đang xác nhận và gửi email…', exact: true })).toBeDisabled();
   await expect(page.getByLabel('Giờ', { exact: true })).toBeDisabled();
   await expect(page.getByRole('dialog').getByRole('button', { name: 'Đóng', exact: true }).first()).toBeDisabled();
   await page.keyboard.press('Escape');

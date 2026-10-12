@@ -4,19 +4,19 @@ test.beforeEach(async ({ scenario }) => { await scenario.authenticate('SELLER');
 
 test('acceptance click explains missing successful contact without sending a request', async ({ page, scenario }) => {
   await page.goto(`/seller/orders/${ids.order}`);
-  const accept = page.getByRole('button', { name: 'Chấp nhận đơn hàng', exact: true });
+  const accept = page.getByRole('button', { name: 'Xác nhận đơn hàng', exact: true });
   await expect(accept).toBeEnabled();
   await accept.click();
-  await expect(page.getByRole('alert')).toContainText('Chưa thể chấp nhận đơn. Hãy chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước.');
+  await expect(page.getByRole('alert')).toContainText('Chưa thể xác nhận đơn. Hãy chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước.');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(scenario.mutations('/accept')).toHaveLength(0);
-  await expect(page.getByText('Chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước khi chấp nhận đơn.')).toBeVisible();
+  await expect(page.getByText('Chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước khi xác nhận đơn.')).toBeVisible();
   await page.getByRole('button', { name: /Ghi nhận liên hệ/ }).click();
   await page.locator('#sellerorderdetailpage-field-2').selectOption('FAILED');
   await page.getByRole('button', { name: 'Lưu liên hệ', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await accept.click();
-  await expect(page.getByRole('alert')).toContainText('Chưa thể chấp nhận đơn.');
+  await expect(page.getByRole('alert')).toContainText('Chưa thể xác nhận đơn.');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   expect(scenario.mutations('/accept')).toHaveLength(0);
   await page.getByRole('button', { name: /Ghi nhận liên hệ/ }).click();
@@ -25,7 +25,7 @@ test('acceptance click explains missing successful contact without sending a req
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(accept).toBeEnabled();
   await accept.click();
-  await expect(page.getByRole('dialog', { name: 'Chấp nhận đơn hàng' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Xác nhận đơn hàng' })).toBeVisible();
 });
 
 test('accept conflict refreshes order state and closes the stale acceptance form', async ({ page, scenario }) => {
@@ -33,17 +33,18 @@ test('accept conflict refreshes order state and closes the stale acceptance form
   await page.getByRole('button', { name: /Ghi nhận liên hệ/ }).click();
   await page.getByRole('button', { name: 'Lưu liên hệ', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Chấp nhận đơn hàng', exact: true }).click();
+  await page.getByRole('button', { name: 'Xác nhận đơn hàng', exact: true }).click();
   await page.getByRole('button', { name: 'Ngày mai', exact: true }).click();
   await page.route('**/seller/orders/*/accept', async route => {
     scenario.order.status = 'ACCEPTED';
     scenario.order.version++;
     await route.fulfill({ status: 409, json: { code: 'INVALID_TRANSITION', message: 'Không thể thực hiện ở trạng thái hiện tại.' } });
   });
-  await page.getByRole('button', { name: 'Xác nhận duyệt đơn', exact: true }).click();
+  await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: /Chuyển sang.*Đang chuẩn bị/ })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Chấp nhận đơn hàng', exact: true })).toHaveCount(0);
+  await expect(page.getByText('Đã xử lý xong', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Chuyển sang/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Xác nhận đơn hàng', exact: true })).toHaveCount(0);
 });
 
 test('dashboard, order filters and audit filters', async ({ page, scenario }) => {
@@ -63,28 +64,51 @@ test('dashboard, order filters and audit filters', async ({ page, scenario }) =>
   await expect.poll(() => scenario.calls.some(r => new URL(r.url()).searchParams.get('action') === 'ORDER_CREATED')).toBe(true);
 });
 
-test('seller records contact, accepts, prepares, receives payment and completes', async ({ page, scenario }) => {
+test('confirmation sends email and finishes handling without further status changes', async ({ page, scenario }, testInfo) => {
   await page.goto(`/seller/orders/${ids.order}`);
   await page.getByRole('button', { name: /Ghi nhận liên hệ/ }).click();
   await page.getByRole('button', { name: 'Lưu liên hệ', exact: true }).click();
   await expectMutation(scenario, '/contact-attempts', { expectedVersion: 7, channel: 'PHONE', outcome: 'SUCCESS' });
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Chấp nhận đơn hàng', exact: true }).click();
+  await page.getByRole('button', { name: 'Xác nhận đơn hàng', exact: true }).click();
   await page.locator('#sellerorderdetailpage-field-4').selectOption(ids.pickup);
   await page.getByRole('button', { name: 'Ngày mai', exact: true }).click();
-  await page.getByRole('button', { name: 'Xác nhận duyệt đơn', exact: true }).click();
+  await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
   await expectMutation(scenario, '/accept', { expectedVersion: 8, confirmedPickupPointId: ids.pickup });
-  await page.getByRole('button', { name: /Chuyển sang.*Đang chuẩn bị/ }).click();
-  await expectMutation(scenario, '/prepare', { expectedVersion: 9 });
-  await page.getByRole('button', { name: /Chuyển sang.*Sẵn sàng/ }).click();
-  await expectMutation(scenario, '/ready', { expectedVersion: 10 });
-  await expect(page.getByRole('button', { name: 'Bàn giao & Hoàn tất đơn', exact: true })).toBeDisabled();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByText('Đã xử lý xong', { exact: true })).toBeVisible();
+  await expect(page.getByText('Đã gửi email xác nhận', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Chuyển sang|Bàn giao|Xác nhận đơn hàng|Ghi nhận liên hệ/ })).toHaveCount(0);
+  expect(scenario.order.status).toBe('ACCEPTED');
+  await page.screenshot({ path: testInfo.outputPath('seller-confirmed.png'), fullPage: true });
   await page.getByRole('button', { name: /Xác nhận đã thu đủ tiền/ }).click();
   await page.getByRole('button', { name: 'Xác nhận thanh toán', exact: true }).click();
-  await expectMutation(scenario, '/confirm-payment', { expectedVersion: 11, amount: 10000 });
-  await page.getByRole('button', { name: 'Bàn giao & Hoàn tất đơn', exact: true }).click();
-  await expectMutation(scenario, '/complete', { expectedVersion: 12 });
-  await expect(page.locator('main .badge').filter({ hasText: /^Hoàn tất$/ })).toBeVisible();
+  await expectMutation(scenario, '/confirm-payment', { expectedVersion: 9, amount: 10000 });
+  expect(scenario.order.status).toBe('ACCEPTED');
+  for (const action of ['/prepare', '/ready', '/complete']) expect(scenario.mutations(action)).toHaveLength(0);
+  await page.getByRole('link', { name: 'Xem các đơn đã xác nhận', exact: true }).click();
+  await expect(page.getByLabel('Trạng thái đơn', { exact: true })).toHaveValue('ACCEPTED');
+  await expect(page.getByRole('link', { name: 'Xem đơn', exact: true })).toBeVisible();
+});
+
+for (const status of ['PENDING', 'PROCESSING', 'FAILED', null] as const) {
+  test(`resolved order shows truthful email state ${status}`, async ({ page, scenario }) => {
+    scenario.order.status = 'ACCEPTED';
+    scenario.order.confirmationEmail = status ? { status } : null;
+    await page.goto(`/seller/orders/${ids.order}`);
+    await expect(page.getByText('Đã xử lý xong', { exact: true })).toBeVisible();
+    const message = status === 'FAILED' ? 'Chưa gửi được email xác nhận'
+      : status === null ? 'Chưa có thông tin gửi email' : 'Email xác nhận đang chờ gửi';
+    await expect(page.getByText(message, { exact: true })).toBeVisible();
+    await expect(page.getByText('Đã gửi email xác nhận', { exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /Chuyển sang|Bàn giao|Xác nhận đơn hàng/ })).toHaveCount(0);
+  });
+}
+
+test('order list opens pending orders by default', async ({ page, scenario }) => {
+  await page.goto('/seller/orders');
+  await expect(page.getByLabel('Trạng thái đơn', { exact: true })).toHaveValue('PENDING_CONTACT');
+  await expect.poll(() => scenario.calls.some(r => new URL(r.url()).searchParams.get('status') === 'PENDING_CONTACT')).toBe(true);
 });
 
 for (const action of ['reject', 'cancel'] as const) {

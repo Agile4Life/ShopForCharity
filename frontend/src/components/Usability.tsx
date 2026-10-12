@@ -58,8 +58,8 @@ export function OrderProgress({ status }: { status: OrderStatus }) {
     PENDING_CONTACT: 0,
     ACCEPTED: 1,
     PREPARING: 1,
-    READY: 2,
-    COMPLETED: 3,
+    READY: 1,
+    COMPLETED: 1,
   }[
     status as
       "PENDING_CONTACT" | "ACCEPTED" | "PREPARING" | "READY" | "COMPLETED"
@@ -67,7 +67,7 @@ export function OrderProgress({ status }: { status: OrderStatus }) {
   if (current === undefined) return null;
   return (
     <ol className="order-progress" aria-label="Tiến trình đơn hàng">
-      {["Chờ xác nhận", "Chuẩn bị", "Có thể nhận", "Hoàn tất"].map(
+      {["Chờ xác nhận", "Đã xác nhận"].map(
         (label, index) => (
           <li
             key={label}

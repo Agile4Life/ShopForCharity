@@ -129,7 +129,7 @@ export function useSellerOrderActions(orderId: string) {
   });
 
   const acceptOrder = useMutation({
-    meta: { successMessage: "Đã chấp nhận đơn hàng." },
+    meta: { successMessage: "Đã xác nhận đơn. Hoàn tất xử lý đơn hàng." },
     mutationFn: (data: AcceptOrderRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/accept`, {
         method: "POST",
@@ -143,39 +143,6 @@ export function useSellerOrderActions(orderId: string) {
     meta: { successMessage: "Đã từ chối đơn hàng." },
     mutationFn: (data: TransitionOrderRequest) =>
       apiFetch<OrderDetail>(`/seller/orders/${orderId}/reject`, {
-        method: "POST",
-        body: data,
-      }),
-    onSuccess: invalidate,
-    onError: recoverConflict,
-  });
-
-  const prepareOrder = useMutation({
-    meta: { successMessage: "Đã chuyển đơn sang đang chuẩn bị." },
-    mutationFn: (data: TransitionOrderRequest) =>
-      apiFetch<OrderDetail>(`/seller/orders/${orderId}/prepare`, {
-        method: "POST",
-        body: data,
-      }),
-    onSuccess: invalidate,
-    onError: recoverConflict,
-  });
-
-  const readyOrder = useMutation({
-    meta: { successMessage: "Đã chuyển đơn sang sẵn sàng nhận." },
-    mutationFn: (data: TransitionOrderRequest) =>
-      apiFetch<OrderDetail>(`/seller/orders/${orderId}/ready`, {
-        method: "POST",
-        body: data,
-      }),
-    onSuccess: invalidate,
-    onError: recoverConflict,
-  });
-
-  const completeOrder = useMutation({
-    meta: { successMessage: "Đã hoàn tất bàn giao đơn hàng." },
-    mutationFn: (data: TransitionOrderRequest) =>
-      apiFetch<OrderDetail>(`/seller/orders/${orderId}/complete`, {
         method: "POST",
         body: data,
       }),
@@ -234,9 +201,6 @@ export function useSellerOrderActions(orderId: string) {
     recordContactAttempt,
     acceptOrder,
     rejectOrder,
-    prepareOrder,
-    readyOrder,
-    completeOrder,
     cancelOrder,
     confirmPayment,
     dismissPaymentReport,

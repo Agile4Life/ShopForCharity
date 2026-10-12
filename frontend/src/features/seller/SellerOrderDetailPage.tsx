@@ -93,6 +93,7 @@ export const SellerOrderDetailPage: React.FC = () => {
   const hasSuccessfulContact = order.contactAttempts?.some(
     (c) => c.outcome === "SUCCESS",
   );
+  const isResolved = ["ACCEPTED", "PREPARING", "READY", "COMPLETED"].includes(order.status);
 
   // Action Handlers
   const handleRecordContact = async (e: React.FormEvent) => {
@@ -118,7 +119,7 @@ export const SellerOrderDetailPage: React.FC = () => {
     e.preventDefault();
     if (actions.acceptOrder.isPending) return;
     if (!hasSuccessfulContact) {
-      setAcceptError('Cần ghi nhận liên hệ "Thành công" với khách trước khi chấp nhận đơn.');
+      setAcceptError('Cần ghi nhận liên hệ "Thành công" với khách trước khi xác nhận đơn.');
       return;
     }
     if (!acceptPickupPointId || !acceptPickupAt) {
@@ -274,13 +275,13 @@ export const SellerOrderDetailPage: React.FC = () => {
               <h2 className="section-subtitle flex items-center gap-2">
                 <User size={18} /> Thông tin người mua & Liên hệ
               </h2>
-              <button
+              {order.status === "PENDING_CONTACT" && <button
                 type="button"
                 onClick={() => setContactModalOpen(true)}
                 className="btn-primary-sm"
               >
                 <Phone size={14} /> Ghi nhận liên hệ
-              </button>
+              </button>}
             </div>
 
             <div className="buyer-info-grid">
@@ -332,8 +333,9 @@ export const SellerOrderDetailPage: React.FC = () => {
               </h4>
               {!order.contactAttempts || order.contactAttempts.length === 0 ? (
                 <p className="text-xs text-muted">
-                  Chưa ghi nhận cuộc liên hệ nào. Người bán cần liên hệ thành
-                  công trước khi duyệt đơn.
+                  {order.status === "PENDING_CONTACT"
+                    ? "Chưa ghi nhận liên hệ. Liên hệ thành công với khách trước khi xác nhận đơn."
+                    : "Chưa có lịch sử liên hệ."}
                 </p>
               ) : (
                 <div className="contact-list">
@@ -453,7 +455,7 @@ export const SellerOrderDetailPage: React.FC = () => {
         <div className="seller-sidebar-col">
           {/* Order Actions Card */}
           <div className="card mb-4">
-            <h3 className="section-subtitle mb-3">Thao tác trạng thái đơn</h3>
+            <h3 className="section-subtitle mb-3">Xử lý đơn hàng</h3>
 
             {/* PENDING_CONTACT State Actions */}
             {order.status === "PENDING_CONTACT" && (
@@ -462,7 +464,7 @@ export const SellerOrderDetailPage: React.FC = () => {
                   type="button"
                   onClick={() => {
                     if (!hasSuccessfulContact) {
-                      notify('Chưa thể chấp nhận đơn. Hãy chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước.');
+                      notify('Chưa thể xác nhận đơn. Hãy chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước.');
                       return;
                     }
                     const matchingPoints = pickupPoints.filter(p => p.active && p.name === order.pickupPointName);
@@ -474,11 +476,11 @@ export const SellerOrderDetailPage: React.FC = () => {
                   disabled={actions.recordContactAttempt.isPending}
                   aria-describedby={!hasSuccessfulContact ? "accept-contact-required" : undefined}
                 >
-                  <CheckCircle size={16} /> Chấp nhận đơn hàng
+                  <CheckCircle size={16} /> Xác nhận đơn hàng
                 </button>
                 {!hasSuccessfulContact && (
                   <p id="accept-contact-required" className="text-sm text-muted mb-2">
-                    Chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước khi chấp nhận đơn.
+                    Chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước khi xác nhận đơn.
                   </p>
                 )}
 
@@ -492,60 +494,25 @@ export const SellerOrderDetailPage: React.FC = () => {
               </div>
             )}
 
-            {/* ACCEPTED State Actions */}
-            {order.status === "ACCEPTED" && (
-              <button
-                type="button"
-                onClick={() =>
-                  actions.prepareOrder.mutate({
-                    expectedVersion: order.version,
-                  })
-                }
-                disabled={actions.prepareOrder.isPending}
-                className="btn-primary full-width"
-              >
-                Chuyển sang "Đang chuẩn bị hàng"
-              </button>
-            )}
-
-            {/* PREPARING State Actions */}
-            {order.status === "PREPARING" && (
-              <button
-                type="button"
-                onClick={() =>
-                  actions.readyOrder.mutate({ expectedVersion: order.version })
-                }
-                disabled={actions.readyOrder.isPending}
-                className="btn-primary full-width"
-              >
-                Chuyển sang "Sẵn sàng nhận"
-              </button>
-            )}
-
-            {/* READY State Actions */}
-            {order.status === "READY" && (
-              <div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    actions.completeOrder.mutate({
-                      expectedVersion: order.version,
-                    })
-                  }
-                  disabled={
-                    order.paymentStatus !== "PAID" ||
-                    actions.completeOrder.isPending
-                  }
-                  className="btn-primary full-width"
-                >
-                  Bàn giao & Hoàn tất đơn
-                </button>
-                {order.paymentStatus !== "PAID" && (
-                  <p className="text-xs text-red mt-2">
-                    * Chưa thể hoàn tất: Đơn hàng cần được xác nhận thanh toán
-                    trước khi hoàn tất bàn giao.
-                  </p>
-                )}
+            {isResolved && (
+              <div className="seller-confirmation-summary" role="status">
+                <div className="flex items-center gap-2 text-green mb-2">
+                  <CheckCircle size={18} aria-hidden="true" />
+                  <strong>Đã xử lý xong</strong>
+                </div>
+                <p className="text-sm mb-3">Đơn đã được xác nhận. Khách nhận hàng theo điểm và lịch đã chốt.</p>
+                <div className="seller-confirmation-email text-sm">
+                  {order.confirmationEmail?.status === "SENT" ? (
+                    <><strong>Đã gửi email xác nhận</strong><span>{order.buyerEmail}</span></>
+                  ) : order.confirmationEmail?.status === "FAILED" ? (
+                    <><strong className="text-red">Chưa gửi được email xác nhận</strong><span>Liên hệ khách qua số điện thoại và kiểm tra dịch vụ gửi mail.</span></>
+                  ) : order.confirmationEmail ? (
+                    <><strong>Email xác nhận đang chờ gửi</strong><span>Hệ thống sẽ tự gửi lại. Không cần xác nhận đơn lần nữa.</span></>
+                  ) : (
+                    <><strong>Chưa có thông tin gửi email</strong><span>Đơn đã được xác nhận; kiểm tra lại với khách nếu cần.</span></>
+                  )}
+                </div>
+                <Link to="/seller/orders?status=ACCEPTED" className="btn-secondary full-width mt-3">Xem các đơn đã xác nhận</Link>
               </div>
             )}
 
@@ -566,6 +533,7 @@ export const SellerOrderDetailPage: React.FC = () => {
           {/* Payment Reconciliation Actions */}
           <div className="card mb-4">
             <h3 className="section-subtitle mb-3">Đối soát thanh toán</h3>
+            {isResolved && <p className="text-xs text-muted mb-3">Ghi nhận tiền khi thực nhận. Việc này không cần chuyển trạng thái đơn.</p>}
             <p className="text-xs text-muted mb-2">
               Phương thức:{" "}
               <strong>
@@ -576,7 +544,8 @@ export const SellerOrderDetailPage: React.FC = () => {
             </p>
 
             {/* Confirm Paid Action */}
-            {["UNPAID", "REPORTED"].includes(order.paymentStatus) && (
+            {["UNPAID", "REPORTED"].includes(order.paymentStatus) &&
+              !["COMPLETED", "REJECTED", "CANCELLED", "EXPIRED"].includes(order.status) && (
               <div className="mb-3">
                 <button
                   type="button"
@@ -720,12 +689,12 @@ export const SellerOrderDetailPage: React.FC = () => {
       <Modal
         isOpen={acceptModalOpen}
         onClose={() => { setAcceptModalOpen(false); setAcceptError(""); }}
-        title="Chấp nhận đơn hàng"
+        title="Xác nhận đơn hàng"
         className="pickup-schedule-dialog"
         closeDisabled={actions.acceptOrder.isPending}
       >
         <form onSubmit={handleAcceptOrder}>
-          <p className="pickup-schedule-intro">Chốt điểm nhận và thời gian đã thống nhất với khách.</p>
+          <p className="pickup-schedule-intro">Chốt điểm nhận và thời gian đã thống nhất với khách. Sau khi xác nhận, hệ thống gửi email tới <strong>{order.buyerEmail}</strong> và hoàn tất xử lý đơn.</p>
           <div className="form-group">
             <label
               className="form-label"
@@ -772,7 +741,7 @@ export const SellerOrderDetailPage: React.FC = () => {
               className="btn-primary"
             >
               {actions.acceptOrder.isPending && <LoaderCircle size={18} className="pickup-saving-icon" aria-hidden="true" />}
-              {actions.acceptOrder.isPending ? "Đang xác nhận…" : "Xác nhận duyệt đơn"}
+              {actions.acceptOrder.isPending ? "Đang xác nhận và gửi email…" : "Xác nhận và gửi email"}
             </button>
           </div>
         </form>

@@ -70,7 +70,7 @@ export const SellerDashboardPage: React.FC = () => {
             <Clock size={24} className="text-amber" />
           </div>
           <div className="metric-data">
-            <span className="metric-label">Đơn chờ liên hệ & duyệt</span>
+            <span className="metric-label">Đơn chờ xác nhận</span>
             <strong className="metric-val">{stats?.pendingCount ?? 0}</strong>
           </div>
         </div>
@@ -80,8 +80,8 @@ export const SellerDashboardPage: React.FC = () => {
             <Package size={24} className="text-teal" />
           </div>
           <div className="metric-data">
-            <span className="metric-label">Đơn sẵn sàng bàn giao</span>
-            <strong className="metric-val">{stats?.readyCount ?? 0}</strong>
+            <span className="metric-label">Đơn đã xử lý</span>
+            <strong className="metric-val">{stats?.resolvedCount ?? 0}</strong>
           </div>
         </div>
 
@@ -90,7 +90,7 @@ export const SellerDashboardPage: React.FC = () => {
             <CheckCircle2 size={24} className="text-green" />
           </div>
           <div className="metric-data">
-            <span className="metric-label">Doanh thu hoàn tất</span>
+            <span className="metric-label">Đã thu từ đơn xác nhận</span>
             <strong className="metric-val">
               {(stats?.completedRevenue ?? 0).toLocaleString("vi-VN")} đ
             </strong>
@@ -102,7 +102,7 @@ export const SellerDashboardPage: React.FC = () => {
             <DollarSign size={24} className="text-blue" />
           </div>
           <div className="metric-data">
-            <span className="metric-label">Doanh thu đơn đang xử lý</span>
+            <span className="metric-label">Đã thu từ đơn chờ xác nhận</span>
             <strong className="metric-val">
               {(stats?.pendingRevenue ?? 0).toLocaleString("vi-VN")} đ
             </strong>

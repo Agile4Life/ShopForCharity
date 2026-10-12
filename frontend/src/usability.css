@@ -303,11 +303,23 @@
 .order-progress {
   list-style: none;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   padding: 8px 0 24px;
   margin: 0 0 24px;
   border-bottom: 1px solid var(--border-color);
+}
+.seller-confirmation-summary p,
+.pickup-schedule-intro {
+  overflow-wrap: anywhere;
+}
+.seller-confirmation-email {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-color);
+  overflow-wrap: anywhere;
 }
 .order-progress li {
   font-size: 13px;
