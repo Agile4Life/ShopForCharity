@@ -158,3 +158,22 @@
 }
 .chat-composer .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 .product-card:has(.chat-product-link).reveal-ready { translate: none; }
+
+@media (max-width: 640px) {
+  .chat-launcher {
+    width: 52px;
+    height: 52px;
+    min-height: 52px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+    right: max(12px, env(safe-area-inset-right));
+  }
+  .chat-launcher > span:not(.chat-unread) { display: none; }
+  .chat-launcher .chat-unread { position: absolute; top: -6px; right: -6px; }
+  .chat-product-link { min-height: 44px; font-size: 14px; }
+}
+@media (pointer: coarse) {
+  .chat-search input, .chat-composer textarea { font-size: 16px; }
+  .chat-product-link { min-height: 44px; font-size: 14px; }
+}

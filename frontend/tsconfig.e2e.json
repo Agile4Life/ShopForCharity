@@ -4,5 +4,5 @@
     "moduleResolution": "bundler", "types": ["node", "vite/client"], "strict": true,
     "noEmit": true, "skipLibCheck": true
   },
-  "include": ["playwright.config.ts", "playwright.responsive.config.ts", "playwright.chat-browsers.config.ts", "e2e/**/*.ts"]
+  "include": ["playwright.config.ts", "playwright.responsive.config.ts", "playwright.chat-browsers.config.ts", "playwright.mobile.config.ts", "e2e/**/*.ts"]
 }

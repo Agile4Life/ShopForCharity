@@ -51,13 +51,14 @@ export class SellerReadService {
     };
   }
 
-  async notifications(actor, page, requestedSize) {
+  async notifications(actor, page, requestedSize, unreadOrders = false) {
     this.profiles.seller(actor);
     ApiException.check(page >= 0 && page <= 100000, 400, 'INVALID_PAGE', 'Trang không hợp lệ.');
 
     const pageSize = size(requestedSize);
+    const filter = unreadOrders ? " AND is_read = false AND type = 'ORDER_CREATED'" : '';
     const countRes = await query(
-      'SELECT count(*) FROM shop.notifications WHERE shop_id = $1 AND recipient_profile_id = $2',
+      `SELECT count(*) FROM shop.notifications WHERE shop_id = $1 AND recipient_profile_id = $2${filter}`,
       [config.shopId, actor.id]
     );
     const totalElements = parseInt(countRes.rows[0].count, 10);
@@ -70,9 +71,11 @@ export class SellerReadService {
 
     const offset = Math.max(0, page) * pageSize;
     const dataRes = await query(
-      `SELECT * FROM shop.notifications
-       WHERE shop_id = $1 AND recipient_profile_id = $2
-       ORDER BY created_at DESC
+      `SELECT n.*, o.order_code, o.buyer_name, o.total AS order_total
+       FROM shop.notifications n
+       LEFT JOIN shop.orders o ON o.id = n.order_id AND o.shop_id = n.shop_id
+       WHERE n.shop_id = $1 AND n.recipient_profile_id = $2${unreadOrders ? " AND n.is_read = false AND n.type = 'ORDER_CREATED'" : ''}
+       ORDER BY n.created_at DESC, n.id DESC
        LIMIT $3 OFFSET $4`,
       [config.shopId, actor.id, pageSize, offset]
     );
@@ -82,6 +85,9 @@ export class SellerReadService {
         id: n.id,
         type: n.type,
         orderId: n.order_id,
+        orderCode: n.order_code,
+        buyerName: n.buyer_name,
+        orderTotal: n.order_total == null ? null : toNumber(n.order_total),
         isRead: n.is_read,
         createdAt: toIso(n.created_at),
       })),

@@ -16,11 +16,12 @@ router.get('/dashboard', requireSeller, async (req, res, next) => {
 
 router.get('/notifications', requireSeller, async (req, res, next) => {
   try {
-    const { page = 0, size = 20 } = req.query;
+    const { page = 0, size = 20, unreadOrders } = req.query;
     const data = await service.notifications(
       req.actor,
       parseInt(page, 10),
-      parseInt(size, 10)
+      parseInt(size, 10),
+      unreadOrders === 'true'
     );
     res.json(data);
   } catch (err) {

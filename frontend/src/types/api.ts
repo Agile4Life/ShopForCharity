@@ -432,6 +432,9 @@ export interface NotificationItem {
   recipientProfileId: string;
   type: string;
   orderId?: string;
+  orderCode?: string | null;
+  buyerName?: string | null;
+  orderTotal?: number | null;
   isRead: boolean;
   createdAt: string;
 }

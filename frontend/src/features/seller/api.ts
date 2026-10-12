@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiFetch } from "../../lib/api-client";
 import { UserFacingError } from "../../lib/user-errors";
 import { notifyError } from "../../lib/feedback";
+import { useAuth } from "../auth/auth-context";
 import {
   POLL_INTERVAL_ORDERS,
   POLL_INTERVAL_DASHBOARD,
@@ -538,11 +539,32 @@ export async function getSellerNotifications(): Promise<NotificationItem[]> {
 }
 
 export function useSellerNotifications() {
+  const { profile, user, isSeller } = useAuth();
   return useQuery({
-    queryKey: ["seller-notifications"],
+    queryKey: ["seller-notifications", profile?.id],
     queryFn: getSellerNotifications,
+    enabled: isSeller && !!profile?.active && profile.authUserId === user?.id,
     refetchInterval: POLL_INTERVAL_ORDERS,
   });
+}
+
+// Read every page of pending alerts so a burst of orders cannot fall outside
+// the dashboard's first page. IDs are deduplicated by the popup consumer.
+export async function getUnreadOrderNotifications(signal: AbortSignal): Promise<NotificationItem[]> {
+  const notifications: NotificationItem[] = [];
+  let page = 0;
+  let totalPages = 1;
+  do {
+    const response = await apiFetch<PageResponse<NotificationItem> | NotificationItem[]>("/seller/notifications", {
+      params: { unreadOrders: true, page, size: 100 }, signal,
+      skipIdempotency: true, showGlobalActivity: false,
+    });
+    if (Array.isArray(response)) return response;
+    notifications.push(...response.content);
+    totalPages = response.totalPages;
+    page++;
+  } while (page < totalPages);
+  return notifications;
 }
 
 export function useMarkNotificationRead() {

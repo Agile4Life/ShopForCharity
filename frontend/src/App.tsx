@@ -8,9 +8,11 @@ import { queryClient } from "./lib/query-client";
 import { AuthProvider } from "./features/auth/auth-context";
 import { CartProvider } from "./features/cart/cart-context";
 import { ChatLauncher } from "./features/chat/ChatEntry";
+import { SellerOrderNotifications } from "./features/seller/SellerOrderNotifications";
 
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
+import { WelcomeIntro } from "./components/WelcomeIntro";
 import {
   AccountNavigation,
   FeedbackNotice,
@@ -161,6 +163,7 @@ export const App: React.FC = () => {
       <AuthProvider>
         <CartProvider>
           <BrowserRouter>
+            <WelcomeIntro />
             <PageExperience />
             <div className="app-shell">
               <Navbar />
@@ -339,6 +342,7 @@ export const App: React.FC = () => {
               <Footer />
               <MobileNavigation />
               <ChatLauncher />
+              <SellerOrderNotifications />
               <FeedbackNotice />
               <NetworkActivity />
             </div>

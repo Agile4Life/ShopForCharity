@@ -31,6 +31,9 @@ html { scrollbar-gutter: stable; }
 ::-webkit-scrollbar-button { display: none; }
 @media (pointer: coarse) {
   * { scrollbar-width: auto; }
+  /* Touch browsers should use the full viewport, without a desktop gutter. */
+  html { scrollbar-gutter: auto; }
+  ::-webkit-scrollbar { width: 0; height: 0; }
 }
 
 /* Native selects retain validation, labels, and keyboard behavior. */

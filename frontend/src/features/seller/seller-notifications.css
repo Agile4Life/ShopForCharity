@@ -1,0 +1,53 @@
+.seller-order-alerts {
+  position: fixed;
+  bottom: calc(96px + env(safe-area-inset-bottom));
+  right: calc(20px + env(safe-area-inset-right));
+  z-index: 240;
+  display: grid;
+  gap: 12px;
+  width: min(380px, calc(100vw - 32px));
+  max-height: calc(100dvh - 196px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow-y: auto;
+  pointer-events: none;
+}
+.seller-order-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--primary);
+  border-radius: 14px;
+  background: var(--bg-card);
+  color: var(--text-main);
+  box-shadow: 0 8px 28px #284b3726;
+  pointer-events: auto;
+  animation: seller-order-alert-enter 180ms ease-out;
+}
+.seller-order-alert-icon { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; border-radius: 10px; color: var(--primary); background: var(--primary-subtle); }
+.seller-order-alert-content { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.seller-order-alert-content > strong { display: block; font-size: 15px; }
+.seller-order-alert-code { display: block; margin-top: 4px; font-size: 13px; font-weight: 600; }
+.seller-order-alert-content p { margin-top: 5px; color: var(--text-muted); font-size: 13px; }
+.seller-order-alert-action { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 4px; color: var(--primary); font-size: 14px; font-weight: 600; }
+.seller-order-alert-close { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; margin: -8px -8px 0 0; border: 0; border-radius: 8px; color: var(--text-muted); background: transparent; cursor: pointer; }
+.seller-order-alert-close:hover { color: var(--text-main); background: var(--bg-main); }
+.seller-order-alert-action:focus-visible, .seller-order-alert-close:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.seller-order-alert-overflow { padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-card); color: var(--text-muted); font-size: 13px; }
+@keyframes seller-order-alert-enter { from { opacity: 0; transform: translateX(16px); } }
+@media (max-width: 760px) {
+  .seller-order-alerts {
+    top: calc(88px + env(safe-area-inset-top));
+    bottom: auto;
+    max-height: calc(100dvh - 250px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    right: 16px;
+    gap: 8px;
+  }
+  .app-shell:has(.seller-workspace-bar) .seller-order-alerts {
+    top: calc(172px + env(safe-area-inset-top));
+  }
+  .app-shell:has(.account-dropdown[open]) .seller-order-alerts {
+    visibility: hidden;
+  }
+}
+@media (prefers-reduced-motion: reduce) { .seller-order-alert { animation: none; } }

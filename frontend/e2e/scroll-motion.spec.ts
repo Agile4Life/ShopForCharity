@@ -80,11 +80,35 @@ test('scrollbars share the paper and forest theme with accessible high contrast'
   await page.goto('/');
   const colors = await page.evaluate(() => {
     const style = getComputedStyle(document.documentElement);
-    return { scrollbar: style.scrollbarColor, ink: style.getPropertyValue('--ink').trim(), gutter: style.scrollbarGutter };
+    return { scrollbar: style.scrollbarColor, ink: style.getPropertyValue('--ink').trim(), gutter: style.scrollbarGutter,
+      touch: matchMedia('(pointer: coarse)').matches,
+      supportsColor: CSS.supports('scrollbar-color', 'auto'),
+      thumb: getComputedStyle(document.documentElement, '::-webkit-scrollbar-thumb').backgroundColor,
+      track: getComputedStyle(document.documentElement, '::-webkit-scrollbar-track').backgroundColor };
   });
-  expect(colors.scrollbar).toBe('rgb(113, 133, 105) rgb(255, 248, 232)');
+  if (colors.supportsColor) {
+    expect(colors.scrollbar).toBe('rgb(113, 133, 105) rgb(255, 248, 232)');
+  } else {
+    expect(colors.thumb).toBe('rgb(113, 133, 105)');
+    expect(colors.track).toBe('rgb(255, 248, 232)');
+  }
   expect(colors.ink).toBe('#284b37');
-  expect(colors.gutter).toBe('stable');
+  expect(colors.gutter).toBe(colors.touch ? 'auto' : 'stable');
   await page.emulateMedia({ forcedColors: 'active' });
-  await expect(page.locator('html')).toHaveCSS('scrollbar-color', 'auto');
+  if (colors.supportsColor) {
+    await expect(page.locator('html')).toHaveCSS('scrollbar-color', 'auto');
+  } else {
+    await expect.poll(() => page.evaluate(() => {
+      const probe = document.createElement('div');
+      probe.style.color = 'ButtonText';
+      probe.style.backgroundColor = 'Canvas';
+      document.body.append(probe);
+      const system = getComputedStyle(probe);
+      const thumb = getComputedStyle(document.documentElement, '::-webkit-scrollbar-thumb');
+      const track = getComputedStyle(document.documentElement, '::-webkit-scrollbar-track');
+      const matches = thumb.backgroundColor === system.color && track.backgroundColor === system.backgroundColor;
+      probe.remove();
+      return matches;
+    })).toBe(true);
+  }
 });
