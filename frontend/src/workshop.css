@@ -2092,6 +2092,20 @@ tbody tr {
   border-radius: 50%;
   object-fit: contain;
   padding: 5px;
+  transform-origin: 50% 90%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .footer-contact-avatar {
+    animation: footer-avatar-sway 4.8s ease-in-out infinite;
+  }
+}
+@keyframes footer-avatar-sway {
+  0%, 100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(1.5deg);
+  }
 }
 .footer-contact-details {
   margin-top: 12px;
