@@ -83,6 +83,7 @@ Tài liệu này chuẩn hóa toàn bộ các giao tiếp HTTP giữa **Frontend
       "note": "Ghi chú giao hàng"
     }
     ```
+  - Địa điểm nhận hàng (backend Node): gửi đúng một trong hai lựa chọn: `pickupPointId` của điểm gợi ý đang hoạt động, hoặc `customPickupLocation` (trim, 2–200 ký tự) và `customPickupInstructions?` (trim, tối đa 500 ký tự). Địa điểm khách nhập lưu trong snapshot đơn, không thêm vào danh sách gợi ý shop. Không có điểm gợi ý vẫn đặt được bằng địa điểm riêng.
   - Response 201:
     ```json
     {
@@ -116,7 +117,7 @@ Tài liệu này chuẩn hóa toàn bộ các giao tiếp HTTP giữa **Frontend
 - `GET /api/v1/seller/orders?status=&paymentStatus=&date=&orderCode=&page=&size=` -> `PageResponse<OrderDetail>`
 - `GET /api/v1/seller/orders/:id` -> `OrderDetail`
 - `POST /api/v1/seller/orders/:id/contact-attempts` -> Body: `{ channel: 'PHONE'|'EMAIL'|'IN_PERSON', outcome: 'SUCCESS'|'NO_RESPONSE'|'FAILED', note?: string, expectedVersion: number }` (Lưu ý: ghi nhận liên hệ làm tăng version của order)
-- `POST /api/v1/seller/orders/:id/accept` -> Body: `{ confirmedPickupPointId: string, confirmedPickupAt: string, expectedVersion: number }` (yêu cầu cả điểm nhận và thời gian tương lai)
+- `POST /api/v1/seller/orders/:id/accept` -> Body: `{ confirmedPickupPointId?: string, confirmedPickupAt: string, expectedVersion: number }`. Backend Node giữ nguyên địa điểm/chỉ dẫn của đơn khi không gửi `confirmedPickupPointId`; gửi ID nếu đổi sang điểm gợi ý đã thống nhất với khách. Thời gian phải trong tương lai và cần liên hệ thành công trước khi xác nhận.
 - `POST /api/v1/seller/orders/:id/reject` -> Body: `{ reason: string, expectedVersion: number }`
 - `POST /api/v1/seller/orders/:id/prepare` -> Body: `{ expectedVersion: number }`
 - `POST /api/v1/seller/orders/:id/ready` -> Body: `{ expectedVersion: number }`

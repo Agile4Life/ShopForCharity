@@ -235,7 +235,7 @@ export class CheckoutService {
 
           ApiException.check(s.accepting_orders, 409, 'SHOP_CLOSED', 'Shop đang tạm dừng nhận đơn.');
 
-          const pickup = await this.settings.pickup(input.pickupPointId, client);
+          const pickup = await this.resolvePickup(input, client);
 
           let resolved;
           try {
@@ -437,6 +437,32 @@ export class CheckoutService {
         }
       );
     });
+  }
+
+  async resolvePickup(input, client) {
+    const hasPoint = input.pickupPointId != null && input.pickupPointId !== '';
+    const hasCustom = input.customPickupLocation != null;
+    ApiException.check(hasPoint !== hasCustom, 400, 'INVALID_PICKUP',
+      'Chọn một điểm gợi ý hoặc nhập địa điểm nhận hàng của bạn.');
+    if (hasPoint) {
+      ApiException.check(typeof input.pickupPointId === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.pickupPointId),
+      400, 'INVALID_PICKUP', 'Điểm nhận hàng không hợp lệ.');
+      ApiException.check(input.customPickupInstructions == null, 400, 'INVALID_PICKUP',
+        'Chỉ dẫn riêng cần đi kèm địa điểm bạn nhập.');
+      return this.settings.pickup(input.pickupPointId, client);
+    }
+    ApiException.check(typeof input.customPickupLocation === 'string' &&
+      input.customPickupLocation.trim().length >= 2 && input.customPickupLocation.trim().length <= 200,
+    400, 'INVALID_PICKUP', 'Nhập địa điểm nhận hàng từ 2 đến 200 ký tự.');
+    ApiException.check(input.customPickupInstructions == null ||
+      (typeof input.customPickupInstructions === 'string' && input.customPickupInstructions.trim().length <= 500),
+    400, 'INVALID_PICKUP', 'Chỉ dẫn nhận hàng tối đa 500 ký tự.');
+    return {
+      id: null,
+      name: input.customPickupLocation.trim(),
+      instructions: input.customPickupInstructions?.trim() || null,
+    };
   }
 }
 

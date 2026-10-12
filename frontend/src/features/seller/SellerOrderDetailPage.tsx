@@ -134,7 +134,7 @@ export const SellerOrderDetailPage: React.FC = () => {
     setAcceptError("");
     try {
       await actions.acceptOrder.mutateAsync({
-        confirmedPickupPointId: acceptPickupPointId,
+        confirmedPickupPointId: acceptPickupPointId === "KEEP_REQUESTED" ? undefined : acceptPickupPointId,
         confirmedPickupAt: instant.toISOString(),
         expectedVersion: order.version,
       });
@@ -305,8 +305,9 @@ export const SellerOrderDetailPage: React.FC = () => {
                 {order.buyerClass || "Không có"}
               </div>
               <div>
-                <strong>Điểm hẹn ban đầu:</strong> {order.pickupPointName}
+                <strong>Địa điểm nhận hàng:</strong> {order.pickupPointName}
               </div>
+              {order.pickupInstructions && <div><strong>Chỉ dẫn nhận hàng:</strong> {order.pickupInstructions}</div>}
               <div>
                 <strong>Giờ mong muốn:</strong>{" "}
                 {order.requestedPickupAt
@@ -467,8 +468,8 @@ export const SellerOrderDetailPage: React.FC = () => {
                       notify('Chưa thể xác nhận đơn. Hãy chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước.');
                       return;
                     }
-                    const matchingPoints = pickupPoints.filter(p => p.active && p.name === order.pickupPointName);
-                    setAcceptPickupPointId(matchingPoints.length === 1 ? matchingPoints[0].id : "");
+                    const activePoint = pickupPoints.find(p => p.active && p.id === order.pickupPointId);
+                    setAcceptPickupPointId(activePoint?.id || "KEEP_REQUESTED");
                     setAcceptError("");
                     setAcceptModalOpen(true);
                   }}
@@ -712,19 +713,21 @@ export const SellerOrderDetailPage: React.FC = () => {
               required
             >
               <option value="">-- Chọn điểm nhận --</option>
+              <option value="KEEP_REQUESTED">Giữ địa điểm khách chọn: {order.pickupPointName}</option>
               {pickupPoints.filter((p) => p.active).map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
               ))}
             </select>
+            {acceptPickupPointId === "KEEP_REQUESTED" && order.pickupInstructions && <p className="pickup-instructions">{order.pickupInstructions}</p>}
+            <p className="text-muted text-xs">Chỉ đổi sang điểm gợi ý sau khi đã thống nhất với khách.</p>
           </div>
 
           <PickupDateTimePicker value={acceptPickupAt}
             onChange={(value) => { setAcceptPickupAt(value); setAcceptError(""); }}
             disabled={actions.acceptOrder.isPending} invalid={!!acceptError} errorId="pickup-schedule-error" />
           {acceptError && <p id="pickup-schedule-error" className="pickup-schedule-error" role="alert">{acceptError}</p>}
-          {!pickupPoints.some(p => p.active) && <p className="pickup-schedule-error">Chưa có điểm nhận đang hoạt động. <Link to="/seller/settings">Thêm điểm nhận hàng</Link></p>}
 
           <div className="modal-actions">
             <button
@@ -737,7 +740,7 @@ export const SellerOrderDetailPage: React.FC = () => {
             </button>
             <button
               type="submit"
-              disabled={actions.acceptOrder.isPending || !hasSuccessfulContact || !pickupPoints.some(p => p.active)}
+              disabled={actions.acceptOrder.isPending || !hasSuccessfulContact}
               className="btn-primary"
             >
               {actions.acceptOrder.isPending && <LoaderCircle size={18} className="pickup-saving-icon" aria-hidden="true" />}

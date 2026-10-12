@@ -403,8 +403,7 @@ export const SellerSettingsPage: React.FC = () => {
           </div>
 
           <p className="text-xs text-muted mb-3">
-            Các điểm hẹn cố định trong trường học để học sinh lựa chọn khi đặt
-            đơn.
+            Các địa điểm shop gợi ý khi đặt đơn. Khách vẫn có thể nhập địa điểm nhận hàng riêng.
           </p>
 
           {pointsLoading ? <LoadingSpinner message="Đang tải điểm nhận hàng…" />
@@ -456,7 +455,7 @@ export const SellerSettingsPage: React.FC = () => {
         title="Thêm điểm nhận hàng"
       >
         <form onSubmit={handleCreatePoint} className="pickup-point-form" noValidate aria-busy={pointSaving}>
-          <p className="pickup-point-intro">Địa điểm này sẽ xuất hiện để khách chọn khi đặt hàng.</p>
+          <p className="pickup-point-intro">Địa điểm này sẽ xuất hiện trong gợi ý của shop khi khách đặt hàng.</p>
           {pointError && <p id="pickup-point-error" className="pickup-point-error" role="alert">{pointError}</p>}
           <div className="form-group">
             <label className="form-label" htmlFor="pickup-point-name">Tên điểm nhận hàng <span aria-hidden="true">*</span></label>

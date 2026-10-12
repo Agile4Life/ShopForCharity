@@ -37,6 +37,7 @@ test('buy now excludes other cart items and preserves the cart after purchase', 
   await page.locator('#fullName').fill('Nguyễn Văn Test');
   await page.locator('#phone').fill('0912345678');
   await page.locator('#email').fill('test@example.com');
+  await page.locator('#customPickupLocation').fill('Sảnh nhà B');
   await submit(page);
   await expect(page).toHaveURL('/order-success');
   expect(scenario.mutations('/orders')[0].postDataJSON().items).toEqual([{ kind: 'COMBO', catalogId: ids.combo, quantity: 1 }]);
@@ -66,6 +67,7 @@ test('buy now does not add quantities of the same item already in cart, includin
   await page.locator('#fullName').fill('Nguyễn Văn Test');
   await page.locator('#phone').fill('0912345678');
   await page.locator('#email').fill('test@example.com');
+  await page.locator('#customPickupLocation').fill('Sảnh nhà B');
   await submit(page);
   await expect(page).toHaveURL('/order-success');
   expect(scenario.mutations('/orders')[0].postDataJSON().items).toEqual([{ kind: 'PRODUCT', catalogId: ids.product, quantity: 1 }]);

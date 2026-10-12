@@ -53,6 +53,8 @@ for (const method of ['CASH', 'BANK_TRANSFER']) {
     await page.locator('#fullName').fill('Nguyễn Văn Test');
     await page.locator('#phone').fill('0912345678');
     await page.locator('#email').fill('test@example.com');
+    await page.getByRole('radio', { name: /Chọn gợi ý của shop/ }).check();
+    await page.locator('#pickupPointId').selectOption(ids.pickup);
     await page.locator(`input[value="${method}"]`).check();
     await expect(page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeEnabled();
     await submit(page);
@@ -100,6 +102,7 @@ test('checkout validates buyer and preserves cart on stock conflict', async ({ p
   await page.locator('#fullName').fill('Nguyễn Văn Test');
   await page.locator('#phone').fill('0912345678');
   await page.locator('#email').fill('test@example.com');
+  await page.locator('#customPickupLocation').fill('Sảnh nhà B');
   await submit(page);
   await expect(page.getByText('Giá hoặc số lượng vừa thay đổi. Kiểm tra lại đơn trước khi đặt hàng.', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('school_shop_cart_v1')!).length)).toBe(1);

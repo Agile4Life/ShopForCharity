@@ -322,7 +322,7 @@ export class OrderService {
             );
 
             ApiException.check(
-              input.confirmedPickupPointId &&
+              (input.confirmedPickupPointId || o.pickup_name?.trim()) &&
                 input.confirmedPickupAt &&
                 new Date(input.confirmedPickupAt) > now,
               400,
@@ -330,10 +330,12 @@ export class OrderService {
               'Cần xác nhận điểm và thời gian nhận.'
             );
 
-            const pickup = await this.settings.pickup(input.confirmedPickupPointId, client);
-            o.pickup_point_id = pickup.id;
-            o.pickup_name = pickup.name;
-            o.pickup_instructions = pickup.instructions;
+            if (input.confirmedPickupPointId) {
+              const pickup = await this.settings.pickup(input.confirmedPickupPointId, client);
+              o.pickup_point_id = pickup.id;
+              o.pickup_name = pickup.name;
+              o.pickup_instructions = pickup.instructions;
+            }
             o.confirmed_at = new Date(input.confirmedPickupAt);
           }
 

@@ -49,7 +49,7 @@ export class Scenario {
   me = structuredClone(profile);
   order: OrderDetail = {
     id: ids.order, orderCode: 'ORD-TEST001', buyerName: profile.fullName, buyerPhone: profile.phone,
-    buyerEmail: profile.email, pickupPointName: 'Cổng trường', paymentMethod: 'CASH', paymentStatus: 'UNPAID',
+    buyerEmail: profile.email, pickupPointId: ids.pickup, pickupPointName: 'Cổng trường', paymentMethod: 'CASH', paymentStatus: 'UNPAID',
     status: 'PENDING_CONTACT', subtotal: 10000, total: 10000, receivedAmount: 0, version: 7,
     createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     reservationExpiresAt: new Date(Date.now() + 86400000).toISOString(),
@@ -113,6 +113,9 @@ export class Scenario {
       if (path === '/orders' && method === 'POST') {
         if (this.orderError) return error(409, 'INSUFFICIENT_STOCK');
         this.order.paymentMethod = body.paymentMethod;
+        this.order.pickupPointId = body.pickupPointId ?? null;
+        this.order.pickupPointName = body.customPickupLocation ?? this.shop.pickupPoints.find(p => p.id === body.pickupPointId)?.name;
+        this.order.pickupInstructions = body.customPickupInstructions ?? this.shop.pickupPoints.find(p => p.id === body.pickupPointId)?.instructions;
         return ok({ ...this.order, orderId: ids.order, guestAccessToken: this.role === 'GUEST' ? 'secret-test-token' : undefined });
       }
       if (path === '/guest/orders/access') return this.accessError ? error(401, 'INVALID_GUEST_ACCESS') : ok({ success: true });

@@ -73,7 +73,7 @@ export const OrderSuccessPage: React.FC = () => {
 
         <h1 className="success-title">Đã nhận đơn hàng</h1>
         <p className="success-subtitle">
-          Người bán sẽ liên hệ xác nhận thời gian nhận.
+          Người bán sẽ liên hệ để thống nhất địa điểm và thời gian nhận bạn đã chọn.
         </p>
 
         <div className="order-summary-box">

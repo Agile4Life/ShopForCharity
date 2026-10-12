@@ -6,7 +6,7 @@ Backend owns `/api/v1`, frontend files are untouched. Checked FE commits `2b121b
 
 1. `GET /combos`, `/seller/combos`, `/seller/notifications` return `PageResponse<T>` (use `.content`). All lists are bounded/paginated, default size 20, max 100.
 2. Send `{expectedVersion}` for activate/archive, contact-attempt, customer/guest cancel and payment-report; send `{expectedVersion,reason}` for cancellation. Get current version from detail. Missing versions are validation errors. Contact mutates order version; reload order before accepting.
-3. Refund confirmation must send `{expectedVersion,amount,bankReference?,note?}` with amount equal to `receivedAmount` returned to seller. Confirmed pickup requires BOTH point ID and a future timestamp.
+3. Refund confirmation must send `{expectedVersion,amount,bankReference?,note?}` with amount equal to `receivedAmount` returned to seller. The Node backend requires a future confirmed pickup timestamp; omit `confirmedPickupPointId` to keep the customer's saved destination, or supply it to switch to an active shop suggestion after agreement.
 4. Keep the SAME random UUID `Idempotency-Key` when retrying a timed-out operation. Generate a new key only for a new operation or a changed payload. Current `apiFetch` regenerates keys unless supplied explicitly.
 5. Account profile PATCH whitelist: `{fullName?,phone?,expectedVersion}`. Email identity remains managed by Supabase Auth; do not PATCH email/role here.
 6. Inventory version is separate: read `inventoryVersion` from seller product detail; stock adjustment uses it, rather than product `version`.

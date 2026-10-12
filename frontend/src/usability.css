@@ -129,6 +129,32 @@
   to { opacity: 1; transform: translate(-50%, 0); }
 }
 .feedback-notice { animation: feedback-enter 220ms ease-out; }
+.checkout-pickup-section {
+  margin: 1.5rem 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+.checkout-pickup-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .75rem;
+  border: 0;
+  padding: 0;
+  margin: 0 0 1rem;
+  min-width: 0;
+}
+.checkout-pickup-options .payment-radio-card:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--primary-subtle);
+}
+.checkout-pickup-options .payment-radio-card:focus-within {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.checkout-pickup-section [hidden] { display: none; }
+@media (max-width: 600px) {
+  .checkout-pickup-options { grid-template-columns: 1fr; }
+}
 @media (prefers-reduced-motion: reduce) {
   .cart-loading-icon, .feedback-notice { animation: none; }
   .add-to-cart-button { transition: none; }

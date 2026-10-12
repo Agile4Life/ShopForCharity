@@ -206,7 +206,9 @@ export interface CreateOrderRequest {
   quoteToken: string;
   items: QuoteItemRequest[];
   buyer: BuyerInfo;
-  pickupPointId: string;
+  pickupPointId?: string;
+  customPickupLocation?: string;
+  customPickupInstructions?: string;
   requestedPickupAt?: string;
   paymentMethod: PaymentMethod;
   note?: string;
@@ -276,6 +278,7 @@ export interface OrderDetail {
   buyerClass?: string;
   pickupPointName: string;
   pickupInstructions?: string;
+  pickupPointId?: string | null;
   requestedPickupAt?: string;
   confirmedPickupAt?: string;
   note?: string;
@@ -328,7 +331,7 @@ export interface RecordContactAttemptRequest {
 }
 
 export interface AcceptOrderRequest {
-  confirmedPickupPointId: string;
+  confirmedPickupPointId?: string;
   confirmedPickupAt: string;
   expectedVersion: number;
 }
