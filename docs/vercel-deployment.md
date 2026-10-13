@@ -23,7 +23,7 @@ Import repo, Root Directory là root, Framework Preset Vite. `vercel.mjs` cài d
 | IDEMPOTENCY_ENCRYPTION_KEY | Base64 của 32 byte ngẫu nhiên khác signing key |
 | CRON_SECRET | Secret ngẫu nhiên riêng |
 | RESEND_API_KEY | API key Resend, chỉ dùng backend để gửi mail xác nhận đơn |
-| ORDER_EMAIL_FROM | Gói Ấm Cho Em <orders@goiamtraoem.shop>, sau khi xác minh domain trên Resend |
+| ORDER_EMAIL_FROM | Gói Ấm Trao Em <orders@goiamtraoem.shop>, sau khi xác minh domain trên Resend |
 | SUPABASE_URL | HTTPS origin project Supabase |
 | SUPABASE_BACKEND_SECRET_KEY | Credential backend dùng Storage và Admin Auth tạo người bán |
 | SELLER_REGISTRATION_CODE | Mã đăng ký người bán, chỉ đặt ở backend; thiếu thì đóng đăng ký người bán |

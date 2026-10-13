@@ -27,9 +27,64 @@ test('confirmation template escapes buyer/catalog data and uses confirmed Vietna
   assert.match(email.text, /10:30/);
   assert.match(email.text, /20\.000/);
   assert.match(email.text, /đang chờ đối soát/);
+  assert.match(email.text, /Số điện thoại cửa hàng: 0123456789/);
+  assert.match(email.text, /Email hỗ trợ: shop@example.com/);
+  assert.match(email.html, /shop@example.com/);
   assert.match(email.html, /&lt;script&gt;/);
   assert.match(email.html, /&lt;img/);
   assert.doesNotMatch(email.html, /<script>|<img/);
+});
+
+test('confirmation template preserves new and legacy codes, pickup instructions and payment snapshots', () => {
+  for (const orderCode of ['ORD-8K3M7P2Q', 'ORD-ABCDEF1234567890']) {
+    for (const [method, status, methodLabel, statusLabel] of [
+      ['CASH', 'UNPAID', 'Tiền mặt', 'Chưa thanh toán'],
+      ['BANK_TRANSFER', 'REPORTED', 'Chuyển khoản QR', 'Đã báo chuyển khoản, đang chờ đối soát'],
+      ['BANK_TRANSFER', 'PAID', 'Chuyển khoản QR', 'Đã thanh toán'],
+    ]) {
+      const email = orderConfirmationEmail({
+        order_code: orderCode, buyer_name: 'Khách Test', buyer_email: 'buyer@example.com',
+        total: 20000, confirmed_at: '2026-11-01T03:30:00Z', pickup_point_id: null,
+        pickup_name: 'Sảnh nhà B <tầng 2>', pickup_instructions: 'Ghế đá số 3.\nGọi khi đến.',
+        payment_method: method, payment_status: status,
+        guest_access_token: 'private-guest-token', internal_note: 'private-seller-note',
+      }, [{ name_snapshot: 'Bánh Test', quantity: 2, unit_price: 10000, line_total: 20000 }],
+      { name: 'Gói Ấm Trao Em', contact_phone: ' 0389414659 ', contact_email: ' dieuntt1402@gmail.com ' });
+      assert.equal(email.subject, `Đơn hàng ${orderCode} đã được xác nhận thành công`);
+      assert.equal(email.reply_to, 'dieuntt1402@gmail.com');
+      assert.ok(email.text.includes(`Mã đơn hàng: ${orderCode}`));
+      assert.ok(email.html.includes(orderCode));
+      assert.ok(email.text.includes(`Phương thức thanh toán: ${methodLabel}`));
+      assert.ok(email.text.includes(`Trạng thái thanh toán: ${statusLabel}`));
+      assert.ok(email.text.includes('Sảnh nhà B <tầng 2>'));
+      assert.ok(email.text.includes('Ghế đá số 3.\nGọi khi đến.'));
+      assert.ok(email.text.includes('Gói Ấm Trao Em'));
+      assert.match(email.html, /Sảnh nhà B &lt;tầng 2&gt;/);
+      assert.match(email.html, /10:30/);
+      assert.match(email.html, /Số lượng: 2/);
+      assert.match(email.html, /Đơn giá: 10\.000/);
+      assert.doesNotMatch(`${email.text}\n${email.html}`, /private-guest-token|private-seller-note/);
+    }
+  }
+});
+
+test('confirmation template omits empty contacts and invalid reply addresses, and escapes shop/pickup data', () => {
+  const order = {
+    order_code: 'ORD-8K3M7P2Q', buyer_name: 'Khách', buyer_email: 'buyer@example.com', total: 0,
+    confirmed_at: '2026-11-01T03:30:00Z', pickup_name: '<script>pickup</script>',
+    pickup_instructions: '<img src=x onerror=alert(1)>', payment_method: 'CASH', payment_status: 'UNPAID',
+  };
+  for (const contactEmail of [null, ' ', 'invalid', 'shop@example.com\r\nBcc: other@example.com']) {
+    const email = orderConfirmationEmail(order, [], {
+      name: '<script>shop</script>', contact_phone: ' ', contact_email: contactEmail,
+    });
+    assert.equal(Object.hasOwn(email, 'reply_to'), false);
+    assert.doesNotMatch(email.text, /Số điện thoại cửa hàng|Email hỗ trợ|Bcc:/);
+    assert.match(email.html, /&lt;script&gt;shop&lt;\/script&gt;/);
+    assert.match(email.html, /&lt;script&gt;pickup&lt;\/script&gt;/);
+    assert.match(email.html, /&lt;img/);
+    assert.doesNotMatch(email.html, /<script>|<img/);
+  }
 });
 
 test('order confirmation: transactional outbox, post-commit send, replay, failures and worker recovery', async t => {

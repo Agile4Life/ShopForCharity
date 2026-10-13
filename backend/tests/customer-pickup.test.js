@@ -8,6 +8,7 @@ import { applyMigrations } from '../src/migrations/migrate.js';
 import { CheckoutService } from '../src/order/checkout-service.js';
 import { OrderService } from '../src/order/order-service.js';
 import { ShopService } from '../src/shop/shop-service.js';
+import { OrderEmailService } from '../src/infrastructure/order-email-service.js';
 
 test('customer pickup: checkout persists destinations, validates choices and seller keeps the requested location', async t => {
   const db = new PGlite();
@@ -20,9 +21,15 @@ test('customer pickup: checkout persists destinations, validates choices and sel
   pool.connect = async () => ({ query: sql, release() {} });
   pool.query = sql;
   const checkout = new CheckoutService();
+  const messages = [];
+  const email = new OrderEmailService({ shopId: config.shopId,
+    email: { apiKey: 'test-key', from: 'Shop <orders@example.com>' } }, async (_url, options) => {
+    messages.push(JSON.parse(options.body));
+    return new Response(JSON.stringify({ id: `provider-${messages.length}` }), { status: 200 });
+  });
   const orders = new OrderService(undefined, undefined, undefined, undefined, undefined, undefined,
     { async image() { return null; }, async imageUrl() { return null; } },
-    { async enqueue() {}, async deliverSafely() {} });
+    email);
   const guest = { id: null, type: 'GUEST', scope: 'guest:checkout:pickup-test' };
   const seller = { id: randomUUID(), type: 'SELLER', scope: 'seller:pickup-test' };
   const productId = randomUUID(), pickupId = randomUUID();
@@ -60,13 +67,30 @@ test('customer pickup: checkout persists destinations, validates choices and sel
       assert.equal(detail.pickupPointName, row.pickup_name);
       assert.equal(detail.pickupInstructions, row.pickup_instructions);
       await orders.contact(seller, created.orderId, randomUUID(), { expectedVersion: 0, channel: 'PHONE', outcome: 'SUCCESS' });
-      const accepted = await orders.action(seller, created.orderId, true, 'accept', randomUUID(), {
-        expectedVersion: 1, confirmedPickupAt: new Date(Date.now() + 3600000).toISOString(),
-      });
+      await db.query('UPDATE shop.shops SET name=$1,contact_phone=$2,contact_email=$3 WHERE id=$4',
+        ['Shop đã cập nhật', '0389414659', 'support@example.com', config.shopId]);
+      const keyAccept = randomUUID();
+      const confirmation = { expectedVersion: 1, confirmedPickupAt: new Date(Date.now() + 3600000).toISOString() };
+      const accepted = await orders.action(seller, created.orderId, true, 'accept', keyAccept, confirmation);
       assert.equal(accepted.status, 'ACCEPTED');
       assert.equal(accepted.pickupPointId, null);
       assert.equal(accepted.pickupPointName, row.pickup_name);
       assert.equal(accepted.pickupInstructions, row.pickup_instructions);
+      assert.equal(accepted.confirmationEmail.status, 'SENT');
+      assert.equal(messages.length, 1);
+      const message = messages[0];
+      assert.deepEqual(message.to, ['buyer@example.com']);
+      assert.equal(message.reply_to, 'support@example.com');
+      assert.ok(message.text.includes(`Mã đơn hàng: ${created.orderCode}`));
+      assert.ok(message.text.includes('Điểm nhận hàng: Sảnh nhà B'));
+      assert.ok(message.text.includes('Ghế đá số 3.\nGọi khi đến.'));
+      assert.ok(message.text.includes('Shop đã cập nhật'));
+      assert.ok(message.text.includes('Số điện thoại cửa hàng: 0389414659'));
+      assert.ok(message.text.includes('Email hỗ trợ: support@example.com'));
+      assert.match(message.text, /Bánh Test × 1/);
+      assert.ok(!`${message.text}\n${message.html}`.includes(created.guestAccessToken));
+      assert.deepEqual(await orders.action(seller, created.orderId, true, 'accept', keyAccept, confirmation), accepted);
+      assert.equal(messages.length, 1, 'replaying a custom destination confirmation must not send twice');
     });
 
     await t.test('shop suggestions still snapshot name/instructions and reject inactive or missing points', async () => {

@@ -6,14 +6,16 @@ Luồng UI của người bán kết thúc tại xác nhận: liên hệ thành 
 
 Danh sách mặc định lọc đơn chờ xác nhận. Đơn đã xác nhận có nhãn “Đã xử lý” và nút “Xem đơn”. Tổng quan tính đơn xác nhận vào số đơn đã xử lý và chỉ ghi doanh thu khi `PAID`, bao gồm các trạng thái của đơn cũ. Chi tiết người bán trả `confirmationEmail` với `status` và `sentAt`; UI phân biệt đã gửi, đang chờ gửi, lỗi gửi hoặc chưa có thông tin. `SENT` là nhà cung cấp đã tiếp nhận thư, chưa bảo đảm thư đến hộp thư khách. Không trả nội dung outbox/lỗi provider cho trình duyệt hoặc trạng thái gửi cho khách hàng.
 
-Nội dung tiếng Việt gồm mã đơn, tên khách, sản phẩm/số lượng/đơn giá/thành tiền, tổng tiền, phương thức và trạng thái thanh toán, điểm nhận, lịch nhận đã chốt theo giờ Việt Nam và hướng dẫn nhận. Thông tin liên hệ cửa hàng được thêm nếu đã cấu hình. Dữ liệu lấy từ bản chụp đơn hàng; không gửi token truy cập, ghi chú nội bộ hay thông tin đối soát của người bán.
+Nội dung tiếng Việt gồm mã đơn, tên khách, sản phẩm/số lượng/đơn giá/thành tiền, tổng tiền, phương thức và trạng thái thanh toán, điểm nhận, lịch nhận đã chốt theo giờ Việt Nam và hướng dẫn nhận. Số điện thoại và email hỗ trợ được hiển thị nếu đã cấu hình; email hợp lệ cũng được dùng làm `reply_to`. Tên shop và thông tin liên hệ lấy từ cấu hình shop lúc xác nhận, không lấy từ footer frontend. Đổi thông tin trong **Thiết lập shop** để email mới dùng thông tin mới; `ORDER_EMAIL_FROM` cấu hình riêng tên/địa chỉ người gửi.
+
+Mã mới `ORD-` + 8 ký tự và mã cũ đều giữ nguyên trong nội dung/tiêu đề email. Điểm nhận/chỉ dẫn lấy từ bản chụp đơn sau khi chốt: giữ địa điểm khách tự nhập hoặc dùng điểm shop nếu người bán đã đổi sau khi thống nhất. Lịch nhận dùng `confirmed_at` theo múi giờ `Asia/Ho_Chi_Minh`. Sản phẩm/giá lấy từ bản chụp khi đặt đơn. Không gửi token truy cập, ghi chú nội bộ hay thông tin đối soát của người bán. HTML dùng bảng bố cục, bảng sản phẩm hai cột với số lượng/đơn giá dưới tên, và xếp nhãn/thông tin thành từng dòng ở màn hình nhỏ; luôn kèm bản plain text.
 
 ## Cấu hình
 
 1. Trong [Resend](https://resend.com/docs/dashboard/domains/introduction), thêm domain gửi email `goiamtraoem.shop`, cấu hình các bản ghi DNS theo thông tin Resend hiển thị và chờ domain được xác minh. Sau đó tạo API key có quyền gửi email.
 2. Đặt hai biến **chỉ ở backend/Vercel Environment Variables**:
    - `RESEND_API_KEY`: API key Resend.
-   - `ORDER_EMAIL_FROM`: `Gói Ấm Cho Em <orders@goiamtraoem.shop>` sau khi domain được xác minh.
+   - `ORDER_EMAIL_FROM`: `Gói Ấm Trao Em <orders@goiamtraoem.shop>` sau khi domain được xác minh.
 3. Chạy `npm.cmd --prefix backend run migrate` bằng migration owner để áp dụng `V7__order_confirmation_email.sql`, sau đó triển khai mã mới. Không bật migration trong request Vercel. Migration cấp quyền/policy cho role chuẩn `shop_runtime`; role runtime có tên khác cần owner cấp quyền DML và policy RLS tương đương trên bảng mới.
 4. `npm.cmd run prepare:vercel` đã hỗ trợ xuất hai biến email từ cấu hình backend. Không đặt key trong biến `VITE_*`.
 5. Trên môi trường thử nghiệm, duyệt đơn dùng email bạn quản lý, kiểm tra email đến và trạng thái bản ghi trong `shop.order_email_outbox`. Chưa có API key/domain thật thì chưa thể kiểm chứng gửi mail thực tế.
