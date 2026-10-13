@@ -1,0 +1,21 @@
+.customer-order-views {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.order-history-signin {
+  padding: clamp(24px, 4vw, 40px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--bg-card);
+}
+
+.order-history-signin h2 { margin: 0 0 12px; }
+.order-history-signin p { max-width: 680px; margin: 0 0 24px; color: var(--text-muted); line-height: 1.7; }
+
+@media (max-width: 480px) {
+  .customer-order-views { gap: 8px; }
+  .customer-order-views button { flex: 1; padding-inline: 12px; font-size: 14px; }
+}

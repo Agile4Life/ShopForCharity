@@ -1,0 +1,20 @@
+.seller-log-views { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.confirmed-history-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.confirmed-history-summary dt { font-size: 14px; color: var(--text-muted); }
+.confirmed-history-summary dd { margin: 8px 0 0; font-size: clamp(20px, 2.4vw, 28px); font-weight: 700; overflow-wrap: anywhere; }
+.confirmed-history-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.confirmed-history-table .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.confirmed-history-table th { text-align: left; font-size: 13px; color: var(--text-muted); }
+.confirmed-history-table :is(th, td) { padding: 14px 10px; vertical-align: top; border-bottom: 1px solid var(--border-color); overflow-wrap: anywhere; }
+.confirmed-history-table td { font-size: 14px; }
+.confirmed-history-table th:first-child { width: 18%; }
+.confirmed-history-table th:last-child { width: 23%; }
+@media (max-width: 768px) {
+  .confirmed-history-summary { grid-template-columns: 1fr; gap: 12px; }
+  .confirmed-history-table, .confirmed-history-table tbody { display: block; }
+  .confirmed-history-table thead { display: none; }
+  .confirmed-history-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--border-color); }
+  .confirmed-history-table td { display: block; min-width: 0; padding: 0; border: 0; }
+  .confirmed-history-table td:first-child { grid-column: 1 / -1; }
+  .confirmed-history-table td::before { content: attr(data-label); display: block; margin-bottom: 6px; font-size: 12px; color: var(--text-muted); }
+}

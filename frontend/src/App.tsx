@@ -2,7 +2,7 @@ import { LoadingSpinner } from "./components/LoadingSpinner";
 import { NetworkActivity } from "./components/NetworkActivity";
 import { lazyPage } from "./lib/lazy-page";
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/query-client";
 import { AuthProvider } from "./features/auth/auth-context";
@@ -57,11 +57,6 @@ const OrderSuccessPage = lazyPage(() =>
 );
 
 // Orders Tracking
-const GuestOrderLookupPage = lazyPage(() =>
-  import("./features/orders/GuestOrderLookupPage").then((module) => ({
-    default: module.GuestOrderLookupPage,
-  })),
-);
 const CustomerOrdersPage = lazyPage(() =>
   import("./features/orders/CustomerOrdersPage").then((module) => ({
     default: module.CustomerOrdersPage,
@@ -157,6 +152,11 @@ const SellerLogsPage = lazyPage(() =>
 const CustomerChatPage = lazyPage(() => import('./features/chat/ChatPage').then(m => ({ default: m.CustomerChatPage })));
 const SellerChatPage = lazyPage(() => import('./features/chat/ChatPage').then(m => ({ default: m.SellerChatPage })));
 
+function LegacyOrderLookupRedirect() {
+  const { state } = useLocation();
+  return <Navigate to="/account/orders?view=lookup" state={state} replace />;
+}
+
 export const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
@@ -195,7 +195,7 @@ export const App: React.FC = () => {
                       />
                       <Route
                         path="/guest-order"
-                        element={<GuestOrderLookupPage />}
+                        element={<LegacyOrderLookupRedirect />}
                       />
 
                       {/* Auth */}
@@ -215,16 +215,12 @@ export const App: React.FC = () => {
                         element={<AuthCallbackPage />}
                       />
 
-                      {/* Customer Account (Protected) */}
+                      {/* Orders hub is public; account history requires sign-in. */}
                       <Route path="/account/chat" element={<ProtectedRoute><CustomerChatPage /></ProtectedRoute>} />
                       <Route path="/seller/chat" element={<SellerRoute><SellerChatPage /></SellerRoute>} />
                       <Route
                         path="/account/orders"
-                        element={
-                          <ProtectedRoute>
-                            <CustomerOrdersPage />
-                          </ProtectedRoute>
-                        }
+                        element={<CustomerOrdersPage />}
                       />
                       <Route
                         path="/account/orders/:orderId"

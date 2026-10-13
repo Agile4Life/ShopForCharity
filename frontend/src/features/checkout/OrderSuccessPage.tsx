@@ -175,7 +175,7 @@ export const OrderSuccessPage: React.FC = () => {
           <Link
             to={
               order.guestAccessToken
-                ? "/guest-order"
+                ? "/account/orders?view=lookup"
                 : `/account/orders/${order.orderId}`
             }
             state={

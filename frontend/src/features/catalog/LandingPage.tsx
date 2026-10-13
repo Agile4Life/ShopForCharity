@@ -369,8 +369,8 @@ export function LandingPage() {
           <div>
             <h2>Cách nhận hàng</h2>
           </div>
-          <Link to="/guest-order" className="text-link">
-            Tra cứu đơn <ArrowRight size={18} aria-hidden="true" />
+          <Link to="/account/orders" className="text-link">
+            Đơn hàng của tôi <ArrowRight size={18} aria-hidden="true" />
           </Link>
         </div>
         <ol className="workshop-steps">

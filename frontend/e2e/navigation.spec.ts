@@ -17,7 +17,7 @@ test('logout removes account session and blocks protected pages', async ({ page,
   await page.getByRole('button', { name: 'Đăng xuất', exact: true }).first().click();
   await expect(page).toHaveURL('/');
   expect(await page.evaluate(() => localStorage.getItem('sb-127-auth-token'))).toBeNull();
-  await page.goto('/account/orders');
+  await page.goto(`/account/orders/${ids.order}`);
   await expect(page).toHaveURL('/login');
 });
 

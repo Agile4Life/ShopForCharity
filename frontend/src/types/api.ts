@@ -454,3 +454,21 @@ export interface AuditLogItem {
   requestId?: string;
   createdAt: string;
 }
+
+export interface ConfirmedOrderHistoryItem {
+  id: string;
+  orderCode: string;
+  buyerName: string;
+  buyerPhone: string;
+  pickupPointName: string;
+  pickupAt: string | null;
+  acceptedAt: string | null;
+  acceptedBy: string | null;
+  total: number;
+  paymentStatus: PaymentStatus;
+  status: OrderStatus;
+}
+
+export interface ConfirmedOrderHistory extends PageResponse<ConfirmedOrderHistoryItem> {
+  summary: { totalValue: number; paidValue: number };
+}

@@ -250,7 +250,7 @@ export function MobileNavigation() {
         </span>
         <span>Giỏ hàng</span>
       </NavLink>
-      <NavLink to={isAuthenticated ? "/account/orders" : "/guest-order"}>
+      <NavLink to="/account/orders">
         <Search size={21} aria-hidden="true" />
         <span>Đơn hàng</span>
       </NavLink>
@@ -264,7 +264,8 @@ export function MobileNavigation() {
 
 export function AccountNavigation() {
   const { pathname } = useLocation();
-  if (!pathname.startsWith("/account")) return null;
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated || !pathname.startsWith("/account")) return null;
   return (
     <nav className="account-navigation container" aria-label="Tài khoản">
       <NavLink to="/account/orders">Đơn hàng</NavLink>

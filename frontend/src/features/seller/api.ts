@@ -31,6 +31,7 @@ import type {
   PickupPoint,
   NotificationItem,
   AuditLogItem,
+  ConfirmedOrderHistory,
   AssetUploadResponse,
   AssetType,
 } from "../../types/api";
@@ -107,6 +108,8 @@ export function useSellerOrderActions(orderId: string) {
     queryClient.invalidateQueries({ queryKey: ["seller-order", orderId] }),
     queryClient.invalidateQueries({ queryKey: ["seller-orders"] }),
     queryClient.invalidateQueries({ queryKey: ["seller-dashboard"] }),
+    queryClient.invalidateQueries({ queryKey: ["seller-confirmed-orders"] }),
+    queryClient.invalidateQueries({ queryKey: ["seller-audit-logs"] }),
   ]);
   const invalidate = async (order: OrderDetail) => {
     queryClient.setQueryData(["seller-order", orderId], order);
@@ -605,5 +608,22 @@ export function useSellerAuditLogs(filters: AuditLogFilters = {}) {
   return useQuery({
     queryKey: ["seller-audit-logs", filters],
     queryFn: () => getSellerAuditLogs(filters),
+  });
+}
+
+export interface ConfirmedOrderFilters {
+  orderCode?: string;
+  date?: string;
+  page?: number;
+  size?: number;
+}
+
+export function useSellerConfirmedOrders(filters: ConfirmedOrderFilters = {}) {
+  return useQuery({
+    queryKey: ["seller-confirmed-orders", filters],
+    queryFn: () => apiFetch<ConfirmedOrderHistory>("/seller/confirmed-orders", {
+      params: { ...filters, page: filters.page ?? 0, size: filters.size ?? 20 },
+      skipIdempotency: true,
+    }),
   });
 }

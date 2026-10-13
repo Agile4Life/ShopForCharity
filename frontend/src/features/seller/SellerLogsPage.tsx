@@ -7,8 +7,26 @@ import { ErrorMessage } from "../../components/ErrorMessage";
 import { EmptyState } from "../../components/EmptyState";
 import { DatePicker } from "../../components/DatePicker";
 import { AUDIT_ACTION_LABELS, AUDIT_ACTOR_LABELS, AUDIT_ENTITY_LABELS, formatAuditDetails } from "./audit-display";
+import { ConfirmedOrderHistory } from "./ConfirmedOrderHistory";
 
 export const SellerLogsPage: React.FC = () => {
+  const [view, setView] = useState<"all" | "confirmed">("all");
+  return <div className="seller-logs-page container">
+    <div className="flex-between mb-4"><div>
+      <h1 className="page-title flex items-center gap-2"><FileText size={24} /> Nhật ký</h1>
+      <p className="text-muted text-sm">Xem lịch sử đơn hàng, tồn kho và thiết lập cửa hàng.</p>
+    </div></div>
+    <nav className="seller-log-views" aria-label="Mục nhật ký">
+      <button type="button" aria-pressed={view === "all"} className={view === "all" ? "btn-primary-sm" : "btn-secondary-sm"}
+        onClick={() => setView("all")}>Tất cả hoạt động</button>
+      <button type="button" aria-pressed={view === "confirmed"} className={view === "confirmed" ? "btn-primary-sm" : "btn-secondary-sm"}
+        onClick={() => setView("confirmed")}>Đơn đã xác nhận</button>
+    </nav>
+    {view === "all" ? <AuditLogHistory /> : <ConfirmedOrderHistory />}
+  </div>;
+};
+
+function AuditLogHistory() {
   const [actionFilter, setActionFilter] = useState("");
   const [entityFilter, setEntityFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
@@ -25,18 +43,7 @@ export const SellerLogsPage: React.FC = () => {
   const logs = data?.content || [];
 
   return (
-    <div className="seller-logs-page container">
-      <div className="flex-between mb-4">
-        <div>
-          <h1 className="page-title flex items-center gap-2">
-            <FileText size={24} /> Nhật ký
-          </h1>
-          <p className="text-muted text-sm">
-            Xem lịch sử đơn hàng, tồn kho và thiết lập cửa hàng.
-          </p>
-        </div>
-      </div>
-
+    <section aria-label="Tất cả hoạt động">
       {/* Filter toolbar */}
       <div className="card mb-4">
         <div className="filter-grid">
@@ -178,6 +185,6 @@ export const SellerLogsPage: React.FC = () => {
           )}
         </div>
       )}
-    </div>
+    </section>
   );
-};
+}

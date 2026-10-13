@@ -41,9 +41,6 @@ export function Footer() {
           <Link to="/#catalog">
             Gian hàng <ArrowUpRight size={16} aria-hidden="true" />
           </Link>
-          <Link to="/guest-order">
-            Tra cứu đơn hàng <ArrowUpRight size={16} aria-hidden="true" />
-          </Link>
           <Link to="/account/orders">
             Đơn hàng của tôi <ArrowUpRight size={16} aria-hidden="true" />
           </Link>

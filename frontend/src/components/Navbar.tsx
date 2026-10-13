@@ -79,8 +79,8 @@ export function Navbar() {
             <Link to="/#combos" className="nav-link">
               Combo
             </Link>
-            <NavLink to="/guest-order" className="nav-link">
-              Tra cứu đơn
+            <NavLink to="/account/orders" className="nav-link">
+              Đơn hàng của tôi
             </NavLink>
             {isSeller && (
               <NavLink to="/seller" className="nav-link seller-badge-link">
@@ -165,11 +165,10 @@ export function Navbar() {
             <Link to="/#combos" onClick={() => setOpen(false)}>
               Combo
             </Link>
-            <NavLink to="/guest-order">Tra cứu đơn</NavLink>
+            <NavLink to="/account/orders">Đơn hàng của tôi</NavLink>
             <NavLink to="/cart">Giỏ đồ ({totalQuantity})</NavLink>
             {isAuthenticated ? (
               <>
-                <NavLink to="/account/orders">Đơn hàng của tôi</NavLink>
                 <NavLink to="/account/profile">Thông tin tài khoản</NavLink>
                 <NavLink to={isSeller ? '/seller/chat' : '/account/chat'}>Tin nhắn</NavLink>
                 {isSeller && <NavLink to="/seller">Bàn làm việc</NavLink>}

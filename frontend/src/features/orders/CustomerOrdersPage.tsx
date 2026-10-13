@@ -1,7 +1,10 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ShoppingBag, ArrowRight } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ShoppingBag, ArrowRight, Search } from "lucide-react";
 import { useCustomerOrders } from "./api";
+import { useAuth } from "../auth/auth-context";
+import { GuestOrderLookup } from "./GuestOrderLookupPage";
+import "./customer-orders.css";
 import {
   OrderStatusBadge,
   PaymentStatusBadge,
@@ -12,6 +15,48 @@ import { EmptyState } from "../../components/EmptyState";
 import { OrderCode } from "../../components/OrderCode";
 
 export const CustomerOrdersPage: React.FC = () => {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const lookup = searchParams.get("view") === "lookup";
+
+  const selectView = (view: "history" | "lookup") => {
+    const next = new URLSearchParams(searchParams);
+    if (view === "lookup") next.set("view", "lookup");
+    else next.delete("view");
+    setSearchParams(next);
+  };
+
+  return (
+    <div className="customer-orders-page container">
+      <h1 className="page-title">
+        <ShoppingBag size={24} aria-hidden="true" /> Đơn hàng của tôi
+      </h1>
+      <nav className="customer-order-views" aria-label="Các mục đơn hàng">
+        <button type="button" className={lookup ? "btn-secondary" : "btn-primary"}
+          aria-pressed={!lookup} onClick={() => selectView("history")}>
+          <ShoppingBag size={18} aria-hidden="true" /> Lịch sử đặt hàng
+        </button>
+        <button type="button" className={lookup ? "btn-primary" : "btn-secondary"}
+          aria-pressed={lookup} onClick={() => selectView("lookup")}>
+          <Search size={18} aria-hidden="true" /> Tra cứu đơn
+        </button>
+      </nav>
+      {lookup ? <GuestOrderLookup /> : isLoading ? (
+        <LoadingSpinner message="Đang tải thông tin tài khoản..." />
+      ) : isAuthenticated ? <CustomerOrderHistory key={user?.id} /> : (
+        <section className="order-history-signin" aria-labelledby="order-history-signin-title">
+          <h2 id="order-history-signin-title">Đăng nhập để xem lịch sử đặt hàng</h2>
+          <p>Các đơn hàng bạn đặt khi đã đăng nhập sẽ được lưu tại đây. Nếu đặt hàng không đăng nhập, chọn “Tra cứu đơn” để tìm bằng mã đơn và khóa truy cập.</p>
+          <Link to="/login" state={{ from: { pathname: "/account/orders" } }} className="btn-primary">
+            Đăng nhập xem lịch sử <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </section>
+      )}
+    </div>
+  );
+};
+
+const CustomerOrderHistory: React.FC = () => {
   const navigate = useNavigate();
   const [page, setPage] = useState(0);
   const { data, isLoading, error, refetch } = useCustomerOrders(page, 20);
@@ -31,11 +76,7 @@ export const CustomerOrdersPage: React.FC = () => {
   const orders = data?.content || [];
 
   return (
-    <div className="customer-orders-page container">
-      <h1 className="page-title">
-        <ShoppingBag size={24} /> Đơn hàng của tôi
-      </h1>
-
+    <section aria-label="Lịch sử đặt hàng">
       {orders.length === 0 ? (
         <EmptyState
           title="Bạn chưa có đơn hàng nào"
@@ -118,6 +159,6 @@ export const CustomerOrdersPage: React.FC = () => {
           )}
         </div>
       )}
-    </div>
+    </section>
   );
 };

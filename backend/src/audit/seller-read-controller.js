@@ -55,4 +55,13 @@ router.get('/audit-logs', requireSeller, async (req, res, next) => {
   }
 });
 
+router.get('/confirmed-orders', requireSeller, async (req, res, next) => {
+  try {
+    const { orderCode, date, page = 0, size = 20 } = req.query;
+    res.json(await service.confirmedOrders(req.actor, { orderCode, date, page: Number(page), size }));
+  } catch (err) {
+    next(err);
+  }
+});
+
 export const sellerReadRouter = router;

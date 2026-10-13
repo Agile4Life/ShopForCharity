@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { ApiError, apiFetch } from "../../lib/api-client";
 import { POLL_INTERVAL_ORDERS } from "../../lib/query-client";
+import { useAuth } from "../auth/auth-context";
 import type {
   OrderDetail,
   PageResponse,
@@ -123,9 +124,11 @@ function refreshOnConflict(client: QueryClient, key: string[], error: Error) {
 }
 
 export function useCustomerOrders(page = 0, size = 20) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ["customer-orders", page, size],
+    queryKey: ["customer-orders", user?.id, page, size],
     queryFn: () => getCustomerOrders(page, size),
+    enabled: !!user,
     refetchInterval: POLL_INTERVAL_ORDERS,
   });
 }

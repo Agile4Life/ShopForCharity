@@ -13,7 +13,7 @@ import { normalizeOrderCode } from "../../components/OrderCode";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 
-export const GuestOrderLookupPage: React.FC = () => {
+export const GuestOrderLookup: React.FC = () => {
   const { state } = useLocation();
   const credentials = state as {
     orderCode?: string;
@@ -82,13 +82,13 @@ export const GuestOrderLookupPage: React.FC = () => {
   };
 
   return (
-    <div className="guest-order-page container">
+    <div className="guest-order-page">
       {!currentOrderCode ? (
         <div className="lookup-card card max-w-md mx-auto">
           <div className="lookup-icon-wrap">
             <Key size={36} className="text-primary" />
           </div>
-          <h1 className="lookup-title">Tra cứu đơn hàng</h1>
+          <h2 className="lookup-title">Tra cứu đơn hàng</h2>
           <p className="lookup-desc text-muted text-sm">
             Nhập mã đơn và khóa truy cập nhận được sau khi đặt hàng.
           </p>
