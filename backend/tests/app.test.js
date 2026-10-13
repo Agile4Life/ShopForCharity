@@ -8,6 +8,8 @@ test('GET /actuator/health returns UP', async () => {
   assert.equal(res.status, 200);
   assert.equal(res.body.status, 'UP');
   assert.equal(res.headers['cache-control'], 'no-store');
+  assert.equal(res.headers['x-content-type-options'], 'nosniff');
+  assert.equal(res.headers['x-frame-options'], 'DENY');
 });
 
 test('GET /actuator/health/liveness returns UP', async () => {

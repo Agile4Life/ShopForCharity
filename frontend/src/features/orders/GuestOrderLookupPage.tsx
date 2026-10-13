@@ -12,6 +12,7 @@ import { OrderDetailView } from "./OrderDetailView";
 import { normalizeOrderCode } from "../../components/OrderCode";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
+import { ApiError } from "../../lib/api-client";
 
 export const GuestOrderLookup: React.FC = () => {
   const { state } = useLocation();
@@ -43,6 +44,7 @@ export const GuestOrderLookup: React.FC = () => {
 
   const cancelMutation = useCancelGuestOrder();
   const reportPaymentMutation = useReportGuestPayment();
+  const accessDenied = orderError instanceof ApiError && [401, 403, 404].includes(orderError.status);
 
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,7 +159,7 @@ export const GuestOrderLookup: React.FC = () => {
 
           {orderLoading ? (
             <LoadingSpinner message="Đang tải dữ liệu đơn hàng..." />
-          ) : orderError && !order ? (
+          ) : orderError && (!order || accessDenied) ? (
             <ErrorMessage error={orderError} onRetry={refetchOrder} />
           ) : order ? (
             <OrderDetailView

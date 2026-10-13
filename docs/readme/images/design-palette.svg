@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="180" viewBox="0 0 1200 180" role="img" aria-labelledby="title desc">
+  <title id="title">Gói Ấm Trao Em — bảng màu thiết kế</title>
+  <desc id="desc">Xanh rừng #284B37, giấy kem #F8F3E7, cam đất #B4482D, hồng #F4AFC1, vàng #F5D17B và xanh sage #DEE8C8.</desc>
+  <rect width="1200" height="180" rx="20" fill="#F8F3E7"/>
+  <g font-family="Arial, sans-serif" font-size="16" font-weight="700">
+    <rect width="200" height="180" rx="20" fill="#284B37"/>
+    <rect x="180" width="20" height="180" fill="#284B37"/>
+    <text x="24" y="125" fill="#FFF8E8">XANH RỪNG</text>
+    <text x="24" y="151" fill="#FFF8E8" font-weight="400">#284B37</text>
+    <text x="224" y="125" fill="#284B37">GIẤY KEM</text>
+    <text x="224" y="151" fill="#284B37" font-weight="400">#F8F3E7</text>
+    <rect x="400" width="200" height="180" fill="#B4482D"/>
+    <text x="424" y="125" fill="#FFF8E8">CAM ĐẤT</text>
+    <text x="424" y="151" fill="#FFF8E8" font-weight="400">#B4482D</text>
+    <rect x="600" width="200" height="180" fill="#F4AFC1"/>
+    <text x="624" y="125" fill="#284B37">HỒNG</text>
+    <text x="624" y="151" fill="#284B37" font-weight="400">#F4AFC1</text>
+    <rect x="800" width="200" height="180" fill="#F5D17B"/>
+    <text x="824" y="125" fill="#284B37">VÀNG ẤM</text>
+    <text x="824" y="151" fill="#284B37" font-weight="400">#F5D17B</text>
+    <rect x="1000" width="200" height="180" rx="20" fill="#DEE8C8"/>
+    <rect x="1000" width="20" height="180" fill="#DEE8C8"/>
+    <text x="1024" y="125" fill="#284B37">XANH SAGE</text>
+    <text x="1024" y="151" fill="#284B37" font-weight="400">#DEE8C8</text>
+  </g>
+</svg>

@@ -4,6 +4,7 @@ import { optionalAuth } from '../identity/auth-middleware.js';
 import { getGuestSessions } from '../identity/guest-sessions.js';
 import { getCheckoutService } from './checkout-service.js';
 import { rateLimiter } from '../identity/request-filter.js';
+import { clientIp } from '../identity/rate-limiter.js';
 import { ApiException } from '../common/api-exception.js';
 
 const router = Router();
@@ -55,7 +56,8 @@ router.post('/orders', optionalAuth, async (req, res, next) => {
       actor = sessions.checkoutActor(req.cookies?.checkout_session);
     }
 
-    if (!await rateLimiter.allow(`create:${actor.scope}`, 5)) {
+    if (!await rateLimiter.allow(`create-ip:${clientIp(req)}`, 20)
+      || !await rateLimiter.allow(`create:${actor.scope}`, 5)) {
       res.setHeader('Retry-After', '60');
       throw new ApiException(429, 'RATE_LIMITED', 'Vui lòng thử lại sau.');
     }

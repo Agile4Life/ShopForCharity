@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { User, Session } from "@supabase/supabase-js";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
-import { apiFetch } from "../../lib/api-client";
+import { apiFetch, resetMutationRequests } from "../../lib/api-client";
 import type { Profile, Role } from "../../types/api";
 import { userErrorMessage } from "../../lib/user-errors";
 import { notifyError } from "../../lib/feedback";
@@ -38,12 +39,14 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [profileError, setProfileError] = useState<unknown>(null);
   const profileRequest = useRef(0);
+  const cacheIdentity = useRef<string | null | undefined>(undefined);
 
   const fetchProfile = async (accessToken?: string) => {
     const request = ++profileRequest.current;
@@ -67,13 +70,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     let mounted = true;
+    const applySession = (nextSession: Session | null, signedOut = false) => {
+      const identity = nextSession?.user.id ?? null;
+      if (signedOut || cacheIdentity.current !== identity) {
+        ++profileRequest.current;
+        setProfile(null);
+        setProfileError(null);
+        void queryClient.cancelQueries();
+        queryClient.clear();
+        resetMutationRequests();
+      }
+      cacheIdentity.current = identity;
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+    };
 
     // Check initial session
     withRequestDeadline(() => supabase.auth.getSession()).then(({ data: { session }, error }) => {
       if (!mounted) return;
       if (error) throw error;
-      setSession(session);
-      setUser(session?.user ?? null);
+      applySession(session);
       if (session) {
         fetchProfile(session.access_token).finally(() => {
           if (mounted) setIsLoading(false);
@@ -88,10 +104,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     // Listen to auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (!mounted) return;
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
+      applySession(newSession, event === "SIGNED_OUT");
       if (newSession) {
         void fetchProfile(newSession.access_token).finally(() => {
           if (mounted) setIsLoading(false);
@@ -109,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       ++profileRequest.current;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [queryClient]);
 
   const login = async (email: string, password: string) => {
     const { data, error } = await withRequestDeadline(() => supabase.auth.signInWithPassword({
@@ -151,6 +166,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const { error } = await withRequestDeadline(() => supabase.auth.signOut(), { write: true });
     if (error) throw error;
     ++profileRequest.current;
+    void queryClient.cancelQueries();
+    queryClient.clear();
+    resetMutationRequests();
+    cacheIdentity.current = null;
     setUser(null);
     setSession(null);
     setProfile(null);

@@ -10,6 +10,7 @@ import {
 import { OrderDetailView } from "./OrderDetailView";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
+import { ApiError } from "../../lib/api-client";
 
 export const CustomerOrderDetailPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -32,7 +33,8 @@ export const CustomerOrderDetailPage: React.FC = () => {
     return <LoadingSpinner message="Đang tải chi tiết đơn hàng..." />;
   }
 
-  if (!order) {
+  const accessDenied = error instanceof ApiError && [401, 403, 404].includes(error.status);
+  if (!order || accessDenied) {
     return (
       <div className="container mt-4">
         <Link to="/account/orders" className="btn-back">

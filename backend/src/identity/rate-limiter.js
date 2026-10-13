@@ -1,6 +1,13 @@
 import { createHash } from 'node:crypto';
 import { query } from '../common/db.js';
 
+export function clientIp(req) {
+  // Trust only the header overwritten by Vercel, never arbitrary forwarded IPs.
+  return process.env.VERCEL === '1'
+    ? req.headers['x-vercel-forwarded-for'] || req.socket.remoteAddress || 'unknown'
+    : req.socket.remoteAddress || 'unknown';
+}
+
 export class RateLimiter {
   constructor(runQuery = query) { this.runQuery = runQuery; }
 

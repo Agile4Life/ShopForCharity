@@ -43,21 +43,32 @@ export interface RequestOptions extends Omit<RequestInit, "body"> {
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 const pendingWrites = new Map<string, Promise<unknown>>();
 const retryKeys = new Map<string, { key: string; createdAt: number }>();
+let mutationGeneration = 0;
+
+export function resetMutationRequests() {
+  mutationGeneration++;
+  pendingWrites.clear();
+  retryKeys.clear();
+}
 
 export async function apiFetch<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const method = (options.method || "GET").toUpperCase();
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(method) || options.skipIdempotency || options.body instanceof FormData) {
     return executeApiRequest<T>(endpoint, options);
   }
-  const signature = JSON.stringify([method, endpoint, options.params, options.body, Array.from(new Headers(options.headers).entries()), options.idempotencyKey]);
+  const generation = mutationGeneration;
+  const signature = JSON.stringify([generation, method, endpoint, options.params, options.body, Array.from(new Headers(options.headers).entries()), options.idempotencyKey]);
   const pending = pendingWrites.get(signature);
   if (pending) return pending as Promise<T>;
   const now = Date.now();
   for (const [entry, intent] of retryKeys) if (now - intent.createdAt > 600000) retryKeys.delete(entry);
   const intent = retryKeys.get(signature) || { key: options.idempotencyKey || crypto.randomUUID(), createdAt: now };
   retryKeys.set(signature, intent);
-  const task = executeApiRequest<T>(endpoint, { ...options, idempotencyKey: intent.key })
-    .then(result => { retryKeys.delete(signature); return result; })
+  const task = executeApiRequest<T>(endpoint, { ...options, idempotencyKey: intent.key }, generation)
+    .then(result => {
+      if (generation !== mutationGeneration) throw new UserFacingError("Phiên đăng nhập đã thay đổi. Kiểm tra đơn trong tài khoản đã đặt trước khi thử lại.", "AUTH_SESSION_CHANGED");
+      retryKeys.delete(signature); return result;
+    })
     .finally(() => { pendingWrites.delete(signature); });
   pendingWrites.set(signature, task);
   return task;
@@ -66,6 +77,7 @@ export async function apiFetch<T>(endpoint: string, options: RequestOptions = {}
 async function executeApiRequest<T>(
   endpoint: string,
   options: RequestOptions = {},
+  generation?: number,
 ): Promise<T> {
   const {
     method = "GET",
@@ -110,6 +122,9 @@ async function executeApiRequest<T>(
         }
       } catch {
         throw new ApiError(503, "AUTH_UNAVAILABLE", "");
+      }
+      if (generation !== undefined && generation !== mutationGeneration) {
+        throw new UserFacingError("Phiên đăng nhập đã thay đổi. Vui lòng tải lại thông tin trước khi tiếp tục.", "AUTH_SESSION_CHANGED");
       }
 
       // Mutating requests: send Idempotency-Key if not skipped

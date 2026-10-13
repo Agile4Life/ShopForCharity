@@ -134,19 +134,21 @@ export function useCustomerOrders(page = 0, size = 20) {
 }
 
 export function useCustomerOrderDetail(id: string) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ["customer-order", id],
+    queryKey: ["customer-order", id, user?.id],
     queryFn: () => getCustomerOrderDetail(id),
-    enabled: !!id,
+    enabled: !!id && !!user,
     refetchInterval: POLL_INTERVAL_ORDERS,
   });
 }
 
 export function useCustomerPaymentInstructions(id: string, enabled = true) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ["customer-payment-instructions", id],
+    queryKey: ["customer-payment-instructions", id, user?.id],
     queryFn: () => getCustomerPaymentInstructions(id),
-    enabled: !!id && enabled,
+    enabled: !!id && !!user && enabled,
   });
 }
 
@@ -163,8 +165,7 @@ export function useCancelCustomerOrder() {
       reason: string;
       expectedVersion: number;
     }) => cancelCustomerOrder(id, reason, expectedVersion),
-    onSuccess: (order, variables) => {
-      queryClient.setQueryData(["customer-order", variables.id], order);
+    onSuccess: (_, variables) => {
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: ["customer-order", variables.id] }),
         queryClient.invalidateQueries({ queryKey: ["customer-orders"] }),
@@ -185,8 +186,7 @@ export function useReportCustomerPayment() {
       id: string;
       expectedVersion: number;
     }) => reportCustomerPayment(id, expectedVersion),
-    onSuccess: (order, variables) => {
-      queryClient.setQueryData(["customer-order", variables.id], order);
+    onSuccess: (_, variables) => {
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: ["customer-order", variables.id] }),
         queryClient.invalidateQueries({ queryKey: ["customer-orders"] }),

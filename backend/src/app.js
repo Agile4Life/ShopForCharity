@@ -27,6 +27,12 @@ import { getOrderEmailService } from './infrastructure/order-email-service.js';
 const app = express();
 
 app.disable('x-powered-by');
+app.use((_req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('X-Frame-Options', 'DENY');
+  res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 
 // CORS configuration
 app.use(

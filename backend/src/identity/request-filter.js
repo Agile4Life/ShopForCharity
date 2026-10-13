@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { config } from '../config.js';
 import { logger } from '../common/logger.js';
-import { rateLimiter } from './rate-limiter.js';
+import { clientIp, rateLimiter } from './rate-limiter.js';
 export { rateLimiter } from './rate-limiter.js';
 
 export async function requestFilter(req, res, next) {
@@ -48,9 +48,7 @@ export async function requestFilter(req, res, next) {
 
   if (['/api/v1/guest/orders/access', '/api/v1/auth/register-seller', '/api/v1/auth/register'].includes(path) && req.method === 'POST') {
     // Vercel overwrites this header. Outside Vercel, use the direct socket IP.
-    const ip = process.env.VERCEL === '1'
-      ? req.headers['x-vercel-forwarded-for'] || req.socket.remoteAddress || 'unknown'
-      : req.socket.remoteAddress || 'unknown';
+    const ip = clientIp(req);
     let allowed;
     const registration = path.startsWith('/api/v1/auth/register');
     const prefix = path === '/api/v1/auth/register' ? 'customer-registration' : registration ? 'seller-registration' : 'access';

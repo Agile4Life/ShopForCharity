@@ -81,3 +81,17 @@ test('monorepo uses Node backend by default; flags cannot silently select a brok
   assert.throws(() => createVercelConfig({ ...authEnv, SERVERLESS_BACKEND: 'false' }), /BACKEND_ORIGIN/);
   assert.throws(() => createVercelConfig({ ...authEnv, SERVERLESS_BACKEND: 'ture' }), /true or false/);
 });
+
+test('all pages have security headers and CSP restricts scripts and Supabase connections', () => {
+  const config = createVercelConfig(authEnv);
+  const headers = Object.fromEntries(config.headers.find(rule => rule.source === '/:path*').headers.map(h => [h.key, h.value]));
+  assert.equal(headers['X-Frame-Options'], 'DENY');
+  assert.equal(headers['X-Content-Type-Options'], 'nosniff');
+  assert.equal(headers['Referrer-Policy'], 'strict-origin-when-cross-origin');
+  const policy = headers['Content-Security-Policy'];
+  assert.ok(policy.includes("script-src 'self'"));
+  assert.ok(policy.includes("frame-ancestors 'none'"));
+  assert.ok(policy.includes("connect-src 'self' https://dev-project.supabase.co wss://dev-project.supabase.co"));
+  assert.equal(policy.includes('unsafe-eval'), false);
+  assert.equal(policy.includes("script-src 'self' 'unsafe-inline'"), false);
+});

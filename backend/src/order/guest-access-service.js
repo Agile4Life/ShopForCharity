@@ -6,7 +6,8 @@ import { config } from '../config.js';
 
 export class GuestAccessService {
   async verify(input) {
-    if (!input || !input.orderCode || !input.guestToken) {
+    if (!input || typeof input.orderCode !== 'string' || !input.orderCode.trim() || input.orderCode.length > 100
+      || typeof input.guestToken !== 'string' || !input.guestToken.trim() || input.guestToken.length > 512) {
       throw new ApiException(401, 'INVALID_GUEST_ACCESS', 'Mã đơn hoặc khóa xem đơn không hợp lệ.');
     }
 

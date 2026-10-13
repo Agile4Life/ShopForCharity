@@ -1,32 +1,48 @@
-# React + TypeScript + Vite
+﻿# 🌼 Gói Ấm Trao Em · Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Giao diện gian hàng gây quỹ với React 19, TypeScript và Vite 8. Thiết kế dùng nền giấy kem, mực xanh rừng, điểm nhấn cam đất và minh họa thủ công.
 
-Currently, two official plugins are available:
+<img src="../docs/readme/images/desktop-home.png" alt="Trang chủ Gói Ấm Trao Em với nền giấy kem và minh họa thủ công" width="100%" />
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Xem **[README chính: ảnh desktop/mobile, thiết kế UI/UX và hướng dẫn chạy](../README.md)**. Ảnh sử dụng dữ liệu kiểm thử cô lập.
 
-## React Compiler
+## Phát triển
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Tại root repository:
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```powershell
+npm.cmd --prefix frontend ci --workspaces=false
+Copy-Item frontend/.env.example frontend/.env.local
+npm.cmd run dev:frontend
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Giữ file môi trường hiện tại nếu đã cấu hình. Điền Supabase URL và publishable key trong `.env.local`; Vite phục vụ tại `http://localhost:5173` và proxy `/api` đến backend ở `http://localhost:8080`. Cấu hình đầy đủ nằm trong [hướng dẫn chạy local](../README.md#chay-local).
+
+## Các phần chính
+
+| Đường dẫn | Nội dung |
+| --- | --- |
+| `src/features/catalog/` | Trang chủ, danh mục, chi tiết sản phẩm và combo |
+| `src/features/cart/`, `src/features/checkout/` | Giỏ hàng, đặt hàng, xác nhận |
+| `src/features/orders/` | Lịch sử và tra cứu đơn |
+| `src/features/auth/` | Tài khoản khách hàng và người bán |
+| `src/features/seller/`, `src/features/chat/` | Quản lý shop và hộp thư |
+| `src/components/` | Thành phần dùng chung, minh họa, điều hướng, trạng thái |
+| `src/workshop.css` | Token màu, font, phong cách và chuyển động |
+| `src/responsive.css`, `src/usability.css` | Bố cục responsive và tương tác |
+| `e2e/` | Playwright và API/session fixture |
+| `scripts/readme/` | Bộ chụp ảnh giao diện cho README |
+
+Tham khảo [design system](../design-system/shop-for-charity/MASTER.md) và [UX](../design-system/shop-for-charity/UX.md) trước khi thay đổi giao diện.
+
+## Kiểm chứng
+
+Tại root repository:
+
+```powershell
+npm.cmd --prefix frontend run build
+npm.cmd --prefix frontend run lint
+npm.cmd --prefix frontend run test:e2e
+```
+
+Playwright tự build và chạy preview local bằng dữ liệu mẫu. Browser cần được cài trước khi chạy. Cách chụp lại ảnh được mô tả trong [README chính](../README.md#kiem-thu). Linux/macOS dùng `npm` thay cho `npm.cmd`.
