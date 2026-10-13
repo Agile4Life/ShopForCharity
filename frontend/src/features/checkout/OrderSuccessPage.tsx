@@ -10,7 +10,8 @@ import {
   Download,
 } from "lucide-react";
 import { PurchaseSteps, notify } from "../../components/Usability";
-import type { CreateOrderResponse } from "../../types/api";
+import type { CreateOrderResponse, OrderDetail } from "../../types/api";
+import { SuccessBankPayment } from "./SuccessBankPayment";
 import { withRequestDeadline } from "../../lib/request-state";
 import { OrderCode, CopyOrderCode } from "../../components/OrderCode";
 import {
@@ -29,6 +30,7 @@ export const OrderSuccessPage: React.FC = () => {
 
   const [copied, setCopied] = useState(false);
   const [copying, setCopying] = useState(false);
+  const [updatedOrder, setUpdatedOrder] = useState<OrderDetail | null>(null);
 
   if (!state?.order) {
     return <Navigate to="/" replace />;
@@ -95,12 +97,12 @@ export const OrderSuccessPage: React.FC = () => {
 
           <div className="summary-field">
             <span className="field-label">Trạng thái xử lý:</span>
-            <OrderStatusBadge status={order.status} />
+            <OrderStatusBadge status={updatedOrder?.status ?? order.status} />
           </div>
 
           <div className="summary-field">
             <span className="field-label">Trạng thái thanh toán:</span>
-            <PaymentStatusBadge status={order.paymentStatus} />
+            <PaymentStatusBadge status={updatedOrder?.paymentStatus ?? order.paymentStatus} />
           </div>
 
           {state.pickupPoint && (
@@ -157,18 +159,9 @@ export const OrderSuccessPage: React.FC = () => {
         {/* Next Steps Guidance */}
         <div className="next-steps-card">
           <h2>Thanh toán</h2>
-          <ol className="next-steps-list">
-            <li>
-              {state.paymentMethod === "BANK_TRANSFER" ? (
-                <span>
-                  Mở đơn để lấy mã QR sau khi shop xác nhận. Chuyển xong, nhấn
-                  “Tôi đã chuyển khoản”.
-                </span>
-              ) : (
-                <span>Trả tiền mặt khi nhận hàng.</span>
-              )}
-            </li>
-          </ol>
+          {state.paymentMethod === "BANK_TRANSFER" ? (
+            <SuccessBankPayment order={order} onOrderUpdated={setUpdatedOrder} />
+          ) : <p>Trả tiền mặt khi nhận hàng.</p>}
         </div>
 
         <div className="success-actions mt-4">

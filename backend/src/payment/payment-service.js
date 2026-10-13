@@ -52,11 +52,11 @@ export class PaymentService {
             case 'payment-report': {
               ApiException.check(
                 o.payment_method === 'BANK_TRANSFER' &&
-                  ['ACCEPTED', 'PREPARING', 'READY'].includes(o.status) &&
+                  ['PENDING_CONTACT', 'ACCEPTED', 'PREPARING', 'READY'].includes(o.status) &&
                   from === 'UNPAID',
                 409,
                 'INVALID_PAYMENT_TRANSITION',
-                'Chỉ báo chuyển khoản sau khi đơn được chấp nhận.'
+                'Chỉ báo chuyển khoản cho đơn đang xử lý và chưa thanh toán.'
               );
               o.payment_status = 'REPORTED';
               event = 'PAYMENT_REPORTED';
@@ -243,7 +243,7 @@ export class PaymentService {
       qrSignedUrl: await this.storage.signed(asset.bucket, asset.object_path, 300),
       expiresIn: 300,
       paymentSettingsVersionId: settings.id,
-      waitForAcceptance: o.status === 'PENDING_CONTACT',
+      waitForAcceptance: false,
     };
   }
 }

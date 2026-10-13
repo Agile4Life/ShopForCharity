@@ -8693,6 +8693,16 @@
       "QuoteView": {
         "type": "object",
         "properties": {
+          "bankTransfer": {
+            "type": "object",
+            "nullable": true,
+            "description": "Configured shop bank account for BANK_TRANSFER; null for CASH. Create the order first to get its transfer content.",
+            "properties": {
+              "bankName": { "type": "string" },
+              "accountNumber": { "type": "string" },
+              "accountHolder": { "type": "string" }
+            }
+          },
           "quoteToken": {
             "type": "string"
           },
@@ -9059,7 +9069,8 @@
             "format": "uuid"
           },
           "waitForAcceptance": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Always false. Customers may transfer and report payment while the order is PENDING_CONTACT."
           }
         }
       },

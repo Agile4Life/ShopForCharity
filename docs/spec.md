@@ -229,7 +229,8 @@ Phương thức `CASH` và `BANK_TRANSFER` tách biệt khỏi trạng thái đ�
 - Khách chọn phương thức tại checkout; giữ cố định sau khi tạo đơn trong MVP.
 - Đơn BANK_TRANSFER hiển thị ảnh QR, ngân hàng, số tài khoản, chủ tài khoản, số tiền và nội dung chuyển khoản = mã đơn.
 - QR là ảnh shop tải lên. Không giả định QR tự chứa đúng số tiền hoặc tự đổi nội dung theo đơn; số tiền và nội dung luôn hiển thị riêng.
-- Tại PENDING_CONTACT có thể xem QR nhưng phải hiển thị “Chờ người bán chấp nhận trước khi chuyển khoản”; nút báo chuyển chỉ bật ở ACCEPTED/PREPARING/READY.
+- Khi chọn chuyển khoản tại checkout, hiển thị ngân hàng, số tài khoản, chủ tài khoản và số tiền từ cấu hình shop. Khách tạo đơn để lấy mã đơn làm nội dung chuyển khoản.
+- Trang đặt hàng thành công và trang chi tiết đơn hiển thị thông tin ngân hàng theo cấu hình đã lưu với đơn. Khách có thể chuyển khoản và báo đã chuyển ngay tại PENDING_CONTACT; shop kiểm tra tiền và xác nhận đơn sau. Nút báo chuyển bật ở PENDING_CONTACT/ACCEPTED/PREPARING/READY khi payment là UNPAID.
 - Nút “Tôi đã chuyển khoản” chuyển UNPAID → REPORTED, không tăng doanh thu và không đánh dấu PAID.
 - Người bán kiểm tra giao dịch thực tế và nhập số tiền nhận, thời gian, tham chiếu giao dịch nếu có.
 - Chỉ xác nhận PAID khi nhận đủ đúng tổng tiền. Thiếu/thừa tiền hoặc sai nội dung: ghi nhận đối soát và xử lý thủ công, không hoàn tất đơn tự động.

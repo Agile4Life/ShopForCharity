@@ -186,6 +186,7 @@ export interface QuoteItemResponse {
 }
 
 export interface QuoteResponse {
+  bankTransfer?: BankAccount | null;
   quoteToken: string;
   expiresAt: string;
   subtotal: number;
@@ -303,11 +304,14 @@ export interface OrderDetail {
 }
 
 // Payment Instructions
-export interface PaymentInstructions {
-  orderCode: string;
+export interface BankAccount {
   bankName: string;
   accountNumber: string;
   accountHolder: string;
+}
+
+export interface PaymentInstructions extends BankAccount {
+  orderCode: string;
   amount: number;
   transferContent: string;
   qrSignedUrl?: string;

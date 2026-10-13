@@ -204,6 +204,21 @@ export class CheckoutService {
       `quote|${resolved.fingerprint}|${method || 'ANY'}|${expEpoch}`
     );
 
+    let bankTransfer = null;
+    if (method === 'BANK_TRANSFER') {
+      const bankRes = await query(
+        `SELECT b.bank_name, b.account_number, b.account_holder
+         FROM shop.payment_settings_versions b
+         JOIN shop.shops s ON s.payment_settings_version_id = b.id
+         WHERE s.id = $1`,
+        [config.shopId],
+        client
+      );
+      ApiException.check(bankRes.rows.length > 0, 409, 'BANK_NOT_CONFIGURED', 'Shop chưa cấu hình chuyển khoản.');
+      const bank = bankRes.rows[0];
+      bankTransfer = { bankName: bank.bank_name, accountNumber: bank.account_number, accountHolder: bank.account_holder };
+    }
+
     return {
       quoteToken,
       expiresAt: expiresAt.toISOString(),
@@ -212,6 +227,7 @@ export class CheckoutService {
       items,
       isAvailable: insufficient.length === 0,
       stockConflicts: insufficient,
+      bankTransfer,
     };
   }
 

@@ -108,7 +108,8 @@ export class Scenario {
             availableStock: this.quoteUnavailable ? 0 : p.availableStock, isAvailable: !this.quoteUnavailable };
         });
         const total = items.reduce((sum: number, i: { lineTotal: number }) => sum + i.lineTotal, 0);
-        return ok({ quoteToken: 'quote-test', expiresAt: new Date(Date.now() + (this.quoteExpired ? -1000 : 300000)).toISOString(), subtotal: total, total, items });
+        return ok({ quoteToken: 'quote-test', expiresAt: new Date(Date.now() + (this.quoteExpired ? -1000 : 300000)).toISOString(), subtotal: total, total, items,
+          bankTransfer: body.paymentMethod === 'BANK_TRANSFER' ? { bankName: 'Demo Bank', accountNumber: '123456', accountHolder: 'DEMO SHOP' } : null });
       }
       if (path === '/orders' && method === 'POST') {
         if (this.orderError) return error(409, 'INSUFFICIENT_STOCK');

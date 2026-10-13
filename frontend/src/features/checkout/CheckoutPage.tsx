@@ -18,6 +18,7 @@ import { useShopInfo } from "../catalog/api";
 import { useCheckoutQuote, useCreateOrder, createGuestSession } from "./api";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
+import { BankTransferDetails } from "../../components/BankTransferDetails";
 import { PurchaseSteps } from "../../components/Usability";
 import { PickupDateTimePicker } from "../seller/PickupDateTimePicker";
 import type { QuoteResponse, PaymentMethod } from "../../types/api";
@@ -574,12 +575,21 @@ export const CheckoutPage: React.FC = () => {
                   <div>
                     <strong>Chuyển khoản</strong>
                     <p className="text-muted text-xs">
-                      Mã QR xuất hiện sau khi shop xác nhận đơn.
+                      Chuyển khoản sau khi tạo đơn. Shop kiểm tra tiền và xác nhận đơn sau.
                     </p>
                   </div>
                 </div>
               </label>
             </div>
+            {selectedPaymentMethod === "BANK_TRANSFER" && quote?.bankTransfer && !checkingQuote && (
+              <div className="bank-transfer-box mt-3">
+                <BankTransferDetails bank={quote.bankTransfer} amount={quote.total} />
+                <p className="text-muted text-xs mt-3">
+                  Nhấn “Xác nhận đặt hàng” để lấy mã đơn làm nội dung chuyển khoản.
+                  Chuyển khoản xong, nhấn “Tôi đã chuyển khoản”. Đơn hàng chờ shop kiểm tra tiền và xác nhận.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

@@ -186,7 +186,8 @@ export function useReportCustomerPayment() {
       id: string;
       expectedVersion: number;
     }) => reportCustomerPayment(id, expectedVersion),
-    onSuccess: (_, variables) => {
+    onSuccess: (order, variables) => {
+      queryClient.setQueriesData({ queryKey: ["customer-order", variables.id] }, order);
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: ["customer-order", variables.id] }),
         queryClient.invalidateQueries({ queryKey: ["customer-orders"] }),

@@ -5,7 +5,6 @@ import {
 import React, { useState } from "react";
 import {
   CreditCard,
-  QrCode,
   AlertCircle,
   Clock,
   CheckCircle,
@@ -19,8 +18,8 @@ import {
 import { Modal } from "../../components/Modal";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
-import { AssetImage } from "../../components/AssetImage";
 import { OrderCode, CopyOrderCode } from "../../components/OrderCode";
+import { BankTransferDetails } from "../../components/BankTransferDetails";
 
 interface OrderDetailViewProps {
   order: OrderDetail;
@@ -54,7 +53,7 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
   const canReportPayment =
     order.paymentMethod === "BANK_TRANSFER" &&
     order.paymentStatus === "UNPAID" &&
-    ["ACCEPTED", "PREPARING", "READY"].includes(order.status);
+    ["PENDING_CONTACT", "ACCEPTED", "PREPARING", "READY"].includes(order.status);
 
   const isBankPendingContact =
     order.paymentMethod === "BANK_TRANSFER" &&
@@ -270,60 +269,16 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                   <div className="alert-box alert-warning text-xs mb-3">
                     <AlertCircle size={16} />
                     <span>
-                      Đơn hàng đang chờ người bán liên hệ xác nhận. Vui lòng{" "}
-                      <strong>không chuyển tiền trước</strong> cho tới khi đơn
-                      chuyển sang trạng thái "Đã xác nhận"!
+                      Chuyển khoản theo thông tin bên dưới rồi nhấn “Tôi đã chuyển khoản”.
+                      Shop sẽ kiểm tra tiền và xác nhận đơn hàng sau.
                     </span>
                   </div>
                 )}
 
                 {paymentInstructions && (
-                  <div className="payment-instructions-panel">
-                    {paymentInstructions.qrSignedUrl ? (
-                      <div className="qr-container">
-                        <AssetImage
-                          src={paymentInstructions.qrSignedUrl}
-                          alt="Mã QR Chuyển khoản"
-                          className="qr-image"
-                          onRetry={onRetryPayment}
-                        />
-                      </div>
-                    ) : (
-                      <div className="qr-placeholder">
-                        <QrCode size={48} />
-                        <span>Quét mã QR ngân hàng của Shop</span>
-                      </div>
-                    )}
-
-                    <div className="bank-details-list text-sm">
-                      <div className="bank-detail-item">
-                        <span>Ngân hàng:</span>
-                        <strong>{paymentInstructions.bankName}</strong>
-                      </div>
-                      <div className="bank-detail-item">
-                        <span>Số tài khoản:</span>
-                        <strong className="text-primary">
-                          {paymentInstructions.accountNumber}
-                        </strong>
-                      </div>
-                      <div className="bank-detail-item">
-                        <span>Chủ tài khoản:</span>
-                        <strong>{paymentInstructions.accountHolder}</strong>
-                      </div>
-                      <div className="bank-detail-item">
-                        <span>Số tiền cần chuyển:</span>
-                        <strong className="text-red font-bold">
-                          {paymentInstructions.amount.toLocaleString("vi-VN")} đ
-                        </strong>
-                      </div>
-                      <div className="bank-detail-item highlight-content">
-                        <span>Nội dung chuyển khoản (bắt buộc):</span>
-                        <strong className="transfer-code">
-                          {paymentInstructions.transferContent}
-                        </strong>
-                      </div>
-                    </div>
-                  </div>
+                  <BankTransferDetails bank={paymentInstructions} amount={paymentInstructions.amount}
+                    transferContent={paymentInstructions.transferContent} qrSignedUrl={paymentInstructions.qrSignedUrl}
+                    onRetry={onRetryPayment} />
                 )}
 
                 {canReportPayment && onReportPayment && (
@@ -355,8 +310,8 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                   <div className="alert-box alert-warning text-xs mt-3">
                     <Clock size={16} />
                     <span>
-                      Bạn đã thông báo chuyển khoản. Người bán sẽ kiểm tra tài
-                      khoản ngân hàng và xác nhận trong ít phút.
+                      Bạn đã thông báo chuyển khoản. Shop sẽ kiểm tra tài khoản ngân hàng
+                      và xác nhận thanh toán, sau đó xác nhận đơn hàng.
                     </span>
                   </div>
                 )}
