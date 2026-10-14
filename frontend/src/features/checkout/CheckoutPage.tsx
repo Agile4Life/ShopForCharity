@@ -21,6 +21,7 @@ import { ErrorMessage } from "../../components/ErrorMessage";
 import { BankTransferDetails } from "../../components/BankTransferDetails";
 import { PurchaseSteps } from "../../components/Usability";
 import { PickupDateTimePicker } from "../seller/PickupDateTimePicker";
+import { pickupInstant, pickupTimeError } from "../seller/pickup-time";
 import type { QuoteResponse, PaymentMethod } from "../../types/api";
 import { getBuyNowItem } from "./buy-now";
 
@@ -50,10 +51,10 @@ const checkoutSchema = z.object({
   requestedPickupAt: z
     .string()
     .optional()
-    .refine(
-      (value) => !value || new Date(`${value}+07:00`).getTime() > Date.now(),
-      "Chọn thời gian nhận trong tương lai.",
-    ),
+    .superRefine((value, ctx) => {
+      const message = value ? pickupTimeError(value) : null;
+      if (message) ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+    }),
   paymentMethod: z.enum(["CASH", "BANK_TRANSFER"] as const),
   note: z.string().max(500, "Ghi chú tối đa 500 ký tự").optional(),
 }).superRefine((data, ctx) => {
@@ -229,7 +230,7 @@ export const CheckoutPage: React.FC = () => {
           ? { customPickupLocation: data.customPickupLocation, customPickupInstructions: data.customPickupInstructions || undefined }
           : { pickupPointId: data.pickupPointId }),
         requestedPickupAt: data.requestedPickupAt
-          ? new Date(`${data.requestedPickupAt}+07:00`).toISOString()
+          ? pickupInstant(data.requestedPickupAt).toISOString()
           : undefined,
         paymentMethod: data.paymentMethod as PaymentMethod,
         note: data.note || undefined,

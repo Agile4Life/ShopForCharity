@@ -90,7 +90,9 @@ test('seller product → live catalog update → confirmation → bank transfer 
       await expect(seller.locator('#sellerorderdetailpage-field-4')).toHaveValue('KEEP_REQUESTED');
       await expect(seller.getByRole('dialog')).toContainText('Sảnh thư viện kiểm thử');
     } else await seller.locator('#sellerorderdetailpage-field-4').selectOption(pickupId);
-    await seller.getByRole('button', { name: 'Ngày mai', exact: true }).click();
+    const tomorrow = seller.getByRole('button', { name: 'Ngày mai', exact: true });
+    if (await tomorrow.isEnabled()) await tomorrow.click();
+    else await seller.locator('[data-date="2026-10-18"]').click();
     const accepted = await mutation(seller, `/seller/orders/${orderId}/accept`, () => seller.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click());
     expect(accepted.status).toBe('ACCEPTED');
     await expect(seller.getByRole('dialog')).toHaveCount(0);

@@ -9,6 +9,7 @@ import { getShopService } from '../shop/shop-service.js';
 import { getCatalogService } from '../catalog/catalog-service.js';
 import { getInventoryService } from '../inventory/inventory-service.js';
 import { getIdempotencyService } from '../infrastructure/idempotency-service.js';
+import { validatePickupTime } from './pickup-time.js';
 
 export class CheckoutService {
   constructor(
@@ -306,13 +307,7 @@ export class CheckoutService {
           }
 
           if (input.requestedPickupAt) {
-            const reqTime = new Date(input.requestedPickupAt);
-            ApiException.check(
-              reqTime > new Date(),
-              400,
-              'INVALID_PICKUP_TIME',
-              'Thời gian nhận phải trong tương lai.'
-            );
+            validatePickupTime(input.requestedPickupAt);
           }
 
           const buyer = input.buyer || {};

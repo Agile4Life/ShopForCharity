@@ -4,6 +4,7 @@ import { ApiException } from '../common/api-exception.js';
 import { size, toIso, toNumber } from '../common/views.js';
 import { config } from '../config.js';
 import { OrderRules } from './order-rules.js';
+import { validatePickupTime } from './pickup-time.js';
 import { getProfileService } from '../identity/profile-service.js';
 import { getOrderAccess } from './order-access.js';
 import { getShopService } from '../shop/shop-service.js';
@@ -329,6 +330,7 @@ export class OrderService {
               'CONFIRMED_PICKUP_REQUIRED',
               'Cần xác nhận điểm và thời gian nhận.'
             );
+            const confirmedAt = validatePickupTime(input.confirmedPickupAt, now);
 
             if (input.confirmedPickupPointId) {
               const pickup = await this.settings.pickup(input.confirmedPickupPointId, client);
@@ -336,7 +338,7 @@ export class OrderService {
               o.pickup_name = pickup.name;
               o.pickup_instructions = pickup.instructions;
             }
-            o.confirmed_at = new Date(input.confirmedPickupAt);
+            o.confirmed_at = confirmedAt;
           }
 
           if (to === 'CANCELLED' || to === 'REJECTED') {

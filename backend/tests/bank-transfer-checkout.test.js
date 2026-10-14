@@ -8,6 +8,7 @@ import { applyMigrations } from '../src/migrations/migrate.js';
 import { CheckoutService } from '../src/order/checkout-service.js';
 import { OrderService } from '../src/order/order-service.js';
 import { PaymentService } from '../src/payment/payment-service.js';
+import { futurePickupTime } from './pickup-fixtures.js';
 
 test('bank transfer checkout exposes the bank and waits for seller reconciliation and acceptance', async t => {
   const db = new PGlite();
@@ -77,7 +78,7 @@ test('bank transfer checkout exposes the bank and waits for seller reconciliatio
       assert.equal(confirmed.paymentStatus, 'PAID');
       await orders.contact(seller, created.orderId, randomUUID(), { expectedVersion: 2, channel: 'PHONE', outcome: 'SUCCESS' });
       const accepted = await orders.action(seller, created.orderId, true, 'accept', randomUUID(), {
-        expectedVersion: 3, confirmedPickupAt: new Date(Date.now() + 3600000).toISOString(),
+        expectedVersion: 3, confirmedPickupAt: futurePickupTime(),
       });
       assert.equal(accepted.status, 'ACCEPTED');
       assert.equal(accepted.paymentStatus, 'PAID');

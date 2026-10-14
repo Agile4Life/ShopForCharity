@@ -75,6 +75,7 @@ test('empty custom destination is validated and no suggestions do not block a cu
 });
 
 test('seller confirms customer destination with no shop suggestions', async ({ page, scenario }) => {
+  await page.clock.setFixedTime(new Date('2026-10-18T02:00:00Z'));
   await scenario.authenticate('SELLER');
   scenario.shop.pickupPoints = [];
   scenario.order.pickupPointId = null;

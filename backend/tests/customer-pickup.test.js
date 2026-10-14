@@ -9,6 +9,7 @@ import { CheckoutService } from '../src/order/checkout-service.js';
 import { OrderService } from '../src/order/order-service.js';
 import { ShopService } from '../src/shop/shop-service.js';
 import { OrderEmailService } from '../src/infrastructure/order-email-service.js';
+import { futurePickupTime } from './pickup-fixtures.js';
 
 test('customer pickup: checkout persists destinations, validates choices and seller keeps the requested location', async t => {
   const db = new PGlite();
@@ -70,7 +71,17 @@ test('customer pickup: checkout persists destinations, validates choices and sel
       await db.query('UPDATE shop.shops SET name=$1,contact_phone=$2,contact_email=$3 WHERE id=$4',
         ['Shop đã cập nhật', '0389414659', 'support@example.com', config.shopId]);
       const keyAccept = randomUUID();
-      const confirmation = { expectedVersion: 1, confirmedPickupAt: new Date(Date.now() + 3600000).toISOString() };
+      const confirmation = { expectedVersion: 1, confirmedPickupAt: futurePickupTime() };
+      for (const invalidTime of ['2026-10-17T09:00:00+07:00', confirmation.confirmedPickupAt.replace('T02:', 'T00:'),
+        confirmation.confirmedPickupAt.replace('T02:', 'T11:')]) {
+        await assert.rejects(orders.action(seller, created.orderId, true, 'accept', randomUUID(),
+          { ...confirmation, confirmedPickupAt: invalidTime }), { status: 400 });
+      }
+      const unchanged = (await db.query('SELECT status,version,confirmed_at FROM shop.orders WHERE id=$1', [created.orderId])).rows[0];
+      assert.equal(unchanged.status, 'PENDING_CONTACT');
+      assert.equal(unchanged.version, 1);
+      assert.equal(unchanged.confirmed_at, null);
+      assert.equal(messages.length, 0, 'invalid schedules must not send confirmation emails');
       const accepted = await orders.action(seller, created.orderId, true, 'accept', keyAccept, confirmation);
       assert.equal(accepted.status, 'ACCEPTED');
       assert.equal(accepted.pickupPointId, null);
@@ -118,6 +129,20 @@ test('customer pickup: checkout persists destinations, validates choices and sel
       }
       assert.equal((await db.query('SELECT count(*)::int AS count FROM shop.orders')).rows[0].count, 2);
       assert.equal((await db.query('SELECT stock_reserved FROM shop.product_inventory WHERE id=$1', [productId])).rows[0].stock_reserved, 2);
+    });
+
+    await t.test('checkout rejects invalid delivery schedules without creating orders or reserving stock', async () => {
+      const validTime = futurePickupTime();
+      for (const requestedPickupAt of ['2026-10-17T09:00:00+07:00', validTime.replace('T02:', 'T00:'),
+        validTime.replace('T02:', 'T11:'), 'invalid']) {
+        await assert.rejects(checkout.create(guest, randomUUID(), await input({ customPickupLocation: 'Sảnh B', requestedPickupAt })),
+          { code: 'INVALID_PICKUP_TIME', status: 400 });
+      }
+      assert.equal((await db.query('SELECT count(*)::int AS count FROM shop.orders')).rows[0].count, 2);
+      assert.equal((await db.query('SELECT stock_reserved FROM shop.product_inventory WHERE id=$1', [productId])).rows[0].stock_reserved, 2);
+      const created = await checkout.create(guest, randomUUID(), await input({ customPickupLocation: 'Sảnh B', requestedPickupAt: validTime }));
+      const row = (await db.query('SELECT requested_at FROM shop.orders WHERE id=$1', [created.orderId])).rows[0];
+      assert.equal(new Date(row.requested_at).toISOString(), validTime);
     });
   } finally {
     pool.connect = originalConnect;

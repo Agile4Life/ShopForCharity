@@ -1,6 +1,9 @@
 import { test, expect, ids, submit, expectMutation } from './fixtures';
 
-test.beforeEach(async ({ scenario }) => { await scenario.authenticate('SELLER'); });
+test.beforeEach(async ({ page, scenario }) => {
+  await page.clock.setFixedTime(new Date('2026-10-18T02:00:00Z'));
+  await scenario.authenticate('SELLER');
+});
 
 test('acceptance click explains missing successful contact without sending a request', async ({ page, scenario }) => {
   await page.goto(`/seller/orders/${ids.order}`);

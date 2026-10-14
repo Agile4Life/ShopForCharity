@@ -26,7 +26,7 @@ import type { ContactChannel, ContactOutcome } from "../../types/api";
 import { PickupDateTimePicker } from "./PickupDateTimePicker";
 import { OrderCode, CopyOrderCode } from "../../components/OrderCode";
 import { AUDIT_ACTION_LABELS } from "./audit-display";
-import { pickupInstant } from "./pickup-time";
+import { pickupInstant, pickupTimeError } from "./pickup-time";
 import { ApiError } from "../../lib/api-client";
 
 export const SellerOrderDetailPage: React.FC = () => {
@@ -126,11 +126,12 @@ export const SellerOrderDetailPage: React.FC = () => {
       setAcceptError("Vui lòng chọn điểm nhận hàng và ngày hẹn nhận.");
       return;
     }
-    const instant = pickupInstant(acceptPickupAt);
-    if (!Number.isFinite(instant.getTime()) || instant.getTime() <= Date.now()) {
-      setAcceptError("Giờ hẹn đã qua. Vui lòng chọn thời gian trong tương lai.");
+    const scheduleError = pickupTimeError(acceptPickupAt);
+    if (scheduleError) {
+      setAcceptError(scheduleError);
       return;
     }
+    const instant = pickupInstant(acceptPickupAt);
     setAcceptError("");
     try {
       await actions.acceptOrder.mutateAsync({

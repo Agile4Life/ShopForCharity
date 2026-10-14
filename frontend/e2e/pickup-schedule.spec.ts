@@ -17,12 +17,15 @@ test('chooses date and 24-hour time, submits Vietnam time regardless of device t
   await expect(page.locator('input[type="datetime-local"]')).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Tháng trước', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Thứ Sáu, 9 tháng 10, 2026', exact: true })).toBeDisabled();
-  await page.getByRole('button', { name: 'Ngày mai', exact: true }).click();
+  await expect(page.locator('[data-date="2026-10-17"]')).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Hôm nay', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Ngày mai', exact: true })).toBeDisabled();
+  await page.locator('[data-date="2026-10-18"]').click();
   await page.getByLabel('Giờ', { exact: true }).selectOption('10');
   await page.getByLabel('Phút', { exact: true }).selectOption('30');
   await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
   await expectMutation(scenario, '/accept', {
-    expectedVersion: 8, confirmedPickupPointId: ids.pickup, confirmedPickupAt: '2026-10-11T03:30:00.000Z',
+    expectedVersion: 8, confirmedPickupPointId: ids.pickup, confirmedPickupAt: '2026-10-18T03:30:00.000Z',
   });
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
@@ -30,6 +33,9 @@ test('chooses date and 24-hour time, submits Vietnam time regardless of device t
 test('shows inline validation for missing date and elapsed time, allows correction', async ({ page, scenario }) => {
   await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Vui lòng chọn');
+  await page.clock.setFixedTime(new Date('2026-10-18T02:00:00Z'));
+  // Picking the first delivery day rerenders the shortcuts with the current shop date.
+  await page.locator('[data-date="2026-10-18"]').click();
   await page.getByRole('button', { name: 'Hôm nay', exact: true }).click();
   await page.getByLabel('Giờ', { exact: true }).selectOption('08');
   await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
@@ -38,7 +44,7 @@ test('shows inline validation for missing date and elapsed time, allows correcti
   await page.getByLabel('Giờ', { exact: true }).selectOption('10');
   await expect(page.getByRole('alert')).toHaveCount(0);
   await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
-  await expectMutation(scenario, '/accept', { confirmedPickupAt: '2026-10-10T03:00:00.000Z' });
+  await expectMutation(scenario, '/accept', { confirmedPickupAt: '2026-10-18T03:00:00.000Z' });
 });
 
 test('navigates across month boundary using arrow keys', async ({ page, scenario }) => {
@@ -62,7 +68,7 @@ test('calendar and footer remain usable on a short phone viewport', async ({ pag
   expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(480);
   expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('calendar-small.png') });
-  await page.getByRole('button', { name: /11 tháng 10, 2026/ }).click();
+  await page.locator('[data-date="2026-10-18"]').click();
   await page.getByLabel('Giờ', { exact: true }).selectOption('17');
   await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -76,18 +82,18 @@ test('calendar matches the shop on desktop and mobile', async ({ page }, testInf
   await page.getByRole('button', { name: 'Tháng trước', exact: true }).click();
   await page.locator('.pickup-schedule-dialog .modal-body').evaluate(el => { el.scrollTop = 0; });
   await page.screenshot({ path: testInfo.outputPath('pickup-schedule.png') });
-  await page.getByRole('button', { name: /12 tháng 10, 2026/ }).click();
-  await expect(page.locator('.pickup-date-trigger')).toContainText('12 tháng 10, 2026');
+  await page.getByRole('button', { name: /18 tháng 10, 2026/ }).click();
+  await expect(page.locator('.pickup-date-trigger')).toContainText('18 tháng 10, 2026');
   await expect(page.locator('.pickup-calendar')).toHaveCount(0);
   await page.locator('.pickup-date-trigger').click();
-  await expect(page.locator('.pickup-calendar').getByRole('button', { name: /12 tháng 10, 2026/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('.pickup-calendar').getByRole('button', { name: /18 tháng 10, 2026/ })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('shows loading and protects the form until acceptance finishes', async ({ page }) => {
   let release!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; });
   await page.route('**/seller/orders/*/accept', async route => { await gate; await route.fallback(); });
-  await page.getByRole('button', { name: 'Ngày mai', exact: true }).click();
+  await page.locator('[data-date="2026-10-18"]').click();
   await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Đang xác nhận và gửi email…', exact: true })).toBeDisabled();
   await expect(page.getByLabel('Giờ', { exact: true })).toBeDisabled();
@@ -96,4 +102,18 @@ test('shows loading and protects the form until acceptance finishes', async ({ p
   await expect(page.getByRole('dialog')).toBeVisible();
   release();
   await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
+test('restricts hours to 08–17 and resets minutes at closing', async ({ page, scenario }) => {
+  await page.locator('[data-date="2026-10-18"]').click();
+  const hour = page.getByLabel('Giờ', { exact: true });
+  const minute = page.getByLabel('Phút', { exact: true });
+  await expect(hour.locator('option')).toHaveText(['08', '09', '10', '11', '12', '13', '14', '15', '16', '17']);
+  await hour.selectOption('16');
+  await minute.selectOption('59');
+  await hour.selectOption('17');
+  await expect(minute).toHaveValue('00');
+  await expect(minute.locator('option:enabled')).toHaveText(['00']);
+  await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
+  await expectMutation(scenario, '/accept', { confirmedPickupAt: '2026-10-18T10:00:00.000Z' });
 });

@@ -14,6 +14,7 @@ import { AuditService } from '../src/audit/audit-service.js';
 import { SellerReadService } from '../src/audit/seller-read-service.js';
 import { OrderEmailService, getOrderEmailService } from '../src/infrastructure/order-email-service.js';
 import { orderConfirmationEmail } from '../src/order/order-confirmation-email.js';
+import { futurePickupTime } from './pickup-fixtures.js';
 
 test('confirmation template escapes buyer/catalog data and uses confirmed Vietnam pickup time', () => {
   const email = orderConfirmationEmail({
@@ -125,7 +126,7 @@ test('order confirmation: transactional outbox, post-commit send, replay, failur
     new OrderAccess(), { async pickup(id, client) { return (await client.query('SELECT * FROM shop.pickup_points WHERE id=$1', [id])).rows[0]; } },
     { async settle() {} }, new IdempotencyService(), new AuditService(),
     { async image() { if (failView) throw new Error('view-failed'); return null; }, async imageUrl() { return null; } }, email);
-  const input = { expectedVersion: 0, confirmedPickupPointId: pickupId, confirmedPickupAt: new Date(Date.now() + 3600000).toISOString() };
+  const input = { expectedVersion: 0, confirmedPickupPointId: pickupId, confirmedPickupAt: futurePickupTime() };
   const makeOrder = async (registered = false, contact = true) => {
     const id = randomUUID();
     await db.query(`INSERT INTO shop.orders(id,shop_id,order_code,customer_id,buyer_name,buyer_phone,buyer_email,

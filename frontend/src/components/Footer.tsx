@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight, Mail, Phone } from "lucide-react";
+import { ArrowUpRight, Mail } from "lucide-react";
 import { BrandMark } from "./BrandMark";
 import thanhDieuAvatar from "../assets/thanh-dieu-avatar-transparent.png";
 const currentYear = new Date().getFullYear();
@@ -29,10 +29,6 @@ export function Footer() {
               <a href="mailto:dieuntt1402@gmail.com" aria-label="Gửi email cho Thanh Diệu: dieuntt1402@gmail.com">
                 <Mail size={16} aria-hidden="true" />
                 <span>dieuntt1402@gmail.com</span>
-              </a>
-              <a href="tel:0389414659" aria-label="Gọi Thanh Diệu: 0389414659">
-                <Phone size={16} aria-hidden="true" />
-                <span>0389414659</span>
               </a>
             </div>
           </div>

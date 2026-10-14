@@ -47,11 +47,14 @@ test('checkout calendar submits selected Vietnam date and time', async ({ page, 
   const calendar = page.getByRole('group', { name: 'Lịch chọn ngày', exact: true });
   await expect(calendar.locator('[data-date="2026-10-09"]')).toBeDisabled();
   await page.screenshot({ path: testInfo.outputPath('checkout-calendar.png'), fullPage: true });
-  await calendar.locator('[data-date="2026-10-11"]').click();
+  await expect(calendar.locator('[data-date="2026-10-17"]')).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Hôm nay', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Ngày mai', exact: true })).toBeDisabled();
+  await calendar.locator('[data-date="2026-10-18"]').click();
   await page.getByLabel('Giờ', { exact: true }).selectOption('10');
   await page.getByLabel('Phút', { exact: true }).selectOption('30');
   await expect(page.locator('input[type="datetime-local"]')).toHaveCount(0);
   await submit(page);
   await expect(page).toHaveURL('/order-success');
-  expect(scenario.mutations('/orders')[0].postDataJSON()).toMatchObject({ requestedPickupAt: '2026-10-11T03:30:00.000Z' });
+  expect(scenario.mutations('/orders')[0].postDataJSON()).toMatchObject({ requestedPickupAt: '2026-10-18T03:30:00.000Z' });
 });
