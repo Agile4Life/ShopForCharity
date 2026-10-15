@@ -104,6 +104,8 @@ export function buildTotalRow(dataRows = []) {
 
   for (const row of dataRows) {
     if (!Array.isArray(row) || isTotalRow(row)) continue;
+    // Do not include cancelled orders in the grand total
+    if (String(row[7] || '').trim() === 'Đã hủy đơn') continue;
     totalHoa += toSafeNumber(row[3]);
     totalBanhTrang += toSafeNumber(row[4]);
     totalMoney += toSafeNumber(row[5]);
@@ -348,7 +350,6 @@ export class OrderSheetsService {
       return newOrderRowNumber;
     }
 
-    // If TỔNG CỘNG was not at the bottom yet (e.g. sheet had data rows without a Total row)
     if (N >= 2) {
       await this.fetcher(`${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`, {
         method: 'POST',
@@ -397,7 +398,6 @@ export class OrderSheetsService {
       return N + 1;
     }
 
-    // Only header existed (N === 1)
     const putRange = encodeURIComponent(buildRange(tabName, 'A2:J3'));
     const putRes = await this.fetcher(
       `${SHEETS_API_BASE}/${spreadsheetId}/values/${putRange}?valueInputOption=RAW`,
@@ -476,6 +476,7 @@ export class OrderSheetsService {
     const existingRows = sheetData?.values || [];
 
     if (existingRows.length === 0) {
+      if (order.status === 'CANCELLED') return false;
       const totalRow = buildTotalRow([rowValues]);
       const initRange = encodeURIComponent(buildRange(tabName, 'A1:J3'));
       const putRes = await this.fetcher(
@@ -523,7 +524,6 @@ export class OrderSheetsService {
         throw new Error(`GOOGLE_SHEETS_UPDATE_HTTP_${updateRes.status}`);
       }
 
-      // Also refresh the TỔNG CỘNG row if present at the bottom
       existingRows[rowIndex] = rowValues;
       const N = existingRows.length;
       if (N >= 2 && isTotalRow(existingRows[N - 1])) {
@@ -549,6 +549,8 @@ export class OrderSheetsService {
       this.orderRowMap.set(order.id, rowNumber);
       return true;
     }
+
+    if (order.status === 'CANCELLED') return false;
 
     const insertedRowNumber = await this.appendRowAboveTotal(
       accessToken,
@@ -585,14 +587,7 @@ export class OrderSheetsService {
       `SELECT o.*
        FROM shop.orders o
        WHERE o.shop_id = $1
-         AND (
-           o.status IN ('ACCEPTED', 'PREPARING', 'READY', 'COMPLETED')
-           OR o.confirmed_at IS NOT NULL
-           OR EXISTS (
-             SELECT 1 FROM shop.order_status_history h
-             WHERE h.order_id = o.id AND h.to_status = 'ACCEPTED'
-           )
-         )
+         AND o.status IN ('ACCEPTED', 'PREPARING', 'READY', 'COMPLETED')
        ORDER BY o.created_at ASC, o.id ASC`,
       [this.settings.shopId]
     );
@@ -636,7 +631,33 @@ export class OrderSheetsService {
       throw new Error(`GOOGLE_SHEETS_BULK_WRITE_HTTP_${putRes.status}`);
     }
 
-    return { synced: ordersRes.rows.length, configured: true, tabName };
+    // Clear any trailing rows right below TỔNG CỘNG if the sheet previously had more rows
+    const trailingRange = encodeURIComponent(
+      buildRange(tabName, `A${rowsToWrite.length + 1}:J${rowsToWrite.length + 10}`)
+    );
+    await this.fetcher(
+      `${SHEETS_API_BASE}/${spreadsheetId}/values/${trailingRange}:clear`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
+        signal: AbortSignal.timeout(8000),
+      }
+    );
+
+    return {
+      synced: ordersRes.rows.length,
+      configured: true,
+      tabName,
+      totals: {
+        hoaKemNhung: totalRow[3],
+        banhTrangCham: totalRow[4],
+        totalMoney: totalRow[5],
+      },
+    };
   }
 }
 
