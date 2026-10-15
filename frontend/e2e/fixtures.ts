@@ -42,6 +42,7 @@ export class Scenario {
   accessError = false;
   shop: ShopInfo & { version: number } = { id: 'shop-test', name: 'Shop gây quỹ',
     contactPhone: '0912345678', contactEmail: 'shop@example.com', acceptingOrders: true, version: 2,
+    referrers: ['Nguyễn Minh Anh - 12A1', 'Trần Bảo Ngọc - 11B2'],
     pickupPoints: [{ id: ids.pickup, name: 'Cổng trường', instructions: 'Gặp tại cổng', active: true, version: 5 }] };
   products = [structuredClone(product), { ...product, id: ids.other, slug: 'moc-khoa-thu', name: 'Móc khóa thử' }];
   combos = [structuredClone(combo)];
@@ -114,9 +115,10 @@ export class Scenario {
       if (path === '/orders' && method === 'POST') {
         if (this.orderError) return error(409, 'INSUFFICIENT_STOCK');
         this.order.paymentMethod = body.paymentMethod;
+        this.order.referrer = body.referrer ?? null;
         this.order.pickupPointId = body.pickupPointId ?? null;
-        this.order.pickupPointName = body.customPickupLocation ?? this.shop.pickupPoints.find(p => p.id === body.pickupPointId)?.name;
-        this.order.pickupInstructions = body.customPickupInstructions ?? this.shop.pickupPoints.find(p => p.id === body.pickupPointId)?.instructions;
+        this.order.pickupPointName = this.shop.pickupPoints.find(p => p.id === body.pickupPointId)?.name ?? 'Cổng trường';
+        this.order.pickupInstructions = this.shop.pickupPoints.find(p => p.id === body.pickupPointId)?.instructions;
         return ok({ ...this.order, orderId: ids.order, guestAccessToken: this.role === 'GUEST' ? 'secret-test-token' : undefined });
       }
       if (path === '/guest/orders/access') return this.accessError ? error(401, 'INVALID_GUEST_ACCESS') : ok({ success: true });
@@ -175,8 +177,13 @@ export class Scenario {
           const transitions: Record<string, OrderDetail['status']> = { accept: 'ACCEPTED', prepare: 'PREPARING', ready: 'READY', complete: 'COMPLETED', reject: 'REJECTED', cancel: 'CANCELLED' };
           if (action && transitions[action]) this.order.status = transitions[action];
           if (action === 'accept') {
+            const point = this.shop.pickupPoints.find(p => p.id === body.confirmedPickupPointId);
+            if (point) {
+              this.order.pickupPointId = point.id;
+              this.order.pickupPointName = point.name;
+              this.order.pickupInstructions = point.instructions;
+            }
             this.order.confirmedPickupAt = body.confirmedPickupAt;
-            this.order.confirmationEmail = { status: 'SENT', sentAt: new Date().toISOString() };
           }
           if (action === 'contact-attempts') this.order.contactAttempts!.push({ ...body, id: 'contact-test', createdAt: new Date().toISOString() });
           if (action === 'payment-report') this.order.paymentStatus = 'REPORTED';

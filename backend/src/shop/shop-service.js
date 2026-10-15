@@ -5,6 +5,20 @@ import { config } from '../config.js';
 import { getProfileService } from '../identity/profile-service.js';
 import { getAuditService } from '../audit/audit-service.js';
 
+function normalizeReferrers(raw) {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const item of raw) {
+    const trimmed = String(item ?? '').trim();
+    if (trimmed && !seen.has(trimmed)) {
+      seen.add(trimmed);
+      out.push(trimmed);
+    }
+  }
+  return out;
+}
+
 export class ShopService {
   constructor(
     profileServiceInstance = getProfileService(),
@@ -45,6 +59,7 @@ export class ShopService {
       contactPhone: s.contact_phone,
       contactEmail: s.contact_email,
       acceptingOrders: s.accepting_orders,
+      referrers: normalizeReferrers(s.referrers),
       version: Number(s.version),
       pickupPoints: points,
     };
@@ -112,6 +127,20 @@ export class ShopService {
       let contactPhone = input.contactPhone !== undefined ? input.contactPhone : s.contact_phone;
       let contactEmail = input.contactEmail !== undefined ? input.contactEmail : s.contact_email;
       let acceptingOrders = input.acceptingOrders !== undefined ? Boolean(input.acceptingOrders) : s.accepting_orders;
+      let referrers = normalizeReferrers(s.referrers);
+      if (input.referrers !== undefined) {
+        ApiException.check(
+          Array.isArray(input.referrers) &&
+            input.referrers.length <= 100 &&
+            input.referrers.every(
+              (item) => typeof item === 'string' && item.trim().length <= 100
+            ),
+          400,
+          'INVALID_REFERRERS',
+          'Danh sách người giới thiệu không hợp lệ.'
+        );
+        referrers = normalizeReferrers(input.referrers);
+      }
 
       const flat =
         input.bankName !== undefined ||
@@ -202,14 +231,15 @@ export class ShopService {
       await client.query(
         `UPDATE shop.shops
          SET name = $1, contact_phone = $2, contact_email = $3, accepting_orders = $4,
-             payment_settings_version_id = $5, version = version + 1, updated_at = NOW()
-         WHERE id = $6`,
+             payment_settings_version_id = $5, referrers = $6::jsonb, version = version + 1, updated_at = NOW()
+         WHERE id = $7`,
         [
           name,
           contactPhone,
           contactEmail,
           acceptingOrders,
           newPaymentSettingsVersionId,
+          JSON.stringify(referrers),
           config.shopId,
         ]
       );

@@ -12,8 +12,7 @@ import { getInventoryService } from '../inventory/inventory-service.js';
 import { getIdempotencyService } from '../infrastructure/idempotency-service.js';
 import { getAuditService } from '../audit/audit-service.js';
 import { getCatalogService } from '../catalog/catalog-service.js';
-import { getOrderEmailService } from '../infrastructure/order-email-service.js';
-import { logger } from '../common/logger.js';
+import { getOrderSheetsService } from '../infrastructure/order-sheets-service.js';
 
 export class OrderService {
   constructor(
@@ -24,7 +23,7 @@ export class OrderService {
     idempotencyServiceInstance = getIdempotencyService(),
     auditServiceInstance = getAuditService(),
     catalogServiceInstance = getCatalogService(),
-    emailServiceInstance = getOrderEmailService()
+    sheetsServiceInstance = getOrderSheetsService()
   ) {
     this.profiles = profileServiceInstance;
     this.access = orderAccessInstance;
@@ -33,7 +32,7 @@ export class OrderService {
     this.idem = idempotencyServiceInstance;
     this.audit = auditServiceInstance;
     this.catalog = catalogServiceInstance;
-    this.email = emailServiceInstance;
+    this.sheets = sheetsServiceInstance;
   }
 
   async detail(actor, id, seller = false) {
@@ -121,6 +120,7 @@ export class OrderService {
       buyerName: o.buyer_name,
       buyerPhone: o.buyer_phone,
       buyerEmail: o.buyer_email,
+      referrer: o.referrer || null,
       pickupPointName: o.pickup_name,
       status: o.status,
       paymentStatus: o.payment_status,
@@ -146,6 +146,7 @@ export class OrderService {
       buyerPhone: o.buyer_phone,
       buyerEmail: o.buyer_email,
       buyerClass: o.buyer_class,
+      referrer: o.referrer || null,
       pickupPointId: o.pickup_point_id,
       pickupPointName: o.pickup_name,
       pickupInstructions: o.pickup_instructions,
@@ -216,15 +217,6 @@ export class OrderService {
     }));
 
     if (seller) {
-      // Only expose delivery state, never the private message or provider errors.
-      const emailRes = await query(
-        "SELECT status, sent_at FROM shop.order_email_outbox WHERE order_id = $1 AND kind = 'ORDER_ACCEPTED'",
-        [o.id], client
-      );
-      const confirmation = emailRes.rows[0];
-      out.confirmationEmail = confirmation
-        ? { status: confirmation.status, sentAt: toIso(confirmation.sent_at) }
-        : null;
       out.receivedAmount = toNumber(o.received_amount);
       out.paymentSettingsVersionId = o.payment_settings_version_id;
 
@@ -323,7 +315,7 @@ export class OrderService {
             );
 
             ApiException.check(
-              (input.confirmedPickupPointId || o.pickup_name?.trim()) &&
+              input.confirmedPickupPointId &&
                 input.confirmedPickupAt &&
                 new Date(input.confirmedPickupAt) > now,
               400,
@@ -332,12 +324,10 @@ export class OrderService {
             );
             const confirmedAt = validatePickupTime(input.confirmedPickupAt, now);
 
-            if (input.confirmedPickupPointId) {
-              const pickup = await this.settings.pickup(input.confirmedPickupPointId, client);
-              o.pickup_point_id = pickup.id;
-              o.pickup_name = pickup.name;
-              o.pickup_instructions = pickup.instructions;
-            }
+            const pickup = await this.settings.pickup(input.confirmedPickupPointId, client);
+            o.pickup_point_id = pickup.id;
+            o.pickup_name = pickup.name;
+            o.pickup_instructions = pickup.instructions;
             o.confirmed_at = confirmedAt;
           }
 
@@ -351,7 +341,6 @@ export class OrderService {
           }
 
           await this.transition(client, o, to, actor, input.reason || null);
-          if (to === 'ACCEPTED') await this.email.enqueue(client, o);
 
           const updatedRes = await client.query(
             'SELECT * FROM shop.orders WHERE id = $1',
@@ -361,24 +350,7 @@ export class OrderService {
         }
       );
     });
-    // Await sending after COMMIT so serverless can finish it before responding.
-    // An email outage cannot roll back or hide a successful order confirmation.
-    if (seller && action === 'accept') {
-      await this.email.deliverSafely(id);
-      // The transaction/idempotency snapshot predates delivery. Return its current state.
-      try {
-        const { rows } = await query(
-          "SELECT status, sent_at FROM shop.order_email_outbox WHERE order_id = $1 AND kind = 'ORDER_ACCEPTED'", [id]
-        );
-        result.confirmationEmail = rows[0]
-          ? { status: rows[0].status, sentAt: toIso(rows[0].sent_at) }
-          : null;
-      } catch {
-        // A post-commit status read failure must not hide the confirmed order.
-        result.confirmationEmail = null;
-        logger.warn('Could not read confirmation email delivery state', { orderId: id });
-      }
-    }
+    await this.sheets.syncOrderSafely(id);
     return result;
   }
 

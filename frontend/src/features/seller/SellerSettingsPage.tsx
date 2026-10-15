@@ -35,6 +35,8 @@ export const SellerSettingsPage: React.FC = () => {
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [acceptingOrders, setAcceptingOrders] = useState(true);
+  const [referrers, setReferrers] = useState<string[]>([]);
+  const [newReferrer, setNewReferrer] = useState("");
 
   // Bank & QR states
   const [bankName, setBankName] = useState("");
@@ -68,6 +70,7 @@ export const SellerSettingsPage: React.FC = () => {
       setContactPhone(settings.contactPhone || "");
       setContactEmail(settings.contactEmail || "");
       setAcceptingOrders(settings.acceptingOrders);
+      setReferrers(settings.referrers || []);
       setBankName(settings.bankName || "");
       setAccountNumber(settings.accountNumber || "");
       setAccountHolder(settings.accountHolder || "");
@@ -75,6 +78,19 @@ export const SellerSettingsPage: React.FC = () => {
       setQrUrl(settings.qrUrl);
     }
   }, [settings]);
+
+  const handleAddReferrer = () => {
+    const trimmed = newReferrer.trim();
+    if (!trimmed) return;
+    if (!referrers.includes(trimmed)) {
+      setReferrers((prev) => [...prev, trimmed]);
+    }
+    setNewReferrer("");
+  };
+
+  const handleRemoveReferrer = (name: string) => {
+    setReferrers((prev) => prev.filter((item) => item !== name));
+  };
 
   const handleQrUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -97,18 +113,26 @@ export const SellerSettingsPage: React.FC = () => {
     e.preventDefault();
     if (uploadingQr || updateSettingsMutation.isPending) return;
     setSettingsNotice(null);
+    const pendingReferrer = newReferrer.trim();
+    const nextReferrers =
+      pendingReferrer && !referrers.includes(pendingReferrer)
+        ? [...referrers, pendingReferrer]
+        : referrers;
     try {
       await updateSettingsMutation.mutateAsync({
         name: shopName.trim(),
         contactPhone: contactPhone.trim(),
         contactEmail: contactEmail.trim(),
         acceptingOrders,
+        referrers: nextReferrers,
         bankName: bankName.trim() || undefined,
         accountNumber: accountNumber.trim() || undefined,
         accountHolder: accountHolder.trim() || undefined,
         qrAssetId,
         expectedVersion: settings?.version ?? 0,
       });
+      setReferrers(nextReferrers);
+      setNewReferrer("");
       setSettingsNotice("Cập nhật cấu hình shop và ngân hàng thành công!");
       setTimeout(() => setSettingsNotice(null), 3000);
     } catch (err: any) {
@@ -375,6 +399,69 @@ export const SellerSettingsPage: React.FC = () => {
               </div>
             </div>
 
+            <div className="divider my-4" />
+
+            <h2 className="section-subtitle mb-2">
+              Danh sách người giới thiệu mua hàng ({referrers.length})
+            </h2>
+            <p className="text-xs text-muted mb-3">
+              Khách hàng có thể chọn người giới thiệu từ danh sách này ở trang đặt hàng.
+            </p>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="sellersettingspage-referrer-input">
+                Thêm người giới thiệu:
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="sellersettingspage-referrer-input"
+                  type="text"
+                  value={newReferrer}
+                  onChange={(e) => setNewReferrer(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddReferrer();
+                    }
+                  }}
+                  placeholder="Ví dụ: Nguyễn Văn A - 12A1"
+                  className="input-field"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddReferrer}
+                  className="btn-secondary-sm"
+                >
+                  <Plus size={14} /> Thêm
+                </button>
+              </div>
+            </div>
+
+            {referrers.length === 0 ? (
+              <p className="text-xs text-muted mb-3">
+                Chưa có người giới thiệu nào trong danh sách.
+              </p>
+            ) : (
+              <div className="pickup-points-list mb-3">
+                {referrers.map((refName) => (
+                  <div
+                    key={refName}
+                    className="pickup-point-item flex-between p-2 border rounded mb-2"
+                  >
+                    <span>{refName}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveReferrer(refName)}
+                      className="btn-text-xs text-gray"
+                      aria-label={`Xóa người giới thiệu ${refName}`}
+                    >
+                      Xóa
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={uploadingQr || updateSettingsMutation.isPending}
@@ -403,7 +490,7 @@ export const SellerSettingsPage: React.FC = () => {
           </div>
 
           <p className="text-xs text-muted mb-3">
-            Các địa điểm shop gợi ý khi đặt đơn. Khách vẫn có thể nhập địa điểm nhận hàng riêng.
+            Danh sách các điểm nhận hàng để khách lựa chọn khi đặt đơn.
           </p>
 
           {pointsLoading ? <LoadingSpinner message="Đang tải điểm nhận hàng…" />
@@ -455,7 +542,7 @@ export const SellerSettingsPage: React.FC = () => {
         title="Thêm điểm nhận hàng"
       >
         <form onSubmit={handleCreatePoint} className="pickup-point-form" noValidate aria-busy={pointSaving}>
-          <p className="pickup-point-intro">Địa điểm này sẽ xuất hiện trong gợi ý của shop khi khách đặt hàng.</p>
+          <p className="pickup-point-intro">Địa điểm này sẽ xuất hiện trong danh sách điểm nhận hàng của shop khi khách đặt đơn.</p>
           {pointError && <p id="pickup-point-error" className="pickup-point-error" role="alert">{pointError}</p>}
           <div className="form-group">
             <label className="form-label" htmlFor="pickup-point-name">Tên điểm nhận hàng <span aria-hidden="true">*</span></label>

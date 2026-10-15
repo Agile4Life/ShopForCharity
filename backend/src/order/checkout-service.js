@@ -314,6 +314,23 @@ export class CheckoutService {
           const name = (buyer.fullName || '').trim();
           ApiException.check(name.length >= 2, 400, 'INVALID_BUYER_NAME', 'Họ tên cần ít nhất 2 ký tự.');
 
+          let referrer = null;
+          if (input.referrer !== undefined && input.referrer !== null && String(input.referrer).trim() !== '') {
+            const trimmedReferrer = String(input.referrer).trim();
+            const shopReferrers = Array.isArray(s.referrers)
+              ? s.referrers.map((r) => String(r ?? '').trim()).filter(Boolean)
+              : [];
+            ApiException.check(
+              typeof input.referrer === 'string' &&
+                trimmedReferrer.length <= 100 &&
+                shopReferrers.includes(trimmedReferrer),
+              400,
+              'INVALID_REFERRER',
+              'Vui lòng chọn người giới thiệu hợp lệ của shop.'
+            );
+            referrer = trimmedReferrer;
+          }
+
           const orderId = crypto.randomUUID();
           const orderCode = await this.newOrderCode(client);
           const phone = normalizePhone(buyer.phone);
@@ -339,14 +356,14 @@ export class CheckoutService {
           await client.query(
             `INSERT INTO shop.orders (
               id, shop_id, order_code, customer_id, buyer_name, buyer_phone, buyer_email,
-              buyer_class, pickup_point_id, pickup_name, pickup_instructions,
+              buyer_class, referrer, pickup_point_id, pickup_name, pickup_instructions,
               requested_at, confirmed_at, note, payment_method, payment_status, status,
               subtotal, total, received_amount, payment_settings_version_id,
               guest_token_hash, guest_token_expires_at, reservation_expires_at,
               version, created_at, updated_at
             ) VALUES (
-              $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, null, $13, $14,
-              'UNPAID', 'PENDING_CONTACT', $15, $16, 0, $17, $18, $19, $20, 0, NOW(), NOW()
+              $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, null, $14, $15,
+              'UNPAID', 'PENDING_CONTACT', $16, $17, 0, $18, $19, $20, $21, 0, NOW(), NOW()
             )`,
             [
               orderId,
@@ -357,6 +374,7 @@ export class CheckoutService {
               phone,
               email,
               buyerClass,
+              referrer,
               pickup.id,
               pickup.name,
               pickup.instructions,
@@ -464,29 +482,16 @@ export class CheckoutService {
   }
 
   async resolvePickup(input, client) {
-    const hasPoint = input.pickupPointId != null && input.pickupPointId !== '';
-    const hasCustom = input.customPickupLocation != null;
-    ApiException.check(hasPoint !== hasCustom, 400, 'INVALID_PICKUP',
-      'Chọn một điểm gợi ý hoặc nhập địa điểm nhận hàng của bạn.');
-    if (hasPoint) {
-      ApiException.check(typeof input.pickupPointId === 'string' &&
+    ApiException.check(
+      input.customPickupLocation == null &&
+        input.customPickupInstructions == null &&
+        typeof input.pickupPointId === 'string' &&
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.pickupPointId),
-      400, 'INVALID_PICKUP', 'Điểm nhận hàng không hợp lệ.');
-      ApiException.check(input.customPickupInstructions == null, 400, 'INVALID_PICKUP',
-        'Chỉ dẫn riêng cần đi kèm địa điểm bạn nhập.');
-      return this.settings.pickup(input.pickupPointId, client);
-    }
-    ApiException.check(typeof input.customPickupLocation === 'string' &&
-      input.customPickupLocation.trim().length >= 2 && input.customPickupLocation.trim().length <= 200,
-    400, 'INVALID_PICKUP', 'Nhập địa điểm nhận hàng từ 2 đến 200 ký tự.');
-    ApiException.check(input.customPickupInstructions == null ||
-      (typeof input.customPickupInstructions === 'string' && input.customPickupInstructions.trim().length <= 500),
-    400, 'INVALID_PICKUP', 'Chỉ dẫn nhận hàng tối đa 500 ký tự.');
-    return {
-      id: null,
-      name: input.customPickupLocation.trim(),
-      instructions: input.customPickupInstructions?.trim() || null,
-    };
+      400,
+      'INVALID_PICKUP',
+      'Vui lòng chọn điểm nhận hàng của shop.'
+    );
+    return this.settings.pickup(input.pickupPointId, client);
   }
 }
 

@@ -22,20 +22,19 @@ test('bank transfer checkout exposes the bank and waits for seller reconciliatio
   pool.query = sql;
   const checkout = new CheckoutService();
   const orders = new OrderService(undefined, undefined, undefined, undefined, undefined, undefined,
-    { async image() { return null; }, async imageUrl() { return null; } },
-    { async enqueue() {}, async deliverSafely() {} });
+    { async image() { return null; }, async imageUrl() { return null; } });
   const payments = new PaymentService(undefined, undefined, orders, undefined, undefined,
     { async signed() { return 'https://storage.example.com/qr.png'; } });
   const seller = { id: randomUUID(), type: 'SELLER', scope: 'seller:bank-test' };
   const customer = { id: randomUUID(), type: 'CUSTOMER', scope: 'customer:bank-test' };
   const guest = { id: null, type: 'GUEST', scope: 'guest:bank-test' };
-  const productId = randomUUID(), assetId = randomUUID(), settingsId = randomUUID();
+  const productId = randomUUID(), assetId = randomUUID(), settingsId = randomUUID(), pickupId = randomUUID();
   const items = [{ kind: 'PRODUCT', catalogId: productId, quantity: 1 }];
   const bank = { bankName: 'Test Bank', accountNumber: '001234567890', accountHolder: 'TEST SHOP' };
   const create = async (actor, method = 'BANK_TRANSFER') => checkout.create(actor, randomUUID(), {
     items, quoteToken: (await checkout.quote({ items, paymentMethod: method })).quoteToken,
-    buyer: { fullName: 'Khách Test', phone: '0912345678', email: 'buyer@example.com' },
-    customPickupLocation: 'Cổng trường', paymentMethod: method,
+    buyer: { fullName: 'Khách Test', phone: '0912345678' },
+    pickupPointId: pickupId, paymentMethod: method,
   });
   try {
     await applyMigrations({ query: sql });
@@ -46,6 +45,8 @@ test('bank transfer checkout exposes the bank and waits for seller reconciliatio
       VALUES($1,$2,'00000000-0000-0000-0000-000000000011','bank-test','Bánh Test',10000,'ACTIVE',now(),now())`, [productId, config.shopId]);
     await db.query(`INSERT INTO shop.product_inventory(id,stock_on_hand,stock_reserved,created_at,updated_at)
       VALUES($1,20,0,now(),now())`, [productId]);
+    await db.query(`INSERT INTO shop.pickup_points(id,shop_id,name,instructions,active,created_at,updated_at)
+      VALUES($1,$2,'Cổng trường','Gặp tại cổng',true,now(),now())`, [pickupId, config.shopId]);
     await db.query('UPDATE shop.shops SET accepting_orders=true WHERE id=$1', [config.shopId]);
     await assert.rejects(checkout.quote({ items, paymentMethod: 'BANK_TRANSFER' }), { code: 'BANK_NOT_CONFIGURED' });
     await db.query(`INSERT INTO shop.assets(id,shop_id,bucket,object_path,type,mime,size,created_at,updated_at)
@@ -78,7 +79,7 @@ test('bank transfer checkout exposes the bank and waits for seller reconciliatio
       assert.equal(confirmed.paymentStatus, 'PAID');
       await orders.contact(seller, created.orderId, randomUUID(), { expectedVersion: 2, channel: 'PHONE', outcome: 'SUCCESS' });
       const accepted = await orders.action(seller, created.orderId, true, 'accept', randomUUID(), {
-        expectedVersion: 3, confirmedPickupAt: futurePickupTime(),
+        expectedVersion: 3, confirmedPickupPointId: pickupId, confirmedPickupAt: futurePickupTime(),
       });
       assert.equal(accepted.status, 'ACCEPTED');
       assert.equal(accepted.paymentStatus, 'PAID');

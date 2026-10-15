@@ -43,7 +43,7 @@ test('accept conflict refreshes order state and closes the stale acceptance form
     scenario.order.version++;
     await route.fulfill({ status: 409, json: { code: 'INVALID_TRANSITION', message: 'Không thể thực hiện ở trạng thái hiện tại.' } });
   });
-  await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Xác nhận đơn hàng', exact: true }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByText('Đã xử lý xong', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: /Chuyển sang/ })).toHaveCount(0);
@@ -67,7 +67,7 @@ test('dashboard, order filters and audit filters', async ({ page, scenario }) =>
   await expect.poll(() => scenario.calls.some(r => new URL(r.url()).searchParams.get('action') === 'ORDER_CREATED')).toBe(true);
 });
 
-test('confirmation sends email and finishes handling without further status changes', async ({ page, scenario }, testInfo) => {
+test('confirmation finishes handling without sending email or further status changes', async ({ page, scenario }, testInfo) => {
   await page.goto(`/seller/orders/${ids.order}`);
   await page.getByRole('button', { name: /Ghi nhận liên hệ/ }).click();
   await page.getByRole('button', { name: 'Lưu liên hệ', exact: true }).click();
@@ -76,11 +76,11 @@ test('confirmation sends email and finishes handling without further status chan
   await page.getByRole('button', { name: 'Xác nhận đơn hàng', exact: true }).click();
   await page.locator('#sellerorderdetailpage-field-4').selectOption(ids.pickup);
   await page.getByRole('button', { name: 'Ngày mai', exact: true }).click();
-  await page.getByRole('button', { name: 'Xác nhận và gửi email', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Xác nhận đơn hàng', exact: true }).click();
   await expectMutation(scenario, '/accept', { expectedVersion: 8, confirmedPickupPointId: ids.pickup });
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByText('Đã xử lý xong', { exact: true })).toBeVisible();
-  await expect(page.getByText('Đã gửi email xác nhận', { exact: true })).toBeVisible();
+  await expect(page.getByText('Đã gửi email xác nhận', { exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /Chuyển sang|Bàn giao|Xác nhận đơn hàng|Ghi nhận liên hệ/ })).toHaveCount(0);
   expect(scenario.order.status).toBe('ACCEPTED');
   await page.screenshot({ path: testInfo.outputPath('seller-confirmed.png'), fullPage: true });
@@ -93,20 +93,6 @@ test('confirmation sends email and finishes handling without further status chan
   await expect(page.getByLabel('Trạng thái đơn', { exact: true })).toHaveValue('ACCEPTED');
   await expect(page.getByRole('link', { name: 'Xem đơn', exact: true })).toBeVisible();
 });
-
-for (const status of ['PENDING', 'PROCESSING', 'FAILED', null] as const) {
-  test(`resolved order shows truthful email state ${status}`, async ({ page, scenario }) => {
-    scenario.order.status = 'ACCEPTED';
-    scenario.order.confirmationEmail = status ? { status } : null;
-    await page.goto(`/seller/orders/${ids.order}`);
-    await expect(page.getByText('Đã xử lý xong', { exact: true })).toBeVisible();
-    const message = status === 'FAILED' ? 'Chưa gửi được email xác nhận'
-      : status === null ? 'Chưa có thông tin gửi email' : 'Email xác nhận đang chờ gửi';
-    await expect(page.getByText(message, { exact: true })).toBeVisible();
-    await expect(page.getByText('Đã gửi email xác nhận', { exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /Chuyển sang|Bàn giao|Xác nhận đơn hàng/ })).toHaveCount(0);
-  });
-}
 
 test('order list opens pending orders by default', async ({ page, scenario }) => {
   await page.goto('/seller/orders');
@@ -201,11 +187,17 @@ test('create and edit combo components', async ({ page, scenario }) => {
   await expectMutation(scenario, `/seller/combos/${ids.combo}`, { expectedVersion: 3, price: 30000 });
 });
 
-test('shop settings update, create pickup point and toggle with version', async ({ page, scenario }) => {
+test('shop settings update, configure referrers, create pickup point and toggle with version', async ({ page, scenario }) => {
   await page.goto('/seller/settings');
   await page.locator('#sellersettingspage-field-1').fill('Shop mới');
+  await page.locator('#sellersettingspage-referrer-input').fill('Lê Hoàng Nam - 10A3');
+  await page.getByRole('button', { name: 'Thêm', exact: true }).click();
   await page.locator('main form').first().locator('button[type="submit"]').click();
-  await expectMutation(scenario, '/seller/shop-settings', { name: 'Shop mới', expectedVersion: 2 });
+  await expectMutation(scenario, '/seller/shop-settings', {
+    name: 'Shop mới',
+    referrers: ['Nguyễn Minh Anh - 12A1', 'Trần Bảo Ngọc - 11B2', 'Lê Hoàng Nam - 10A3'],
+    expectedVersion: 2,
+  });
   await page.getByRole('button', { name: 'Đang hoạt động', exact: true }).click();
   await expectMutation(scenario, `/pickup-points/${ids.pickup}`, { active: false, expectedVersion: 5 });
   await expect(page.getByRole('button', { name: 'Tạm ẩn', exact: true })).toBeVisible();
@@ -213,5 +205,5 @@ test('shop settings update, create pickup point and toggle with version', async 
   await page.getByRole('dialog').locator('input[type="text"]').fill('Thư viện');
   await page.getByRole('dialog').locator('button[type="submit"]').click();
   await expectMutation(scenario, '/seller/pickup-points', { name: 'Thư viện', active: true });
-  await expect(page.locator('.pickup-points-list')).toContainText('Thư viện');
+  await expect(page.locator('.pickup-points-list').last()).toContainText('Thư viện');
 });

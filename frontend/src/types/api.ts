@@ -75,6 +75,7 @@ export interface ShopInfo {
   contactPhone: string;
   contactEmail: string;
   acceptingOrders: boolean;
+  referrers?: string[];
   pickupPoints: PickupPoint[];
 }
 
@@ -198,7 +199,7 @@ export interface QuoteResponse {
 export interface BuyerInfo {
   fullName: string;
   phone: string;
-  email: string;
+  email?: string;
   className?: string;
 }
 
@@ -207,9 +208,8 @@ export interface CreateOrderRequest {
   quoteToken: string;
   items: QuoteItemRequest[];
   buyer: BuyerInfo;
-  pickupPointId?: string;
-  customPickupLocation?: string;
-  customPickupInstructions?: string;
+  pickupPointId: string;
+  referrer?: string;
   requestedPickupAt?: string;
   paymentMethod: PaymentMethod;
   note?: string;
@@ -275,8 +275,9 @@ export interface OrderDetail {
   customerId?: string;
   buyerName: string;
   buyerPhone: string;
-  buyerEmail: string;
+  buyerEmail?: string;
   buyerClass?: string;
+  referrer?: string | null;
   pickupPointName: string;
   pickupInstructions?: string;
   pickupPointId?: string | null;
@@ -295,10 +296,6 @@ export interface OrderDetail {
   items: OrderItemSnapshot[];
   statusHistory?: OrderStatusHistoryItem[];
   // Seller exclusive details
-  confirmationEmail?: {
-    status: 'PENDING' | 'PROCESSING' | 'SENT' | 'FAILED';
-    sentAt?: string;
-  } | null;
   contactAttempts?: ContactAttemptItem[];
   paymentEvents?: PaymentEventItem[];
 }
@@ -335,7 +332,7 @@ export interface RecordContactAttemptRequest {
 }
 
 export interface AcceptOrderRequest {
-  confirmedPickupPointId?: string;
+  confirmedPickupPointId: string;
   confirmedPickupAt: string;
   expectedVersion: number;
 }
@@ -406,6 +403,7 @@ export interface ShopSettings {
   contactPhone: string;
   contactEmail: string;
   acceptingOrders: boolean;
+  referrers?: string[];
   bankName?: string;
   accountNumber?: string;
   accountHolder?: string;
@@ -419,6 +417,7 @@ export interface UpdateShopSettingsRequest {
   contactPhone?: string;
   contactEmail?: string;
   acceptingOrders?: boolean;
+  referrers?: string[];
   bankName?: string;
   accountNumber?: string;
   accountHolder?: string;

@@ -159,13 +159,19 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
               <div className="info-row">
                 <span className="info-label">Người nhận:</span>
                 <span className="info-val">
-                  {order.buyerName} ({order.buyerPhone}) - {order.buyerEmail}
+                  {order.buyerName} ({order.buyerPhone}){order.buyerEmail ? ` - ${order.buyerEmail}` : ""}
                 </span>
               </div>
               {order.buyerClass && (
                 <div className="info-row">
                   <span className="info-label">Lớp:</span>
                   <span className="info-val">{order.buyerClass}</span>
+                </div>
+              )}
+              {order.referrer && (
+                <div className="info-row">
+                  <span className="info-label">Người giới thiệu:</span>
+                  <span className="info-val">{order.referrer}</span>
                 </div>
               )}
               <div className="info-row">

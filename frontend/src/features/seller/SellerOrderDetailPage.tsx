@@ -135,7 +135,7 @@ export const SellerOrderDetailPage: React.FC = () => {
     setAcceptError("");
     try {
       await actions.acceptOrder.mutateAsync({
-        confirmedPickupPointId: acceptPickupPointId === "KEEP_REQUESTED" ? undefined : acceptPickupPointId,
+        confirmedPickupPointId: acceptPickupPointId,
         confirmedPickupAt: instant.toISOString(),
         expectedVersion: order.version,
       });
@@ -298,12 +298,18 @@ export const SellerOrderDetailPage: React.FC = () => {
                   {order.buyerPhone}
                 </a>
               </div>
-              <div>
-                <strong>Email:</strong> {order.buyerEmail}
-              </div>
+              {order.buyerEmail && (
+                <div>
+                  <strong>Email:</strong> {order.buyerEmail}
+                </div>
+              )}
               <div>
                 <strong>Lớp / Phòng học:</strong>{" "}
                 {order.buyerClass || "Không có"}
+              </div>
+              <div>
+                <strong>Người giới thiệu:</strong>{" "}
+                {order.referrer || "Không có"}
               </div>
               <div>
                 <strong>Địa điểm nhận hàng:</strong> {order.pickupPointName}
@@ -469,8 +475,8 @@ export const SellerOrderDetailPage: React.FC = () => {
                       notify('Chưa thể xác nhận đơn. Hãy chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước.');
                       return;
                     }
-                    const activePoint = pickupPoints.find(p => p.active && p.id === order.pickupPointId);
-                    setAcceptPickupPointId(activePoint?.id || "KEEP_REQUESTED");
+                    const activePoint = pickupPoints.find(p => p.active && (p.id === order.pickupPointId || p.name === order.pickupPointName));
+                    setAcceptPickupPointId(activePoint?.id || "");
                     setAcceptError("");
                     setAcceptModalOpen(true);
                   }}
@@ -503,17 +509,6 @@ export const SellerOrderDetailPage: React.FC = () => {
                   <strong>Đã xử lý xong</strong>
                 </div>
                 <p className="text-sm mb-3">Đơn đã được xác nhận. Khách nhận hàng theo điểm và lịch đã chốt.</p>
-                <div className="seller-confirmation-email text-sm">
-                  {order.confirmationEmail?.status === "SENT" ? (
-                    <><strong>Đã gửi email xác nhận</strong><span>{order.buyerEmail}</span></>
-                  ) : order.confirmationEmail?.status === "FAILED" ? (
-                    <><strong className="text-red">Chưa gửi được email xác nhận</strong><span>Liên hệ khách qua số điện thoại và kiểm tra dịch vụ gửi mail.</span></>
-                  ) : order.confirmationEmail ? (
-                    <><strong>Email xác nhận đang chờ gửi</strong><span>Hệ thống sẽ tự gửi lại. Không cần xác nhận đơn lần nữa.</span></>
-                  ) : (
-                    <><strong>Chưa có thông tin gửi email</strong><span>Đơn đã được xác nhận; kiểm tra lại với khách nếu cần.</span></>
-                  )}
-                </div>
                 <Link to="/seller/orders?status=ACCEPTED" className="btn-secondary full-width mt-3">Xem các đơn đã xác nhận</Link>
               </div>
             )}
@@ -696,7 +691,7 @@ export const SellerOrderDetailPage: React.FC = () => {
         closeDisabled={actions.acceptOrder.isPending}
       >
         <form onSubmit={handleAcceptOrder}>
-          <p className="pickup-schedule-intro">Chốt điểm nhận và thời gian đã thống nhất với khách. Sau khi xác nhận, hệ thống gửi email tới <strong>{order.buyerEmail}</strong> và hoàn tất xử lý đơn.</p>
+          <p className="pickup-schedule-intro">Chốt điểm nhận của shop và thời gian đã thống nhất với khách để hoàn tất xác nhận đơn.</p>
           <div className="form-group">
             <label
               className="form-label"
@@ -714,15 +709,19 @@ export const SellerOrderDetailPage: React.FC = () => {
               required
             >
               <option value="">-- Chọn điểm nhận --</option>
-              <option value="KEEP_REQUESTED">Giữ địa điểm khách chọn: {order.pickupPointName}</option>
               {pickupPoints.filter((p) => p.active).map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
               ))}
             </select>
-            {acceptPickupPointId === "KEEP_REQUESTED" && order.pickupInstructions && <p className="pickup-instructions">{order.pickupInstructions}</p>}
-            <p className="text-muted text-xs">Chỉ đổi sang điểm gợi ý sau khi đã thống nhất với khách.</p>
+            {!pickupPoints.some((p) => p.active) ? (
+              <p className="pickup-schedule-error">
+                Chưa có điểm nhận hàng đang hoạt động. <Link to="/seller/settings">Mở Cài đặt shop</Link> để thêm điểm nhận trước.
+              </p>
+            ) : (
+              <p className="text-muted text-xs">Chọn điểm nhận hàng của shop đã thống nhất với khách.</p>
+            )}
           </div>
 
           <PickupDateTimePicker value={acceptPickupAt}
@@ -741,11 +740,11 @@ export const SellerOrderDetailPage: React.FC = () => {
             </button>
             <button
               type="submit"
-              disabled={actions.acceptOrder.isPending || !hasSuccessfulContact}
+              disabled={actions.acceptOrder.isPending || !hasSuccessfulContact || !pickupPoints.some((p) => p.active)}
               className="btn-primary"
             >
               {actions.acceptOrder.isPending && <LoaderCircle size={18} className="pickup-saving-icon" aria-hidden="true" />}
-              {actions.acceptOrder.isPending ? "Đang xác nhận và gửi email…" : "Xác nhận và gửi email"}
+              {actions.acceptOrder.isPending ? "Đang xác nhận…" : "Xác nhận đơn hàng"}
             </button>
           </div>
         </form>

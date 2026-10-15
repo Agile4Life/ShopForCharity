@@ -14,7 +14,7 @@ test('PostgreSQL embedded: empty migration, rerun, shared counters and rollback'
       ? Promise.resolve({ rows: [] }) : params ? db.query(sql, params) : db.exec(sql).then(results => results.at(-1)) };
     await applyMigrations(client);
     await applyMigrations(client);
-    assert.equal((await db.query('SELECT count(*)::int AS count FROM shop.schema_migrations')).rows[0].count, 8);
+    assert.equal((await db.query('SELECT count(*)::int AS count FROM shop.schema_migrations')).rows[0].count, 9);
     assert.equal((await db.query('SELECT accepting_orders FROM shop.shops')).rows[0].accepting_orders, false);
     const firstInstance = new RateLimiter((sql, params) => db.query(sql, params));
     const secondInstance = new RateLimiter((sql, params) => db.query(sql, params));
@@ -34,7 +34,7 @@ test('PostgreSQL embedded: empty migration, rerun, shared counters and rollback'
     }
     await assert.rejects(applyMigrations(client), /baseline-flyway/);
     await applyMigrations(client, undefined, true);
-    assert.equal((await db.query('SELECT count(*)::int AS count FROM shop.schema_migrations')).rows[0].count, 8);
+    assert.equal((await db.query('SELECT count(*)::int AS count FROM shop.schema_migrations')).rows[0].count, 9);
     assert.equal((await db.query('SELECT count(*)::int AS count FROM shop.shops')).rows[0].count, 1);
   } finally { await db.close(); }
 });

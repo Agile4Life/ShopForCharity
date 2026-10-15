@@ -38,16 +38,9 @@ const checkoutSchema = z.object({
       /^(0|\+84)[35789][0-9]{8}$/,
       "Nhập số điện thoại Việt Nam hợp lệ, ví dụ 0912345678.",
     ),
-  email: z
-    .string()
-    .trim()
-    .email("Địa chỉ email không đúng định dạng")
-    .max(254, "Email tối đa 254 ký tự"),
   className: z.string().max(50, "Lớp học tối đa 50 ký tự").optional(),
-  pickupMode: z.enum(["CUSTOM", "SHOP"]),
-  pickupPointId: z.string(),
-  customPickupLocation: z.string().trim(),
-  customPickupInstructions: z.string().trim().max(500, "Chỉ dẫn nhận hàng tối đa 500 ký tự"),
+  pickupPointId: z.string().min(1, "Vui lòng chọn điểm nhận hàng"),
+  referrer: z.string().max(100, "Người giới thiệu tối đa 100 ký tự").optional(),
   requestedPickupAt: z
     .string()
     .optional()
@@ -57,13 +50,6 @@ const checkoutSchema = z.object({
     }),
   paymentMethod: z.enum(["CASH", "BANK_TRANSFER"] as const),
   note: z.string().max(500, "Ghi chú tối đa 500 ký tự").optional(),
-}).superRefine((data, ctx) => {
-  if (data.pickupMode === "SHOP" && !data.pickupPointId) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["pickupPointId"], message: "Vui lòng chọn một địa điểm shop gợi ý." });
-  }
-  if (data.pickupMode === "CUSTOM" && (data.customPickupLocation.length < 2 || data.customPickupLocation.length > 200)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["customPickupLocation"], message: "Nhập địa điểm nhận hàng từ 2 đến 200 ký tự." });
-  }
 });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
@@ -107,19 +93,15 @@ export const CheckoutPage: React.FC = () => {
     watch,
     getFieldState,
     setFocus,
-    clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
       fullName: profile?.fullName || "",
       phone: profile?.phone || "",
-      email: profile?.email || "",
       className: "",
-      pickupMode: "CUSTOM",
       pickupPointId: "",
-      customPickupLocation: "",
-      customPickupInstructions: "",
+      referrer: "",
       paymentMethod: "CASH",
       note: "",
     },
@@ -127,7 +109,6 @@ export const CheckoutPage: React.FC = () => {
 
   const selectedPaymentMethod = watch("paymentMethod");
   const selectedPickup = watch("pickupPointId");
-  const pickupMode = watch("pickupMode");
   const quoteExpired = !!quote && new Date(quote.expiresAt).getTime() <= now;
   const unavailableItems =
     quote?.items.some(
@@ -145,8 +126,6 @@ export const CheckoutPage: React.FC = () => {
         setValue("fullName", profile.fullName);
       if (profile.phone && !getFieldState("phone").isDirty)
         setValue("phone", profile.phone);
-      if (profile.email && !getFieldState("email").isDirty)
-        setValue("email", profile.email);
     }
   }, [profile, setValue, getFieldState]);
 
@@ -200,7 +179,8 @@ export const CheckoutPage: React.FC = () => {
       checkingQuote ||
       quoteExpired ||
       unavailableItems ||
-      !shop?.acceptingOrders
+      !shop?.acceptingOrders ||
+      pickupPoints.length === 0
     ) {
       setSubmitError(
         new Error(
@@ -223,12 +203,10 @@ export const CheckoutPage: React.FC = () => {
         buyer: {
           fullName: data.fullName,
           phone: data.phone,
-          email: data.email,
           className: data.className || undefined,
         },
-        ...(data.pickupMode === "CUSTOM"
-          ? { customPickupLocation: data.customPickupLocation, customPickupInstructions: data.customPickupInstructions || undefined }
-          : { pickupPointId: data.pickupPointId }),
+        pickupPointId: data.pickupPointId,
+        referrer: data.referrer || undefined,
         requestedPickupAt: data.requestedPickupAt
           ? pickupInstant(data.requestedPickupAt).toISOString()
           : undefined,
@@ -244,7 +222,7 @@ export const CheckoutPage: React.FC = () => {
         state: {
           order: result,
           buyer: orderPayload.buyer,
-          pickupPoint: data.pickupMode === "CUSTOM" ? data.customPickupLocation : shop?.pickupPoints.find(
+          pickupPoint: shop?.pickupPoints.find(
             (p) => p.id === data.pickupPointId,
           )?.name,
           paymentMethod: data.paymentMethod,
@@ -384,67 +362,8 @@ export const CheckoutPage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="email" className="form-label">
-                Địa chỉ Email *
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                inputMode="email"
-                aria-invalid={!!errors.email}
-                aria-describedby={errors.email ? "email-error" : undefined}
-                placeholder="Ví dụ: hocsinh@gmail.com"
-                className={`input-field ${errors.email ? "input-error" : ""}`}
-                {...register("email")}
-              />
-              {errors.email && (
-                <span id="email-error" className="field-error">
-                  {errors.email.message}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <section className="checkout-pickup-section" aria-labelledby="pickup-heading">
-            <h2 id="pickup-heading" className="section-subtitle">Bạn muốn nhận hàng ở đâu?</h2>
-            <p className="text-muted text-sm mb-3" id="pickup-help">
-              Bạn chủ động chọn nơi nhận hàng. Shop sẽ liên hệ để thống nhất địa điểm và thời gian với bạn.
-            </p>
-            <fieldset className="checkout-pickup-options" aria-describedby="pickup-help">
-              <legend className="form-label">Cách chọn địa điểm</legend>
-              <label className="payment-radio-card">
-                <input type="radio" value="CUSTOM" {...register("pickupMode", { onChange: () => clearErrors(["pickupPointId", "customPickupLocation", "customPickupInstructions"]) })} />
-                <div><strong>Tự chọn địa điểm</strong><p className="text-muted text-xs">Nhập nơi thuận tiện cho bạn.</p></div>
-              </label>
-              <label className="payment-radio-card">
-                <input type="radio" value="SHOP" {...register("pickupMode", { onChange: () => clearErrors(["pickupPointId", "customPickupLocation", "customPickupInstructions"]) })} />
-                <div><strong>Chọn gợi ý của shop</strong><p className="text-muted text-xs">Các điểm nhận do shop thiết lập.</p></div>
-              </label>
-            </fieldset>
-            <div hidden={pickupMode !== "CUSTOM"}>
-              <div className="form-group">
-                <label htmlFor="customPickupLocation" className="form-label">Địa điểm bạn muốn nhận *</label>
-                <input id="customPickupLocation" className={`input-field ${errors.customPickupLocation ? "input-error" : ""}`}
-                  placeholder="Ví dụ: Sảnh nhà B, gần thư viện" maxLength={200}
-                  aria-invalid={!!errors.customPickupLocation}
-                  aria-describedby={errors.customPickupLocation ? "custom-pickup-error" : undefined}
-                  {...register("customPickupLocation")} />
-                {errors.customPickupLocation && <span id="custom-pickup-error" className="field-error">{errors.customPickupLocation.message}</span>}
-              </div>
-              <div className="form-group">
-                <label htmlFor="customPickupInstructions" className="form-label">Chỉ dẫn nhận hàng (tùy chọn)</label>
-                <textarea id="customPickupInstructions" className="textarea-field" rows={2} maxLength={500}
-                  placeholder="Ví dụ: Gặp tại ghế đá trước sảnh, gọi khi đến."
-                  aria-invalid={!!errors.customPickupInstructions}
-                  aria-describedby={errors.customPickupInstructions ? "custom-instructions-error" : undefined}
-                  {...register("customPickupInstructions")} />
-                {errors.customPickupInstructions && <span id="custom-instructions-error" className="field-error">{errors.customPickupInstructions.message}</span>}
-              </div>
-            </div>
-            <div className="form-group" hidden={pickupMode !== "SHOP"}>
               <label htmlFor="pickupPointId" className="form-label">
-                Địa điểm shop gợi ý *
+                Điểm nhận hàng tại trường *
               </label>
               <select
                 id="pickupPointId"
@@ -455,7 +374,7 @@ export const CheckoutPage: React.FC = () => {
                 className={`select-field ${errors.pickupPointId ? "input-error" : ""}`}
                 {...register("pickupPointId")}
               >
-                <option value="">Chọn một địa điểm gợi ý</option>
+                <option value="">Chọn điểm nhận hàng</option>
                 {pickupPoints.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -479,11 +398,36 @@ export const CheckoutPage: React.FC = () => {
               )}
               {pickupPoints.length === 0 && (
                 <p className="field-error">
-                  Shop chưa có địa điểm gợi ý. Bạn có thể chọn “Tự chọn địa điểm” để nhập nơi nhận.
+                  Shop chưa mở điểm nhận hàng. Vui lòng quay lại sau.
                 </p>
               )}
             </div>
-          </section>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="referrer" className="form-label">
+              Người giới thiệu bạn mua hàng
+            </label>
+            <select
+              id="referrer"
+              aria-invalid={!!errors.referrer}
+              aria-describedby={errors.referrer ? "referrer-error" : undefined}
+              className={`select-field ${errors.referrer ? "input-error" : ""}`}
+              {...register("referrer")}
+            >
+              <option value="">Không có / Tự biết đến shop</option>
+              {(shop?.referrers || []).map((refName) => (
+                <option key={refName} value={refName}>
+                  {refName}
+                </option>
+              ))}
+            </select>
+            {errors.referrer && (
+              <span id="referrer-error" className="field-error">
+                {errors.referrer.message}
+              </span>
+            )}
+          </div>
 
           <details
             className="optional-fields"
@@ -673,7 +617,8 @@ export const CheckoutPage: React.FC = () => {
               checkingQuote ||
               quoteExpired ||
               unavailableItems ||
-              !shop?.acceptingOrders
+              !shop?.acceptingOrders ||
+              pickupPoints.length === 0
             }
             className="btn-primary full-width mt-4 btn-lg"
           >
