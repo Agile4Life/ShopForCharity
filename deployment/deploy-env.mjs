@@ -8,6 +8,8 @@ const runtimeKeys = [
   'PENDING_ORDER_TTL_HOURS', 'GUEST_TOKEN_TTL_DAYS', 'PUBLIC_PRODUCT_BUCKET', 'PRIVATE_PAYMENT_BUCKET',
   'DB_SSL_CA', 'DB_POOL_MAX', 'SELLER_REGISTRATION_CODE',
   'RESEND_API_KEY', 'ORDER_EMAIL_FROM',
+  'GOOGLE_SHEETS_SPREADSHEET_ID', 'GOOGLE_SHEETS_TAB_NAME',
+  'GOOGLE_SERVICE_ACCOUNT_EMAIL', 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY',
 ];
 
 export function createDeployEnv(backend, frontend, previous = {}, origin = 'https://www.goiamtraoem.shop') {

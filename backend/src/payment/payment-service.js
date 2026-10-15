@@ -10,6 +10,7 @@ import { getOrderService } from '../order/order-service.js';
 import { getIdempotencyService } from '../infrastructure/idempotency-service.js';
 import { getAuditService } from '../audit/audit-service.js';
 import { getStorage } from '../infrastructure/storage.js';
+import { getOrderSheetsService } from '../infrastructure/order-sheets-service.js';
 
 export class PaymentService {
   constructor(
@@ -18,7 +19,8 @@ export class PaymentService {
     orderServiceInstance = getOrderService(),
     idempotencyServiceInstance = getIdempotencyService(),
     auditServiceInstance = getAuditService(),
-    storageInstance = getStorage()
+    storageInstance = getStorage(),
+    sheetsServiceInstance = getOrderSheetsService()
   ) {
     this.profiles = profileServiceInstance;
     this.access = orderAccessInstance;
@@ -26,12 +28,13 @@ export class PaymentService {
     this.idem = idempotencyServiceInstance;
     this.audit = auditServiceInstance;
     this.storage = storageInstance;
+    this.sheets = sheetsServiceInstance;
   }
 
   async action(actor, id, seller, action, key, input) {
     if (seller) this.profiles.seller(actor);
 
-    return withTx(async (client) => {
+    const result = await withTx(async (client) => {
       await lockShop(client, config.shopId);
       const o = await this.access.owned(id, actor, seller, client);
 
@@ -187,6 +190,8 @@ export class PaymentService {
         }
       );
     });
+    await this.sheets.syncOrderSafely(id);
+    return result;
   }
 
   async reference(client, reference) {

@@ -18,6 +18,12 @@ export const config = {
     apiKey: process.env.RESEND_API_KEY || '',
     from: process.env.ORDER_EMAIL_FROM || '',
   },
+  sheets: {
+    spreadsheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID || '',
+    tabName: process.env.GOOGLE_SHEETS_TAB_NAME || '',
+    clientEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '',
+    privateKey: (process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+  },
   shopId: process.env.APP_SHOP_ID || '00000000-0000-0000-0000-000000000001',
   jwt: {
     issuer: process.env.JWT_ISSUER_URI,
