@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { Controller, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -20,8 +20,6 @@ import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
 import { BankTransferDetails } from "../../components/BankTransferDetails";
 import { PurchaseSteps } from "../../components/Usability";
-import { PickupDateTimePicker } from "../seller/PickupDateTimePicker";
-import { pickupInstant, pickupTimeError } from "../seller/pickup-time";
 import type { QuoteResponse, PaymentMethod } from "../../types/api";
 import { getBuyNowItem } from "./buy-now";
 
@@ -38,16 +36,8 @@ const checkoutSchema = z.object({
       /^(0|\+84)[35789][0-9]{8}$/,
       "Nhập số điện thoại Việt Nam hợp lệ, ví dụ 0912345678.",
     ),
-  className: z.string().max(50, "Lớp học tối đa 50 ký tự").optional(),
   pickupPointId: z.string().min(1, "Vui lòng chọn điểm nhận hàng"),
   referrer: z.string().max(100, "Người giới thiệu tối đa 100 ký tự").optional(),
-  requestedPickupAt: z
-    .string()
-    .optional()
-    .superRefine((value, ctx) => {
-      const message = value ? pickupTimeError(value) : null;
-      if (message) ctx.addIssue({ code: z.ZodIssueCode.custom, message });
-    }),
   paymentMethod: z.enum(["CASH", "BANK_TRANSFER"] as const),
   note: z.string().max(500, "Ghi chú tối đa 500 ký tự").optional(),
 });
@@ -87,7 +77,6 @@ export const CheckoutPage: React.FC = () => {
 
   const {
     register,
-    control,
     handleSubmit,
     setValue,
     watch,
@@ -99,7 +88,6 @@ export const CheckoutPage: React.FC = () => {
     defaultValues: {
       fullName: profile?.fullName || "",
       phone: profile?.phone || "",
-      className: "",
       pickupPointId: "",
       referrer: "",
       paymentMethod: "CASH",
@@ -203,13 +191,9 @@ export const CheckoutPage: React.FC = () => {
         buyer: {
           fullName: data.fullName,
           phone: data.phone,
-          className: data.className || undefined,
         },
         pickupPointId: data.pickupPointId,
         referrer: data.referrer || undefined,
-        requestedPickupAt: data.requestedPickupAt
-          ? pickupInstant(data.requestedPickupAt).toISOString()
-          : undefined,
         paymentMethod: data.paymentMethod as PaymentMethod,
         note: data.note || undefined,
       };
@@ -429,63 +413,22 @@ export const CheckoutPage: React.FC = () => {
             )}
           </div>
 
-          <details
-            className="optional-fields"
-            open={
-              errors.requestedPickupAt || errors.className || errors.note
-                ? true
-                : undefined
-            }
-          >
-            <summary>Thêm lớp, thời gian nhận hoặc ghi chú</summary>
-            <div className="form-group">
-              <label htmlFor="className" className="form-label">
-                Lớp (tùy chọn)
-              </label>
-              <input
-                id="className"
-                className="input-field"
-                placeholder="Ví dụ: 12A1"
-                aria-invalid={!!errors.className}
-                {...register("className")}
-              />
-              {errors.className && (
-                <span className="field-error">{errors.className.message}</span>
-              )}
-            </div>
-            <div className="form-group">
-              <label htmlFor="requestedPickupAt" className="form-label">
-                Thời gian muốn nhận (tùy chọn)
-              </label>
-              <Controller name="requestedPickupAt" control={control} render={({ field }) => (
-                <PickupDateTimePicker triggerId="requestedPickupAt" label="Thời gian muốn nhận (tùy chọn)"
-                  value={field.value || ""} onChange={field.onChange} inputRef={field.ref} onBlur={field.onBlur} optional
-                  invalid={!!errors.requestedPickupAt} errorId="pickup-time-error" />
-              )} />
-              {errors.requestedPickupAt && (
-                <span id="pickup-time-error" className="field-error">
-                  {errors.requestedPickupAt.message}
-                </span>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="note" className="form-label">
-                Ghi chú (tùy chọn)
-              </label>
-              <textarea
-                id="note"
-                rows={2}
-                placeholder="Ví dụ: Em nhận vào giờ ra chơi tiết 2 ạ..."
-                className="textarea-field"
-                aria-invalid={!!errors.note}
-                {...register("note")}
-              />
-              {errors.note && (
-                <span className="field-error">{errors.note.message}</span>
-              )}
-            </div>
-          </details>
+          <div className="form-group">
+            <label htmlFor="note" className="form-label">
+              Ghi chú (tùy chọn)
+            </label>
+            <textarea
+              id="note"
+              rows={2}
+              placeholder="Ví dụ: Em nhận vào giờ ra chơi tiết 2 ạ..."
+              className="textarea-field"
+              aria-invalid={!!errors.note}
+              {...register("note")}
+            />
+            {errors.note && (
+              <span className="field-error">{errors.note.message}</span>
+            )}
+          </div>
           {/* Payment Method Selection */}
           <div className="form-group mt-4">
             <label className="form-label font-bold">

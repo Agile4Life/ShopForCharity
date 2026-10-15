@@ -34,26 +34,19 @@ for (const width of [1280, 390, 320]) {
   });
 }
 
-test('checkout calendar submits selected Vietnam date and time', async ({ page, scenario }, testInfo) => {
-  await page.clock.setFixedTime(new Date('2026-10-10T02:00:00Z'));
+test('checkout shows note field without class or pickup time fields', async ({ page, scenario }) => {
   await scenario.cart();
   await page.goto('/checkout');
+  await expect(page.locator('#className')).toHaveCount(0);
+  await expect(page.locator('#requestedPickupAt')).toHaveCount(0);
+  await expect(page.locator('#note')).toBeVisible();
   await page.locator('#fullName').fill('Nguyễn Văn Test');
   await page.locator('#phone').fill('0912345678');
   await page.locator('#pickupPointId').selectOption(ids.pickup);
-  await page.getByText('Thêm lớp, thời gian nhận hoặc ghi chú', { exact: true }).click();
-  await page.getByLabel('Thời gian muốn nhận (tùy chọn)', { exact: true }).click();
-  const calendar = page.getByRole('group', { name: 'Lịch chọn ngày', exact: true });
-  await expect(calendar.locator('[data-date="2026-10-09"]')).toBeDisabled();
-  await page.screenshot({ path: testInfo.outputPath('checkout-calendar.png'), fullPage: true });
-  await expect(calendar.locator('[data-date="2026-10-17"]')).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Hôm nay', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Ngày mai', exact: true })).toBeDisabled();
-  await calendar.locator('[data-date="2026-10-18"]').click();
-  await page.getByLabel('Giờ', { exact: true }).selectOption('10');
-  await page.getByLabel('Phút', { exact: true }).selectOption('30');
-  await expect(page.locator('input[type="datetime-local"]')).toHaveCount(0);
+  await page.locator('#note').fill('Em nhận vào giờ ra chơi tiết 2 ạ');
   await submit(page);
   await expect(page).toHaveURL('/order-success');
-  expect(scenario.mutations('/orders')[0].postDataJSON()).toMatchObject({ requestedPickupAt: '2026-10-18T03:30:00.000Z' });
+  expect(scenario.mutations('/orders')[0].postDataJSON()).toMatchObject({
+    note: 'Em nhận vào giờ ra chơi tiết 2 ạ',
+  });
 });
