@@ -10,7 +10,7 @@ export class OrderRules {
 
     switch (to) {
       case 'ACCEPTED':
-        valid = seller && from === 'PENDING_CONTACT' && contact;
+        valid = seller && from === 'PENDING_CONTACT';
         break;
       case 'PREPARING':
         valid = seller && from === 'ACCEPTED';
@@ -40,9 +40,7 @@ export class OrderRules {
       valid,
       409,
       'INVALID_TRANSITION',
-      seller && from === 'PENDING_CONTACT' && to === 'ACCEPTED' && !contact
-        ? 'Cần ghi nhận liên hệ thành công với khách trước khi chấp nhận đơn.'
-        : 'Không thể thực hiện ở trạng thái hiện tại.'
+      'Không thể thực hiện ở trạng thái hiện tại.'
     );
   }
 }

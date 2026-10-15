@@ -420,7 +420,7 @@ export const CheckoutPage: React.FC = () => {
             <textarea
               id="note"
               rows={2}
-              placeholder="Ví dụ: Em nhận vào giờ ra chơi tiết 2 ạ..."
+              placeholder="Chi tiết địa chỉ"
               className="textarea-field"
               aria-invalid={!!errors.note}
               {...register("note")}

@@ -332,8 +332,8 @@ export interface RecordContactAttemptRequest {
 }
 
 export interface AcceptOrderRequest {
-  confirmedPickupPointId: string;
-  confirmedPickupAt: string;
+  confirmedPickupPointId?: string;
+  confirmedPickupAt?: string;
   expectedVersion: number;
 }
 

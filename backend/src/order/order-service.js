@@ -295,13 +295,7 @@ export class OrderService {
               throw new ApiException(400, 'INVALID_ACTION', 'Action không hợp lệ.');
           }
 
-          const contactRes = await client.query(
-            "SELECT count(*) FROM shop.order_contact_attempts WHERE order_id = $1 AND outcome = 'SUCCESS'",
-            [id]
-          );
-          const hasContact = parseInt(contactRes.rows[0].count, 10) > 0;
-
-          OrderRules.transition(o.status, to, o.payment_status, seller, hasContact);
+          OrderRules.transition(o.status, to, o.payment_status, seller, true);
 
           if (to === 'ACCEPTED') {
             const now = new Date();
@@ -314,21 +308,28 @@ export class OrderService {
               'Đơn đã quá hạn giữ hàng.'
             );
 
-            ApiException.check(
-              input.confirmedPickupPointId &&
-                input.confirmedPickupAt &&
-                new Date(input.confirmedPickupAt) > now,
-              400,
-              'CONFIRMED_PICKUP_REQUIRED',
-              'Cần xác nhận điểm và thời gian nhận.'
-            );
-            const confirmedAt = validatePickupTime(input.confirmedPickupAt, now);
+            if (
+              input.confirmedPickupPointId !== undefined ||
+              input.confirmedPickupAt !== undefined
+            ) {
+              ApiException.check(
+                input.confirmedPickupPointId &&
+                  input.confirmedPickupAt &&
+                  new Date(input.confirmedPickupAt) > now,
+                400,
+                'CONFIRMED_PICKUP_REQUIRED',
+                'Cần xác nhận điểm và thời gian nhận.'
+              );
+              const confirmedAt = validatePickupTime(input.confirmedPickupAt, now);
 
-            const pickup = await this.settings.pickup(input.confirmedPickupPointId, client);
-            o.pickup_point_id = pickup.id;
-            o.pickup_name = pickup.name;
-            o.pickup_instructions = pickup.instructions;
-            o.confirmed_at = confirmedAt;
+              const pickup = await this.settings.pickup(input.confirmedPickupPointId, client);
+              o.pickup_point_id = pickup.id;
+              o.pickup_name = pickup.name;
+              o.pickup_instructions = pickup.instructions;
+              o.confirmed_at = confirmedAt;
+            } else {
+              o.confirmed_at = o.requested_at || now;
+            }
           }
 
           if (to === 'CANCELLED' || to === 'REJECTED') {

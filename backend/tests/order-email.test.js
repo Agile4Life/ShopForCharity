@@ -153,13 +153,15 @@ test('order confirmation: accepts orders with shop pickup point without queuing 
       }
     });
 
-    await t.test('invalid acceptance, wrong role and rollback keep order in PENDING_CONTACT', async () => {
+    await t.test('direct acceptance works without contact attempt; invalid overrides, wrong role and rollback keep order in PENDING_CONTACT', async () => {
       const id = await makeOrder(), noContact = await makeOrder(false, false);
+      const acceptedDirectly = await orders.action(seller, noContact, true, 'accept', randomUUID(), { expectedVersion: 0 });
+      assert.equal(acceptedDirectly.status, 'ACCEPTED');
+      assert.equal(acceptedDirectly.pickupPointId, pickupId);
+      assert.equal(acceptedDirectly.pickupPointName, 'Điểm nhận ban đầu');
       await assert.rejects(orders.action(customer, id, true, 'accept', randomUUID(), input));
-      await assert.rejects(orders.action(seller, noContact, true, 'accept', randomUUID(), input));
       await assert.rejects(orders.action(seller, id, true, 'accept', randomUUID(), { ...input, expectedVersion: 9 }));
       await assert.rejects(orders.action(seller, id, true, 'accept', randomUUID(), { expectedVersion: 0, confirmedPickupAt: input.confirmedPickupAt }));
-      await assert.rejects(orders.action(seller, id, true, 'accept', randomUUID(), { expectedVersion: 0 }));
       failView = true;
       await assert.rejects(orders.action(seller, id, true, 'accept', randomUUID(), input), /view-failed/);
       failView = false;

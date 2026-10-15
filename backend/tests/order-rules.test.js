@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import { OrderRules } from '../src/order/order-rules.js';
 import { ApiException } from '../src/common/api-exception.js';
 
-test('acceptance requires successful contact', () => {
+test('seller can accept pending order directly without requiring contact attempt', () => {
   assert.throws(
-    () => OrderRules.transition('PENDING_CONTACT', 'ACCEPTED', 'UNPAID', true, false),
+    () => OrderRules.transition('PENDING_CONTACT', 'ACCEPTED', 'UNPAID', false, false),
     error => error instanceof ApiException && error.code === 'INVALID_TRANSITION'
-      && error.message === 'Cần ghi nhận liên hệ thành công với khách trước khi chấp nhận đơn.'
+  );
+  assert.doesNotThrow(
+    () => OrderRules.transition('PENDING_CONTACT', 'ACCEPTED', 'UNPAID', true, false)
   );
   assert.doesNotThrow(
     () => OrderRules.transition('PENDING_CONTACT', 'ACCEPTED', 'UNPAID', true, true)

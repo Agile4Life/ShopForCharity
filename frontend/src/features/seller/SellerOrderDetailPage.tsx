@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
-  Phone,
   User,
   CheckCircle,
   XCircle,
@@ -13,7 +12,6 @@ import {
 import {
   useSellerOrderDetail,
   useSellerOrderActions,
-  useSellerPickupPoints,
 } from "./api";
 import {
   OrderStatusBadge,
@@ -22,12 +20,8 @@ import {
 import { Modal } from "../../components/Modal";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
-import type { ContactChannel, ContactOutcome } from "../../types/api";
-import { PickupDateTimePicker } from "./PickupDateTimePicker";
 import { OrderCode, CopyOrderCode } from "../../components/OrderCode";
 import { AUDIT_ACTION_LABELS } from "./audit-display";
-import { pickupInstant, pickupTimeError } from "./pickup-time";
-import { ApiError } from "../../lib/api-client";
 
 export const SellerOrderDetailPage: React.FC = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -38,21 +32,9 @@ export const SellerOrderDetailPage: React.FC = () => {
     error,
     refetch,
   } = useSellerOrderDetail(orderId || "");
-  const { data: pickupPoints = [] } = useSellerPickupPoints();
   const actions = useSellerOrderActions(orderId || "");
 
   // Modal states
-  const [contactModalOpen, setContactModalOpen] = useState(false);
-  const [contactChannel, setContactChannel] = useState<ContactChannel>("PHONE");
-  const [contactOutcome, setContactOutcome] =
-    useState<ContactOutcome>("SUCCESS");
-  const [contactNote, setContactNote] = useState("");
-
-  const [acceptModalOpen, setAcceptModalOpen] = useState(false);
-  const [acceptPickupPointId, setAcceptPickupPointId] = useState("");
-  const [acceptPickupAt, setAcceptPickupAt] = useState("");
-  const [acceptError, setAcceptError] = useState("");
-
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -89,64 +71,18 @@ export const SellerOrderDetailPage: React.FC = () => {
     );
   }
 
-  // Check if contact attempt was SUCCESS (required by spec before accept)
-  const hasSuccessfulContact = order.contactAttempts?.some(
-    (c) => c.outcome === "SUCCESS",
-  );
   const isResolved = ["ACCEPTED", "PREPARING", "READY", "COMPLETED"].includes(order.status);
 
   // Action Handlers
-  const handleRecordContact = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await actions.recordContactAttempt.mutateAsync({
-        channel: contactChannel,
-        outcome: contactOutcome,
-        note: contactNote.trim() || undefined,
-        expectedVersion: order.version,
-      });
-    } catch (error) {
-      notify(error);
-      return;
-    }
-    setContactModalOpen(false);
-    setContactNote("");
-    // Refetch order to get updated version
-    refetch();
-  };
-
-  const handleAcceptOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAcceptOrder = async () => {
     if (actions.acceptOrder.isPending) return;
-    if (!hasSuccessfulContact) {
-      setAcceptError('Cần ghi nhận liên hệ "Thành công" với khách trước khi xác nhận đơn.');
-      return;
-    }
-    if (!acceptPickupPointId || !acceptPickupAt) {
-      setAcceptError("Vui lòng chọn điểm nhận hàng và ngày hẹn nhận.");
-      return;
-    }
-    const scheduleError = pickupTimeError(acceptPickupAt);
-    if (scheduleError) {
-      setAcceptError(scheduleError);
-      return;
-    }
-    const instant = pickupInstant(acceptPickupAt);
-    setAcceptError("");
     try {
       await actions.acceptOrder.mutateAsync({
-        confirmedPickupPointId: acceptPickupPointId,
-        confirmedPickupAt: instant.toISOString(),
         expectedVersion: order.version,
       });
     } catch (error) {
-      if (error instanceof ApiError && ["INVALID_TRANSITION", "VERSION_CONFLICT"].includes(error.code)) {
-        setAcceptModalOpen(false);
-      }
       notify(error);
-      return;
     }
-    setAcceptModalOpen(false);
   };
 
   const handleRejectOrder = async (e: React.FormEvent) => {
@@ -270,19 +206,12 @@ export const SellerOrderDetailPage: React.FC = () => {
       <div className="seller-order-grid">
         {/* Main Column */}
         <div className="seller-main-col">
-          {/* Buyer Info & Contact Attempts */}
+          {/* Buyer Info */}
           <div className="card mb-4">
             <div className="flex-between mb-3">
               <h2 className="section-subtitle flex items-center gap-2">
-                <User size={18} /> Thông tin người mua & Liên hệ
+                <User size={18} /> Thông tin người mua
               </h2>
-              {order.status === "PENDING_CONTACT" && <button
-                type="button"
-                onClick={() => setContactModalOpen(true)}
-                className="btn-primary-sm"
-              >
-                <Phone size={14} /> Ghi nhận liên hệ
-              </button>}
             </div>
 
             <div className="buyer-info-grid">
@@ -315,72 +244,9 @@ export const SellerOrderDetailPage: React.FC = () => {
                 <strong>Địa điểm nhận hàng:</strong> {order.pickupPointName}
               </div>
               {order.pickupInstructions && <div><strong>Chỉ dẫn nhận hàng:</strong> {order.pickupInstructions}</div>}
-              <div>
-                <strong>Giờ mong muốn:</strong>{" "}
-                {order.requestedPickupAt
-                  ? new Date(order.requestedPickupAt).toLocaleString("vi-VN")
-                  : "Không chọn"}
-              </div>
-              {order.confirmedPickupAt && (
-                <div className="text-green font-bold">
-                  <strong>Giờ hẹn xác nhận:</strong>{" "}
-                  {new Date(order.confirmedPickupAt).toLocaleString("vi-VN")}
-                </div>
-              )}
               {order.note && (
                 <div className="col-span-2 italic text-muted">
                   <strong>Ghi chú của khách:</strong> {order.note}
-                </div>
-              )}
-            </div>
-
-            {/* List of Contact Attempts */}
-            <div className="contact-attempts-section mt-4 pt-3 border-top">
-              <h4 className="text-sm font-bold mb-2">
-                Lịch sử liên hệ ({order.contactAttempts?.length || 0}):
-              </h4>
-              {!order.contactAttempts || order.contactAttempts.length === 0 ? (
-                <p className="text-xs text-muted">
-                  {order.status === "PENDING_CONTACT"
-                    ? "Chưa ghi nhận liên hệ. Liên hệ thành công với khách trước khi xác nhận đơn."
-                    : "Chưa có lịch sử liên hệ."}
-                </p>
-              ) : (
-                <div className="contact-list">
-                  {order.contactAttempts.map((attempt, idx) => (
-                    <div key={idx} className="contact-attempt-row text-xs">
-                      <span className="font-bold">
-                        {attempt.channel === "PHONE"
-                          ? "Gọi điện"
-                          : attempt.channel === "EMAIL"
-                            ? "Gửi email"
-                            : "Gặp trực tiếp"}
-                      </span>
-                      <span
-                        className={`badge ${
-                          attempt.outcome === "SUCCESS"
-                            ? "badge-green"
-                            : attempt.outcome === "NO_RESPONSE"
-                              ? "badge-yellow"
-                              : "badge-red"
-                        }`}
-                      >
-                        {attempt.outcome === "SUCCESS"
-                          ? "Thành công"
-                          : attempt.outcome === "NO_RESPONSE"
-                            ? "Không nghe máy"
-                            : "Thất bại"}
-                      </span>
-                      <span className="text-muted">
-                        {new Date(attempt.createdAt).toLocaleString("vi-VN")}
-                      </span>
-                      {attempt.note && (
-                        <span className="italic text-muted">
-                          {attempt.note}
-                        </span>
-                      )}
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
@@ -470,27 +336,17 @@ export const SellerOrderDetailPage: React.FC = () => {
               <div className="flex-col gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!hasSuccessfulContact) {
-                      notify('Chưa thể xác nhận đơn. Hãy chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước.');
-                      return;
-                    }
-                    const activePoint = pickupPoints.find(p => p.active && (p.id === order.pickupPointId || p.name === order.pickupPointName));
-                    setAcceptPickupPointId(activePoint?.id || "");
-                    setAcceptError("");
-                    setAcceptModalOpen(true);
-                  }}
+                  onClick={handleAcceptOrder}
                   className="btn-primary full-width mb-2"
-                  disabled={actions.recordContactAttempt.isPending}
-                  aria-describedby={!hasSuccessfulContact ? "accept-contact-required" : undefined}
+                  disabled={actions.acceptOrder.isPending}
                 >
-                  <CheckCircle size={16} /> Xác nhận đơn hàng
+                  {actions.acceptOrder.isPending ? (
+                    <LoaderCircle size={16} className="pickup-saving-icon" aria-hidden="true" />
+                  ) : (
+                    <CheckCircle size={16} />
+                  )}
+                  {actions.acceptOrder.isPending ? "Đang xác nhận…" : "Xác nhận đơn hàng"}
                 </button>
-                {!hasSuccessfulContact && (
-                  <p id="accept-contact-required" className="text-sm text-muted mb-2">
-                    Chọn “Ghi nhận liên hệ” và lưu kết quả “Thành công” trước khi xác nhận đơn.
-                  </p>
-                )}
 
                 <button
                   type="button"
@@ -508,7 +364,7 @@ export const SellerOrderDetailPage: React.FC = () => {
                   <CheckCircle size={18} aria-hidden="true" />
                   <strong>Đã xử lý xong</strong>
                 </div>
-                <p className="text-sm mb-3">Đơn đã được xác nhận. Khách nhận hàng theo điểm và lịch đã chốt.</p>
+                <p className="text-sm mb-3">Đơn đã được xác nhận thành công.</p>
                 <Link to="/seller/orders?status=ACCEPTED" className="btn-secondary full-width mt-3">Xem các đơn đã xác nhận</Link>
               </div>
             )}
@@ -591,164 +447,6 @@ export const SellerOrderDetailPage: React.FC = () => {
       </div>
 
       {/* MODALS */}
-
-      {/* Record Contact Modal */}
-      <Modal
-        isOpen={contactModalOpen}
-        closeDisabled={actions.recordContactAttempt.isPending}
-        onClose={() => setContactModalOpen(false)}
-        title="Ghi nhận liên hệ khách hàng"
-      >
-        <form onSubmit={handleRecordContact}>
-          <div className="form-group">
-            <label
-              className="form-label"
-              htmlFor="sellerorderdetailpage-field-1"
-            >
-              Kênh liên hệ:
-            </label>
-            <select
-              id="sellerorderdetailpage-field-1"
-              value={contactChannel}
-              onChange={(e) =>
-                setContactChannel(e.target.value as ContactChannel)
-              }
-              className="select-field"
-            >
-              <option value="PHONE">Gọi điện thoại</option>
-              <option value="EMAIL">Gửi Email</option>
-              <option value="IN_PERSON">Gặp trực tiếp tại trường</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label
-              className="form-label"
-              htmlFor="sellerorderdetailpage-field-2"
-            >
-              Kết quả liên hệ:
-            </label>
-            <select
-              id="sellerorderdetailpage-field-2"
-              value={contactOutcome}
-              onChange={(e) =>
-                setContactOutcome(e.target.value as ContactOutcome)
-              }
-              className="select-field"
-            >
-              <option value="SUCCESS">
-                Thành công (Đã thỏa thuận điểm và giờ nhận)
-              </option>
-              <option value="NO_RESPONSE">
-                Không nghe máy / Không trả lời
-              </option>
-              <option value="FAILED">Thất bại / Không liên lạc được</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label
-              className="form-label"
-              htmlFor="sellerorderdetailpage-field-3"
-            >
-              Ghi chú cuộc gọi:
-            </label>
-            <textarea
-              id="sellerorderdetailpage-field-3"
-              rows={2}
-              value={contactNote}
-              onChange={(e) => setContactNote(e.target.value)}
-              placeholder="Ví dụ: Bạn hẹn nhận vào giờ ra chơi tiết 2 tại cổng thư viện..."
-              className="textarea-field"
-            />
-          </div>
-
-          <div className="modal-actions">
-            <button
-              type="button"
-              onClick={() => setContactModalOpen(false)}
-              className="btn-secondary"
-            >
-              Đóng
-            </button>
-            <button
-              type="submit"
-              disabled={actions.recordContactAttempt.isPending}
-              className="btn-primary"
-            >
-              Lưu liên hệ
-            </button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Accept Order Modal */}
-      <Modal
-        isOpen={acceptModalOpen}
-        onClose={() => { setAcceptModalOpen(false); setAcceptError(""); }}
-        title="Xác nhận đơn hàng"
-        className="pickup-schedule-dialog"
-        closeDisabled={actions.acceptOrder.isPending}
-      >
-        <form onSubmit={handleAcceptOrder}>
-          <p className="pickup-schedule-intro">Chốt điểm nhận của shop và thời gian đã thống nhất với khách để hoàn tất xác nhận đơn.</p>
-          <div className="form-group">
-            <label
-              className="form-label"
-              htmlFor="sellerorderdetailpage-field-4"
-            >
-              Điểm nhận hàng
-            </label>
-            <select
-              id="sellerorderdetailpage-field-4"
-              value={acceptPickupPointId}
-              onChange={(e) => { setAcceptPickupPointId(e.target.value); setAcceptError(""); }}
-              className="select-field"
-              disabled={actions.acceptOrder.isPending}
-              data-autofocus
-              required
-            >
-              <option value="">-- Chọn điểm nhận --</option>
-              {pickupPoints.filter((p) => p.active).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            {!pickupPoints.some((p) => p.active) ? (
-              <p className="pickup-schedule-error">
-                Chưa có điểm nhận hàng đang hoạt động. <Link to="/seller/settings">Mở Cài đặt shop</Link> để thêm điểm nhận trước.
-              </p>
-            ) : (
-              <p className="text-muted text-xs">Chọn điểm nhận hàng của shop đã thống nhất với khách.</p>
-            )}
-          </div>
-
-          <PickupDateTimePicker value={acceptPickupAt}
-            onChange={(value) => { setAcceptPickupAt(value); setAcceptError(""); }}
-            disabled={actions.acceptOrder.isPending} invalid={!!acceptError} errorId="pickup-schedule-error" />
-          {acceptError && <p id="pickup-schedule-error" className="pickup-schedule-error" role="alert">{acceptError}</p>}
-
-          <div className="modal-actions">
-            <button
-              type="button"
-              onClick={() => setAcceptModalOpen(false)}
-              className="btn-secondary"
-              disabled={actions.acceptOrder.isPending}
-            >
-              Đóng
-            </button>
-            <button
-              type="submit"
-              disabled={actions.acceptOrder.isPending || !hasSuccessfulContact || !pickupPoints.some((p) => p.active)}
-              className="btn-primary"
-            >
-              {actions.acceptOrder.isPending && <LoaderCircle size={18} className="pickup-saving-icon" aria-hidden="true" />}
-              {actions.acceptOrder.isPending ? "Đang xác nhận…" : "Xác nhận đơn hàng"}
-            </button>
-          </div>
-        </form>
-      </Modal>
 
       {/* Reject Order Modal */}
       <Modal
