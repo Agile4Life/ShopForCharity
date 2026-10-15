@@ -6,8 +6,7 @@ for (const response of ['empty-json', 'null-json', 'html'] as const) {
     await page.goto('/checkout');
     await page.locator('#fullName').fill('Nguyễn Văn Test');
     await page.locator('#phone').fill('0912345678');
-    await page.locator('#email').fill('test@example.com');
-    await page.locator('#customPickupLocation').fill('Sảnh thư viện');
+    await page.locator('#pickupPointId').selectOption(ids.pickup);
     const submit = page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true });
     await expect(submit).toBeEnabled();
     const keys: string[] = [];
@@ -65,12 +64,12 @@ test('clipboard permission that never resolves cannot leave button loading', asy
   await page.goto('/checkout');
   await page.locator('#fullName').fill('Nguyễn Văn Test');
   await page.locator('#phone').fill('0912345678');
-  await page.locator('#email').fill('test@example.com');
-  await page.locator('#customPickupLocation').fill('Sảnh thư viện');
+  await page.locator('#pickupPointId').selectOption(ids.pickup);
   const submit = page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true });
   await expect(submit).toBeEnabled();
   await submit.click();
   await expect(page).toHaveURL('/order-success');
+  await page.getByRole('button', { name: 'Đã hiểu', exact: true }).click();
   await page.clock.install();
   await page.getByRole('button', { name: 'Sao chép thông tin tra cứu', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Đang sao chép…', exact: true })).toBeDisabled();

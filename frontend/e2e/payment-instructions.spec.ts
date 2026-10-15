@@ -32,10 +32,13 @@ for (const actor of ['guest', 'customer'] as const) {
     await expect(bank).toContainText('10.000 đ');
     await page.locator('#fullName').fill('Khách Test');
     await page.locator('#phone').fill('0912345678');
-    await page.locator('#email').fill('buyer@example.com');
-    await page.locator('#customPickupLocation').fill('Cổng trường');
+    await page.locator('#pickupPointId').selectOption(ids.pickup);
     await page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true }).click();
     await expect(page).toHaveURL('/order-success');
+    await expect(page.getByRole('dialog', { name: 'Lời cảm ơn' })).toContainText(
+      'Cảm ơn bạn đã ủng hộ dự án gói ấm trao em, toàn bộ số tiền lời sẽ đóng góp để mua quà cho các em ở trung tâm nhân đạo Quê Hương',
+    );
+    await page.getByRole('button', { name: 'Đã hiểu', exact: true }).click();
     await expect(bank).toContainText('123456');
     await expect(bank).toContainText(scenario.order.orderCode);
     await expect(page.locator('.next-steps-card')).toContainText('Shop sẽ kiểm tra tiền và xác nhận đơn hàng sau');

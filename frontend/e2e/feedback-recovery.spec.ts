@@ -5,8 +5,7 @@ const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQ
 async function fillCheckout(page: Page) {
   await page.locator('#fullName').fill('Nguyễn Văn Test');
   await page.locator('#phone').fill('0912345678');
-  await page.locator('#email').fill('test@example.com');
-  await page.locator('#customPickupLocation').fill('Sảnh thư viện');
+  await page.locator('#pickupPointId').selectOption(ids.pickup);
   await expect(page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeEnabled();
 }
 
@@ -139,6 +138,7 @@ test('unavailable clipboard shows download alternative and unlocks copy button',
   await fillCheckout(page);
   await page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true }).click();
   await expect(page).toHaveURL('/order-success');
+  await page.getByRole('button', { name: 'Đã hiểu', exact: true }).click();
   await page.getByRole('button', { name: 'Sao chép thông tin tra cứu', exact: true }).click();
   await expect(page.locator('.feedback-notice')).toContainText('Chưa sao chép được');
   await expect(page.getByRole('button', { name: 'Sao chép thông tin tra cứu', exact: true })).toBeEnabled();

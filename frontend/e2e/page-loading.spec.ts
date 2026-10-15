@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures';
+import { test, expect, ids } from './fixtures';
 
 test('stalled page bundle leaves loading and allows reload after recovery', async ({ page, scenario }) => {
   await scenario.cart();
@@ -41,12 +41,12 @@ test('copying saved order credentials still works offline', async ({ page, scena
   await page.goto('/checkout');
   await page.locator('#fullName').fill('Nguyễn Văn Test');
   await page.locator('#phone').fill('0912345678');
-  await page.locator('#email').fill('test@example.com');
-  await page.locator('#customPickupLocation').fill('Sảnh thư viện');
+  await page.locator('#pickupPointId').selectOption(ids.pickup);
   const submit = page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true });
   await expect(submit).toBeEnabled();
   await submit.click();
   await expect(page).toHaveURL('/order-success');
+  await page.getByRole('button', { name: 'Đã hiểu', exact: true }).click();
   await context.setOffline(true);
   await page.getByRole('button', { name: 'Sao chép thông tin tra cứu', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Đã sao chép', exact: true })).toBeEnabled();

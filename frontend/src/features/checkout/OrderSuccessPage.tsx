@@ -18,12 +18,16 @@ import {
   OrderStatusBadge,
   PaymentStatusBadge,
 } from "../../components/StatusBadge";
+import { Modal } from "../../components/Modal";
+
+const THANK_YOU_MESSAGE =
+  "Cảm ơn bạn đã ủng hộ dự án gói ấm trao em, toàn bộ số tiền lời sẽ đóng góp để mua quà cho các em ở trung tâm nhân đạo Quê Hương";
 
 export const OrderSuccessPage: React.FC = () => {
   const location = useLocation();
   const state = location.state as {
     order?: CreateOrderResponse;
-    buyer?: { fullName: string; phone: string; email: string };
+    buyer?: { fullName: string; phone: string; email?: string };
     pickupPoint?: string;
     paymentMethod?: string;
   } | null;
@@ -31,6 +35,7 @@ export const OrderSuccessPage: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [copying, setCopying] = useState(false);
   const [updatedOrder, setUpdatedOrder] = useState<OrderDetail | null>(null);
+  const [thankYouOpen, setThankYouOpen] = useState(true);
 
   if (!state?.order) {
     return <Navigate to="/" replace />;
@@ -67,6 +72,23 @@ export const OrderSuccessPage: React.FC = () => {
 
   return (
     <div className="order-success-page container">
+      <Modal
+        isOpen={thankYouOpen}
+        onClose={() => setThankYouOpen(false)}
+        title="Lời cảm ơn"
+      >
+        <p className="text-base mb-4">{THANK_YOU_MESSAGE}</p>
+        <div className="modal-actions">
+          <button
+            type="button"
+            data-autofocus
+            onClick={() => setThankYouOpen(false)}
+            className="btn-primary"
+          >
+            Đã hiểu
+          </button>
+        </div>
+      </Modal>
       <PurchaseSteps step={3} />
       <div className="success-card card">
         <div className="success-icon-wrap">
@@ -75,7 +97,7 @@ export const OrderSuccessPage: React.FC = () => {
 
         <h1 className="success-title">Đã nhận đơn hàng</h1>
         <p className="success-subtitle">
-          Người bán sẽ liên hệ để thống nhất địa điểm và thời gian nhận bạn đã chọn.
+          Người bán sẽ liên hệ qua số điện thoại để xác nhận thời gian nhận hàng tại điểm nhận đã chọn.
         </p>
 
         <div className="order-summary-box">

@@ -119,10 +119,12 @@ test('authenticated checkout prefills profile and does not create guest session'
   await scenario.cart();
   await page.goto('/checkout');
   await expect(page.locator('#fullName')).toHaveValue('Nguyễn Văn Test');
-  await page.locator('#customPickupLocation').fill('Sảnh thư viện');
+  await expect(page.locator('#email')).toHaveCount(0);
+  await page.locator('#pickupPointId').selectOption(ids.pickup);
   await expect(page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeEnabled();
   await submit(page);
   await expect(page).toHaveURL('/order-success');
+  await expect(page.getByRole('dialog', { name: 'Lời cảm ơn' })).toContainText('Cảm ơn bạn đã ủng hộ dự án gói ấm trao em, toàn bộ số tiền lời sẽ đóng góp để mua quà cho các em ở trung tâm nhân đạo Quê Hương');
   expect(scenario.mutations('/checkout/session')).toHaveLength(0);
   expect(scenario.mutations('/orders')[0].headers().authorization).toBe('Bearer e2e-access-token');
 });

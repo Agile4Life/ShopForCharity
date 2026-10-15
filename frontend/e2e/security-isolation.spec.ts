@@ -53,7 +53,7 @@ test('an order response arriving after logout cannot reopen the previous account
   let pending: Route | undefined;
   await page.route('**/api/v1/orders', route => { pending = route; });
   await page.goto('/checkout');
-  await page.locator('#customPickupLocation').fill('Sảnh thư viện');
+  await page.locator('#pickupPointId').selectOption(ids.pickup);
   await submit(page);
   await expect.poll(() => !!pending).toBe(true);
   await page.getByRole('button', { name: 'Menu tài khoản', exact: true }).click();

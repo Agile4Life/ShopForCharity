@@ -85,10 +85,10 @@ test('customer order list, detail and success page keep the complete readable co
   await page.goto('/checkout');
   await page.locator('#fullName').fill('Nguyễn Văn Test');
   await page.locator('#phone').fill('0912345678');
-  await page.locator('#email').fill('test@example.com');
-  await page.locator('#customPickupLocation').fill('Sảnh nhà B');
+  await page.locator('#pickupPointId').selectOption(ids.pickup);
   await submit(page);
   await expect(page).toHaveURL('/order-success');
+  await page.getByRole('button', { name: 'Đã hiểu', exact: true }).click();
   await expect(page.locator('.readable-order-code')).toHaveText(orderCode);
   await expect(page.getByRole('button', { name: 'Sao chép mã đơn hàng', exact: true })).toBeVisible();
 });

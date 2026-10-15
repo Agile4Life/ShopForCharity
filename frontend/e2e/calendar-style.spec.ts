@@ -1,4 +1,4 @@
-import { test, expect, submit } from './fixtures';
+import { test, expect, ids, submit } from './fixtures';
 
 test.use({ timezoneId: 'America/Los_Angeles' });
 
@@ -40,8 +40,7 @@ test('checkout calendar submits selected Vietnam date and time', async ({ page, 
   await page.goto('/checkout');
   await page.locator('#fullName').fill('Nguyễn Văn Test');
   await page.locator('#phone').fill('0912345678');
-  await page.locator('#email').fill('test@example.com');
-  await page.locator('#customPickupLocation').fill('Sảnh thư viện');
+  await page.locator('#pickupPointId').selectOption(ids.pickup);
   await page.getByText('Thêm lớp, thời gian nhận hoặc ghi chú', { exact: true }).click();
   await page.getByLabel('Thời gian muốn nhận (tùy chọn)', { exact: true }).click();
   const calendar = page.getByRole('group', { name: 'Lịch chọn ngày', exact: true });

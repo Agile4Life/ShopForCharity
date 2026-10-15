@@ -65,12 +65,12 @@ for (const [width, height] of screens) {
     await page.goto('/checkout');
     await page.locator('#fullName').fill('Responsive customer');
     await page.locator('#phone').fill('0912345678');
-    await page.locator('#email').fill('responsive@example.com');
-    await page.locator('#customPickupLocation').fill('Sảnh thư viện');
+    await page.locator('#pickupPointId').selectOption(ids.pickup);
     await page.locator('input[value="BANK_TRANSFER"]').check();
     await expect(page.getByRole('button', { name: 'Xác nhận đặt hàng', exact: true })).toBeEnabled();
     await submit(page);
     await expect(page).toHaveURL('/order-success');
+    await page.getByRole('button', { name: 'Đã hiểu', exact: true }).click();
     const success = await inspect(page, testInfo, 'order-success');
     expect(success.documentWidth).toBeLessThanOrEqual(success.width + 1);
     expect(success.outside).toEqual([]);
