@@ -35,7 +35,7 @@ export const SellerOrdersPage: React.FC = () => {
           <h1 className="page-title">
             <ShoppingBag size={24} /> Đơn hàng
           </h1>
-          <p className="text-muted text-sm">Liên hệ khách, chốt lịch nhận và xác nhận để gửi email. Đơn đã xác nhận là đã xử lý xong.</p>
+          <p className="text-muted text-sm">Liên hệ khách, chốt điểm và lịch nhận để xác nhận đơn. Đơn đã xác nhận là đã xử lý xong.</p>
         </div>
       </div>
 

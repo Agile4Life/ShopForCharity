@@ -88,16 +88,13 @@ test('confirmation template omits empty contacts and invalid reply addresses, an
   }
 });
 
-test('order confirmation: transactional outbox, post-commit send, replay, failures and worker recovery', async t => {
+test('order confirmation: accepts orders with shop pickup point without queuing or sending confirmation emails', async t => {
   const db = new PGlite();
   const originalConnect = pool.connect, originalQuery = pool.query;
-  let tail = Promise.resolve(), inTransaction = false, failStatusRead = false;
+  let tail = Promise.resolve();
   const sql = async (text, params) => {
-    if (failStatusRead && !inTransaction && text.startsWith('SELECT status, sent_at')) throw new Error('status-read-failed');
     if (text.includes('pg_advisory_xact_lock')) return { rows: [] };
     const result = params ? await db.query(text, params) : (await db.exec(text)).at(-1);
-    if (text === 'BEGIN') inTransaction = true;
-    if (text === 'COMMIT' || text === 'ROLLBACK') inTransaction = false;
     return { ...result, rowCount: result?.affectedRows ?? result?.rows?.length ?? 0 };
   };
   const acquire = async () => {
@@ -106,18 +103,6 @@ test('order confirmation: transactional outbox, post-commit send, replay, failur
   };
   pool.connect = async () => ({ query: sql, release: await acquire() });
   pool.query = async (...args) => { const release = await acquire(); try { return await sql(...args); } finally { release(); } };
-  const settings = { shopId: config.shopId, email: { apiKey: 'test-key', from: 'Shop <orders@example.com>' } };
-  const requests = [];
-  let mode = 'success';
-  const email = new OrderEmailService(settings, async (url, options) => {
-    assert.equal(inTransaction, false, 'provider must be called after transaction commits');
-    assert.equal(url, 'https://api.resend.com/emails');
-    requests.push(options);
-    if (mode === 'network') throw new Error('private-provider-error');
-    if (mode === 'busy') return new Response('{}', { status: 429 });
-    if (mode === 'invalid') return new Response('private-provider-error', { status: 422 });
-    return new Response(JSON.stringify({ id: `provider-${requests.length}` }), { status: 200 });
-  });
   const seller = { id: randomUUID(), type: 'SELLER', scope: 'seller-test' };
   const customer = { id: randomUUID(), type: 'CUSTOMER', scope: 'customer-test' };
   const pickupId = randomUUID(), productId = randomUUID();
@@ -125,13 +110,13 @@ test('order confirmation: transactional outbox, post-commit send, replay, failur
   const orders = new OrderService({ seller(actor) { ApiException.check(actor.type === 'SELLER', 403, 'FORBIDDEN', 'Forbidden'); } },
     new OrderAccess(), { async pickup(id, client) { return (await client.query('SELECT * FROM shop.pickup_points WHERE id=$1', [id])).rows[0]; } },
     { async settle() {} }, new IdempotencyService(), new AuditService(),
-    { async image() { if (failView) throw new Error('view-failed'); return null; }, async imageUrl() { return null; } }, email);
+    { async image() { if (failView) throw new Error('view-failed'); return null; }, async imageUrl() { return null; } });
   const input = { expectedVersion: 0, confirmedPickupPointId: pickupId, confirmedPickupAt: futurePickupTime() };
   const makeOrder = async (registered = false, contact = true) => {
     const id = randomUUID();
     await db.query(`INSERT INTO shop.orders(id,shop_id,order_code,customer_id,buyer_name,buyer_phone,buyer_email,
       pickup_point_id,pickup_name,payment_method,payment_status,status,subtotal,total,received_amount,
-      reservation_expires_at,created_at,updated_at) VALUES($1,$2,$3,$4,'Khách Test','0123456789','buyer@example.com',
+      reservation_expires_at,created_at,updated_at) VALUES($1,$2,$3,$4,'Khách Test','0123456789','',
       $5,'Điểm nhận ban đầu','CASH','UNPAID','PENDING_CONTACT',20000,20000,0,now()+interval '1 day',now(),now())`,
     [id, config.shopId, `SHOP-${id}`, registered ? customer.id : null, pickupId]);
     await db.query(`INSERT INTO shop.order_items(id,order_id,kind,product_id,name_snapshot,unit_price,quantity,line_total,created_at,updated_at)
@@ -141,7 +126,6 @@ test('order confirmation: transactional outbox, post-commit send, replay, failur
     return id;
   };
   const outbox = async id => (await db.query('SELECT * FROM shop.order_email_outbox WHERE order_id=$1', [id])).rows[0];
-  const due = id => db.query("UPDATE shop.order_email_outbox SET next_attempt_at=now()-interval '1 second' WHERE order_id=$1", [id]);
   try {
     await db.exec('CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE shop_runtime;');
     await applyMigrations({ query: sql });
@@ -152,49 +136,29 @@ test('order confirmation: transactional outbox, post-commit send, replay, failur
     await db.query(`INSERT INTO shop.products(id,shop_id,category_id,slug,name,price,status,created_at,updated_at)
       VALUES($1,$2,'00000000-0000-0000-0000-000000000011','email-test','Bánh mới',10000,'ACTIVE',now(),now())`, [productId, config.shopId]);
 
-    await t.test('guest and registered orders send to checkout email exactly once after successful acceptance', async () => {
+    await t.test('guest and registered orders accept without queuing confirmation emails', async () => {
       for (const registered of [false, true]) {
-        const id = await makeOrder(registered), key = randomUUID(), before = requests.length;
+        const id = await makeOrder(registered), key = randomUUID();
         const accepted = await orders.action(seller, id, true, 'accept', key, input);
         assert.equal(accepted.status, 'ACCEPTED');
-        assert.equal(accepted.confirmationEmail.status, 'SENT');
-        assert.ok(accepted.confirmationEmail.sentAt);
-        assert.deepEqual((await orders.detail(seller, id, true)).confirmationEmail, accepted.confirmationEmail);
+        assert.equal(accepted.pickupPointId, pickupId);
+        assert.equal(accepted.pickupPointName, 'Cổng trường');
+        assert.equal(Object.hasOwn(accepted, 'confirmationEmail'), false);
+        assert.equal(Object.hasOwn(await orders.detail(seller, id, true), 'confirmationEmail'), false);
         const buyerDetail = await orders.detail(registered ? customer : { guestOrderId: id, type: 'GUEST' }, id);
         assert.equal(Object.hasOwn(buyerDetail, 'confirmationEmail'), false);
-        assert.equal((await outbox(id)).status, 'SENT');
-        const body = JSON.parse(requests.at(-1).body);
-        assert.deepEqual(body.to, ['buyer@example.com']);
-        assert.match(body.text, /Bánh Test × 2/);
-        assert.match(body.text, /Cổng trường/);
-        assert.doesNotMatch(body.text, /Điểm nhận ban đầu|Bánh mới|guestAccessToken/);
-        assert.equal(body.from, settings.email.from);
-        assert.equal(requests.at(-1).headers.Authorization, 'Bearer test-key');
-        assert.ok(requests.at(-1).signal instanceof AbortSignal);
+        assert.equal(await outbox(id), undefined);
         assert.deepEqual(await orders.action(seller, id, true, 'accept', key, input), accepted);
-        assert.equal(requests.length, before + 1);
         await assert.rejects(orders.action(seller, id, true, 'accept', randomUUID(), input));
-        assert.equal(requests.length, before + 1);
       }
     });
-    await t.test('post-commit email status read failure still returns successful confirmation without duplicate mail', async () => {
-      const id = await makeOrder(), key = randomUUID(), before = requests.length;
-      failStatusRead = true;
-      let accepted;
-      try { accepted = await orders.action(seller, id, true, 'accept', key, input); }
-      finally { failStatusRead = false; }
-      assert.equal(accepted.status, 'ACCEPTED');
-      assert.equal(accepted.confirmationEmail, null);
-      assert.equal((await outbox(id)).status, 'SENT');
-      const replay = await orders.action(seller, id, true, 'accept', key, input);
-      assert.equal(replay.confirmationEmail.status, 'SENT');
-      assert.equal(requests.length, before + 1);
-    });
-    await t.test('invalid acceptance, wrong role and rollback never create/send an email', async () => {
-      const before = requests.length, id = await makeOrder(), noContact = await makeOrder(false, false);
+
+    await t.test('invalid acceptance, wrong role and rollback keep order in PENDING_CONTACT', async () => {
+      const id = await makeOrder(), noContact = await makeOrder(false, false);
       await assert.rejects(orders.action(customer, id, true, 'accept', randomUUID(), input));
       await assert.rejects(orders.action(seller, noContact, true, 'accept', randomUUID(), input));
       await assert.rejects(orders.action(seller, id, true, 'accept', randomUUID(), { ...input, expectedVersion: 9 }));
+      await assert.rejects(orders.action(seller, id, true, 'accept', randomUUID(), { expectedVersion: 0, confirmedPickupAt: input.confirmedPickupAt }));
       await assert.rejects(orders.action(seller, id, true, 'accept', randomUUID(), { expectedVersion: 0 }));
       failView = true;
       await assert.rejects(orders.action(seller, id, true, 'accept', randomUUID(), input), /view-failed/);
@@ -203,67 +167,8 @@ test('order confirmation: transactional outbox, post-commit send, replay, failur
       assert.equal((await db.query('SELECT status FROM shop.orders WHERE id=$1', [id])).rows[0].status, 'PENDING_CONTACT');
       await orders.action(seller, id, true, 'reject', randomUUID(), { expectedVersion: 0, reason: 'Không thể giao' });
       assert.equal(await outbox(id), undefined);
-      assert.equal(requests.length, before);
     });
-    await t.test('network failure preserves acceptance and retries identical message/key after config/catalog changes', async () => {
-      const id = await makeOrder(); mode = 'network';
-      const accepted = await orders.action(seller, id, true, 'accept', randomUUID(), input);
-      assert.equal(accepted.status, 'ACCEPTED');
-      assert.equal(accepted.confirmationEmail.status, 'PENDING');
-      const row = await outbox(id), first = requests.at(-1);
-      assert.equal(row.status, 'PENDING'); assert.equal(row.last_error, 'PROVIDER_UNAVAILABLE');
-      assert.equal(await email.deliver(id), false);
-      settings.email.from = 'Changed <new@example.com>';
-      await db.query("UPDATE shop.orders SET buyer_email='changed@example.com',pickup_name='Changed' WHERE id=$1", [id]);
-      await due(id); mode = 'success';
-      await email.deliver(id);
-      assert.equal(requests.at(-1).body, first.body);
-      assert.equal(requests.at(-1).headers['Idempotency-Key'], first.headers['Idempotency-Key']);
-      assert.equal((await outbox(id)).status, 'SENT');
-      assert.equal((await orders.detail(seller, id, true)).confirmationEmail.status, 'SENT');
-    });
-    await t.test('missing email config queues safely and a later worker sends; overlapping workers claim once', async () => {
-      const id = await makeOrder(); settings.email.apiKey = '';
-      const before = requests.length;
-      const accepted = await orders.action(seller, id, true, 'accept', randomUUID(), input);
-      assert.equal(accepted.confirmationEmail.status, 'PENDING');
-      assert.equal((await outbox(id)).status, 'PENDING');
-      assert.equal((await outbox(id)).attempts, 0);
-      assert.equal(requests.length, before);
-      settings.email.apiKey = 'test-key';
-      await Promise.all([email.deliver(id), email.deliver(id)]);
-      assert.equal(requests.length, before + 1);
-      assert.equal((await outbox(id)).status, 'SENT');
-    });
-    await t.test('rate limits retry, permanent failures stop and expired dedup windows require review', async () => {
-      const busy = await makeOrder(); mode = 'busy';
-      await orders.action(seller, busy, true, 'accept', randomUUID(), input);
-      assert.equal((await outbox(busy)).status, 'PENDING');
-      await db.query("UPDATE shop.order_email_outbox SET first_attempt_at=now()-interval '25 hours' WHERE order_id=$1", [busy]);
-      await due(busy);
-      const before = requests.length;
-      await email.deliver(busy);
-      assert.equal(requests.length, before);
-      assert.equal((await outbox(busy)).last_error, 'RETRY_WINDOW_EXPIRED');
-      assert.equal((await outbox(busy)).status, 'FAILED');
-      const invalid = await makeOrder(); mode = 'invalid';
-      await orders.action(seller, invalid, true, 'accept', randomUUID(), input);
-      assert.equal((await outbox(invalid)).status, 'FAILED');
-      assert.equal((await outbox(invalid)).last_error, 'PROVIDER_HTTP_422');
-      mode = 'success';
-    });
-    await t.test('crashed worker lease recovers with the same persisted request', async () => {
-      const id = await makeOrder(); settings.email.apiKey = '';
-      await orders.action(seller, id, true, 'accept', randomUUID(), input);
-      settings.email.apiKey = 'test-key';
-      const claimed = await email.claim(id);
-      assert.equal(await email.deliver(id), false);
-      await due(id);
-      await email.deliver(id);
-      assert.equal(requests.at(-1).body, claimed.body);
-      assert.equal(requests.at(-1).headers['Idempotency-Key'], `order-confirmation/${claimed.id}`);
-      assert.equal((await outbox(id)).status, 'SENT');
-    });
+
     await t.test('dashboard treats confirmed orders as resolved and paid confirmed orders as revenue', async () => {
       const id = await makeOrder();
       const reads = new SellerReadService({ seller() {} });
@@ -279,27 +184,10 @@ test('order confirmation: transactional outbox, post-commit send, replay, failur
       assert.equal(paid.pendingRevenue, before.pendingRevenue);
       assert.equal((await orders.detail(seller, id, true)).status, 'ACCEPTED');
     });
-    await t.test('private outbox grants deny browser roles and cron needs its own secret', async () => {
-      for (const role of ['anon', 'authenticated']) {
-        assert.equal((await db.query('SELECT has_table_privilege($1,$2,$3) AS allowed', [role, 'shop.order_email_outbox', 'SELECT'])).rows[0].allowed, false);
-      }
-      assert.equal((await db.query("SELECT has_table_privilege('shop_runtime','shop.order_email_outbox','UPDATE') AS allowed")).rows[0].allowed, true);
+
+    await t.test('order email cron endpoint is disabled', async () => {
       const { default: app } = await import('../src/app.js');
-      const service = getOrderEmailService(), original = service.flush, originalSecret = config.cronSecret;
-      let calls = 0;
-      service.flush = async () => { calls++; return { processed: 1, configured: true }; };
-      config.cronSecret = 'test-email-cron';
-      try {
-        const path = '/api/v1/cron/order-emails';
-        assert.equal((await request(app).get(path)).status, 401);
-        assert.equal((await request(app).get(path).set('Authorization', 'Bearer wrong')).status, 401);
-        assert.equal(calls, 0);
-        assert.equal((await request(app).get(path).set('Authorization', 'Bearer test-email-cron')).status, 200);
-        assert.equal(calls, 1);
-        assert.equal((await request(app).head(path).set('Authorization', 'Bearer test-email-cron')).status, 405);
-        config.cronSecret = '';
-        assert.equal((await request(app).get(path)).status, 503);
-      } finally { service.flush = original; config.cronSecret = originalSecret; }
+      assert.equal((await request(app).get('/api/v1/cron/order-emails')).status, 404);
     });
   } finally {
     pool.connect = originalConnect; pool.query = originalQuery;

@@ -5,7 +5,6 @@ import { pool } from './common/db.js';
 import { runMigrations } from './migrations/migrate.js';
 import { getOrderService } from './order/order-service.js';
 import { getAssetService } from './infrastructure/asset-service.js';
-import { getOrderEmailService } from './infrastructure/order-email-service.js';
 
 async function bootstrap() {
   if (config.migrationsEnabled) {
@@ -29,14 +28,6 @@ async function bootstrap() {
   // Background schedulers
   const orders = getOrderService();
   const assets = getAssetService();
-  let emailRunning = false;
-  const emailTimer = setInterval(async () => {
-    if (emailRunning) return;
-    emailRunning = true;
-    try { await getOrderEmailService().flush(); }
-    catch { logger.error('Order email scheduler error'); }
-    finally { emailRunning = false; }
-  }, 60000);
 
   const expiryTimer = setInterval(async () => {
     try {
@@ -58,7 +49,6 @@ async function bootstrap() {
     logger.info(`Received ${signal}. Shutting down gracefully...`);
     clearInterval(expiryTimer);
     clearInterval(cleanupTimer);
-    clearInterval(emailTimer);
 
     server.close(async () => {
       logger.info('HTTP server closed.');

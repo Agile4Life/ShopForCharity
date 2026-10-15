@@ -6,8 +6,7 @@
   "functions": { "api/index.js": { "includeFiles": "certs/**" } },
   "crons": [
     { "path": "/api/v1/cron/expire", "schedule": "0 0 * * *" },
-    { "path": "/api/v1/cron/cleanup", "schedule": "0 1 * * *" },
-    { "path": "/api/v1/cron/order-emails", "schedule": "0 2 * * *" }
+    { "path": "/api/v1/cron/cleanup", "schedule": "0 1 * * *" }
   ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index.js" }
