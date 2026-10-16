@@ -71,6 +71,16 @@ lỡ. Dòng thành công được ghi nhớ bằng hash trong Script Properties.
 hiện toast cho lần sửa trực tiếp và ghi trong Apps Script → Executions. Lỗi kết
 nối cũng nằm trong Executions và được thử lại. App nhận dữ liệu theo polling hiện có.
 
+Backend đọc metadata một lần và đọc giá trị các dòng theo lô (tối đa 25 mã/lô).
+Kết quả được ghép theo metadata ID; không dựa vào thứ tự trả về từ Google. Khi
+Google giới hạn yêu cầu, backend trả `503 SHEET_RATE_LIMITED`, kèm `Retry-After: 60`.
+Lỗi quyền Google trả `502 SHEET_GOOGLE_ACCESS_DENIED`; lỗi đọc Google khác giữ mã
+`GOOGLE_SHEETS_*` để dễ kiểm tra. Apps Script mới hiện mã lỗi và requestId trong
+Executions. Sau khi nâng cấp backend, chép lại Code.gs mới vào Apps Script.
+
+Nếu quá trình cài trigger đã đến bước reconcile nhưng lỗi tạm thời, chờ một phút
+rồi chạy `reconcileOrderSheet` để thử lại. Không cần chạy bootstrap lại mỗi lần thử.
+
 ## Nhận diện dòng và dữ liệu cũ
 
 Mã đơn nằm trong developer metadata gắn với dòng, không có cột phụ. Không sao chép

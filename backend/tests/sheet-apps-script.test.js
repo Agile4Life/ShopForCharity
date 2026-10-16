@@ -14,7 +14,7 @@ function fixture() {
     ['BACKEND_SYNC_URL', 'https://shop.example/api/v1/integrations/sheets/sync'],
     ['SYNC_SECRET', 'test-secret-'.repeat(4)],
   ]);
-  let released = 0, rowStatus = 'created', httpCode = 200;
+  let released = 0, rowStatus = 'created', httpCode = 200, responseBody;
   const propertyStore = { getProperty: (key) => properties.get(key), setProperty: (key, value) => properties.set(key, value) };
   const sheet = {
     getSheetId: () => 1, getLastRow: () => rows.length, getMaxRows: () => 100,
@@ -59,7 +59,7 @@ function fixture() {
       assert.match(options.headers.Authorization, /^Bearer /);
       return {
         getResponseCode: () => httpCode,
-        getContentText: () => JSON.stringify(body.bootstrap ? { configured: true, synced: 0 }
+        getContentText: () => responseBody ?? JSON.stringify(body.bootstrap ? { configured: true, synced: 0 }
           : { results: body.orderIds.map((id) => ({ orderId: id, status: rowStatus,
             code: rowStatus === 'error' ? 'SHEET_ROW_INCOMPLETE' : undefined })) }),
       };
@@ -76,7 +76,8 @@ function fixture() {
   });
   vm.runInContext(source, context);
   return { context, rows, metadata, calls, toasts, properties, triggerNames, sheet,
-    released: () => released, setStatus: (value) => { rowStatus = value; }, setHttpCode: (value) => { httpCode = value; } };
+    released: () => released, setStatus: (value) => { rowStatus = value; }, setHttpCode: (value) => { httpCode = value; },
+    setBody: (value) => { responseBody = value; } };
 }
 
 test('Apps Script installation bootstraps IDs, creates edit/change/retry triggers and adds no columns', () => {
@@ -118,4 +119,14 @@ test('Apps Script retains identities and releases its lock after a failed HTTP d
   f.setHttpCode(200); f.context.reconcileOrderSheet();
   assert.equal(f.metadata.length, 1);
   assert.equal(f.released(), 2);
+});
+
+test('Apps Script reports backend error code/request ID and excludes non-JSON proxy bodies', () => {
+  const f = fixture();
+  f.setHttpCode(503);
+  f.setBody(JSON.stringify({ code: 'SHEET_RATE_LIMITED', message: 'Try again later', requestId: 'test-request' }));
+  assert.throws(() => f.context.reconcileOrderSheet(), /SHEET_RATE_LIMITED.*test-request/);
+  f.setBody('<html>private proxy details</html>');
+  assert.throws(() => f.context.reconcileOrderSheet(), (error) =>
+    error.message.includes('HTTP 503') && !error.message.includes('private proxy details'));
 });

@@ -62,9 +62,11 @@ test('Sheet webhook reads authoritative rows and atomically creates/updates real
       })) }; } };
     }
     assert.ok(url.endsWith('/values:batchGetByDataFilter'), `Unexpected Sheet call ${url}`);
-    const metadataId = JSON.parse(options.body).dataFilters[0].developerMetadataLookup.metadataId;
-    const key = [...markers].find(([, index]) => index + 100 === metadataId)?.[0];
-    return { ok: true, async json() { return { valueRanges: rows.has(key) ? [{ valueRange: { values: [[...rows.get(key)]] } }] : [] }; } };
+    const filters = JSON.parse(options.body).dataFilters;
+    return { ok: true, async json() { return { valueRanges: filters.flatMap((filter) => {
+      const key = [...markers].find(([, index]) => index + 100 === filter.developerMetadataLookup.metadataId)?.[0];
+      return rows.has(key) ? [{ dataFilters: [filter], valueRange: { values: [[...rows.get(key)]] } }] : [];
+    }) }; } };
   });
   sheets.getAccessToken = async () => 'test-token';
   sheets.getSheetMeta = async () => ({ sheetId: 7, title: 'Đơn hàng' });

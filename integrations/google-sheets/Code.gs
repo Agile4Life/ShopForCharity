@@ -24,7 +24,13 @@ function callBackend_(settings, body) {
     muteHttpExceptions: true,
   });
   if (response.getResponseCode() !== 200) {
-    throw new Error('Backend sync failed (HTTP ' + response.getResponseCode() + '). Check backend configuration and executions.');
+    let detail = '';
+    try {
+      const error = JSON.parse(response.getContentText());
+      detail = ' ' + (error.code || '') + ' ' + (error.message || '') +
+        (error.requestId ? ' [requestId: ' + error.requestId + ']' : '');
+    } catch (_) { /* Proxy responses may be HTML. Do not log their body. */ }
+    throw new Error('Backend sync failed (HTTP ' + response.getResponseCode() + ').' + detail);
   }
   return JSON.parse(response.getContentText());
 }

@@ -308,20 +308,31 @@ export class OrderSheetsService {
   }
 
   async readImportRow(orderId) {
+    return (await this.readImportRows([orderId])).get(orderId) || null;
+  }
+
+  async readImportRows(orderIds) {
     const accessToken = await this.getAccessToken();
     const { sheetId } = await this.getSheetMeta(accessToken);
     const spreadsheetId = encodeURIComponent(this.sheetsConfig.spreadsheetId.trim());
     const metadata = await this.getExportMetadata(accessToken, spreadsheetId, sheetId);
-    const matches = metadata.filter((entry) => entry.metadataValue === orderId);
-    if (matches.length !== 1) return null;
-    const rowIndex = matches[0].location.dimensionRange.startIndex;
-    if (rowIndex < 1) return null;
+    const selected = new Map();
+    for (const orderId of new Set(orderIds)) {
+      const matches = metadata.filter((entry) => entry.metadataValue === orderId);
+      if (matches.length !== 1) continue;
+      const entry = matches[0];
+      if (entry.location.dimensionRange.startIndex < 1 || !Number.isInteger(entry.metadataId)) continue;
+      selected.set(entry.metadataId, { orderId, rowNumber: entry.location.dimensionRange.startIndex + 1 });
+    }
+    const rows = new Map();
+    if (!selected.size) return rows;
     const response = await this.fetcher(
       `${SHEETS_API_BASE}/${spreadsheetId}/values:batchGetByDataFilter`,
       {
         method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          dataFilters: [{ developerMetadataLookup: { metadataId: matches[0].metadataId } }],
+          dataFilters: [...selected.keys()].map((metadataId) => ({ developerMetadataLookup: { metadataId } })),
+          majorDimension: 'ROWS',
           valueRenderOption: 'UNFORMATTED_VALUE',
         }),
         signal: AbortSignal.timeout(8000),
@@ -329,9 +340,17 @@ export class OrderSheetsService {
     );
     if (!response.ok) throw new Error(`GOOGLE_SHEETS_READ_HTTP_${response.status}`);
     const data = await response.json();
-    const ranges = data.valueRanges || [];
-    if (ranges.length !== 1) return null;
-    return { rowNumber: rowIndex + 1, values: (ranges[0].valueRange?.values?.[0] || []).slice(0, 10) };
+    const ambiguous = new Set();
+    for (const range of data.valueRanges || []) {
+      for (const filter of range.dataFilters || []) {
+        const match = selected.get(filter.developerMetadataLookup?.metadataId);
+        if (!match) continue;
+        if (rows.has(match.orderId)) ambiguous.add(match.orderId);
+        rows.set(match.orderId, { rowNumber: match.rowNumber, values: (range.valueRange?.values?.[0] || []).slice(0, 10) });
+      }
+    }
+    for (const orderId of ambiguous) rows.delete(orderId);
+    return rows;
   }
 
   /**
