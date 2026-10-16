@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowDown,
@@ -7,11 +7,9 @@ import {
   Cookie,
   Gift,
   MapPin,
-  Search,
   ShoppingBag,
-  X,
 } from "lucide-react";
-import { useShopInfo, useCategories, useProducts, useCombos } from "./api";
+import { useProducts } from "./api";
 import { AddToCartButton } from "../cart/AddToCartButton";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { ErrorMessage } from "../../components/ErrorMessage";
@@ -21,33 +19,11 @@ import { WorkshopArt } from "../../components/WorkshopArt";
 import { AskProductButton } from '../chat/ChatEntry';
 
 export function LandingPage() {
-  const [search, setSearch] = useState("");
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("");
-  const [sort, setSort] = useState("");
   const [page, setPage] = useState(0);
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setQuery(search);
-      setPage(0);
-    }, 280);
-    return () => clearTimeout(timer);
-  }, [search]);
-  const { data: shop, error: shopError, refetch: refetchShop } = useShopInfo();
-  const { data: categories = [] } = useCategories();
-  const { data, isLoading, isFetching, error, refetch } = useProducts({
-    q: query,
-    category,
-    sort,
+  const { data, isLoading, error, refetch } = useProducts({
     page,
     size: 12,
   });
-  const {
-    data: combos = [],
-    isLoading: combosLoading,
-    error: combosError,
-    refetch: refetchCombos,
-  } = useCombos();
   const products = data?.content || [];
   return (
     <div className="landing-page">
@@ -84,124 +60,6 @@ export function LandingPage() {
             <h2 id="catalog-title">Gian hàng</h2>
           </div>
         </div>
-        {shopError ? (
-          <ErrorMessage error={shopError} onRetry={refetchShop} />
-        ) : (
-          shop && (
-            <div
-              className={`shop-status-strip ${shop.acceptingOrders ? "is-open" : ""}`}
-            >
-              <span className="status-dot" />
-              <span>
-                {shop.acceptingOrders
-                  ? "Đang nhận đơn"
-                  : "Tạm dừng nhận đơn mới"}
-              </span>
-              {shop.pickupPoints.some((p) => p.active) && (
-                <span className="status-pickup">
-                  <MapPin size={15} aria-hidden="true" />
-                  Nhận tại trường
-                </span>
-              )}
-            </div>
-          )
-        )}
-        <div className="catalog-toolbar">
-          <div className="category-tabs" role="group" aria-label="Lọc danh mục">
-            <button
-              className={category === "" ? "active" : ""}
-              aria-pressed={category === ""}
-              onClick={() => {
-                setCategory("");
-                setPage(0);
-              }}
-            >
-              Tất cả món
-            </button>
-            {categories
-              .filter((c) => c.active)
-              .map((c) => (
-                <button
-                  key={c.id}
-                  className={category === (c.code || c.id) ? "active" : ""}
-                  aria-pressed={category === (c.code || c.id)}
-                  onClick={() => {
-                    setCategory(c.code || c.id);
-                    setPage(0);
-                  }}
-                >
-                  {c.code === "SNACK" ? (
-                    <Cookie size={17} aria-hidden="true" />
-                  ) : (
-                    <Gift size={17} aria-hidden="true" />
-                  )}
-                  {c.name}
-                </button>
-              ))}
-          </div>
-          <div className="catalog-tools">
-            <div className="search-box">
-              <Search size={18} className="search-icon" aria-hidden="true" />
-              <input
-                aria-label="Tìm món trong gian hàng"
-                type="search"
-                placeholder="Tìm món bạn thích…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="search-input"
-              />
-              {search && (
-                <button
-                  type="button"
-                  className="clear-search"
-                  aria-label="Xóa từ khóa tìm kiếm"
-                  onClick={() => {
-                    setSearch("");
-                    setQuery("");
-                    setPage(0);
-                  }}
-                >
-                  <X size={17} aria-hidden="true" />
-                </button>
-              )}
-            </div>
-            <select
-              aria-label="Sắp xếp sản phẩm"
-              className="select-input"
-              value={sort}
-              onChange={(e) => {
-                setSort(e.target.value);
-                setPage(0);
-              }}
-            >
-              <option value="">Sắp xếp</option>
-              <option value="price,asc">Giá tăng dần</option>
-              <option value="price,desc">Giá giảm dần</option>
-              <option value="name,asc">Tên A–Z</option>
-            </select>
-          </div>
-        </div>
-        <div className="catalog-results">
-          <span role="status">
-            {isFetching
-              ? "Đang tìm sản phẩm…"
-              : `${data?.totalElements ?? 0} sản phẩm`}
-          </span>
-          {(query || category || sort) && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearch("");
-                setQuery("");
-                setCategory("");
-                setSort("");
-                setPage(0);
-              }}
-            >
-              Xóa bộ lọc
-            </button>
-          )}
-        </div>
         {isLoading ? (
           <LoadingSpinner message="Đang tải sản phẩm…" />
         ) : error && !data ? (
@@ -215,23 +73,8 @@ export function LandingPage() {
               <span />
             </div>
             <EmptyState
-              title={
-                query || category
-                  ? "Không tìm thấy sản phẩm"
-                  : "Chưa có sản phẩm"
-              }
-              description={
-                query || category
-                  ? "Thử từ khóa hoặc danh mục khác."
-                  : "Ghé lại sau nhé."
-              }
-              actionText={query || category ? "Xem tất cả món" : undefined}
-              onAction={() => {
-                setSearch("");
-                setQuery("");
-                setCategory("");
-                setPage(0);
-              }}
+              title="Chưa có sản phẩm"
+              description="Ghé lại sau nhé."
             />
           </div>
         ) : (
@@ -305,64 +148,6 @@ export function LandingPage() {
             </button>
           </div>
         )}
-      </section>
-      <section
-        className={`combo-workshop container${!combosLoading && !combosError && combos.length === 0 ? " combo-empty-section" : ""}`}
-        id="combos"
-        aria-labelledby="combo-title"
-      >
-        <div className="combo-intro">
-          <h2 id="combo-title">Combo</h2>
-        </div>
-        <div className="combo-content">
-          {combosLoading ? (
-            <LoadingSpinner message="Đang tải combo…" />
-          ) : combosError && combos.length === 0 ? (
-            <ErrorMessage error={combosError} onRetry={refetchCombos} />
-          ) : combos.length === 0 ? (
-            <div className="combo-coming-soon">
-              <Gift size={36} strokeWidth={1.4} aria-hidden="true" />
-              <h3>Chưa có combo</h3>
-            </div>
-          ) : (
-            <div className="combos-grid">
-              {combos.map((c) => (
-                <article className="combo-card" key={c.id}>
-                  <div className="combo-card-content">
-                    <h3 className="combo-card-title">
-                      <Link to={`/combos/${c.slug || c.id}`}>{c.name}</Link>
-                    </h3>
-                    {c.imageUrl && (
-                      <AssetImage
-                        className="combo-card-img"
-                        src={c.imageUrl}
-                        alt={c.name}
-                        loading="lazy"
-                      />
-                    )}
-                    <p className="combo-description">{c.description}</p>
-                    <p className="combo-items-list">
-                      {c.items
-                        .map((i) => `${i.productName} ×${i.quantity}`)
-                        .join(" · ")}
-                    </p>
-                    <div className="combo-card-footer">
-                      <span className="price-tag">
-                        {c.price.toLocaleString("vi-VN")} đ
-                      </span>
-                      <span className="text-sm">
-                        {c.availableStock > 0
-                          ? `Còn ${c.availableStock} gói`
-                          : "Hết hàng"}
-                      </span>
-                    </div>
-                    <AddToCartButton kind="COMBO" catalogId={c.id} name={c.name} className="btn-primary-sm full-width mt-3" disabled={c.isSoldOut || c.availableStock <= 0} />
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
       </section>
       <section className="how-it-works container" id="how-it-works">
         <div className="section-heading">

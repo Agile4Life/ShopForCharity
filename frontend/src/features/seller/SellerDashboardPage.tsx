@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   DollarSign,
   Package,
-  Layers,
   Settings,
   FileText,
   Bell,
@@ -133,16 +132,6 @@ export const SellerDashboardPage: React.FC = () => {
                 <strong>Sản phẩm</strong>
                 <p className="text-xs text-muted">
                   Thêm món, sửa giá, điều chỉnh tồn kho
-                </p>
-              </div>
-            </Link>
-
-            <Link to="/seller/combos" className="shortcut-card">
-              <Layers size={24} className="text-primary" />
-              <div>
-                <strong>Combo món</strong>
-                <p className="text-xs text-muted">
-                  Thiết lập combo tiết kiệm cho học sinh
                 </p>
               </div>
             </Link>

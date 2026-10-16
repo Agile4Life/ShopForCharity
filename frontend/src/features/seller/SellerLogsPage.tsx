@@ -134,9 +134,9 @@ function AuditLogHistory() {
                       </strong>
                     </td>
                     <td className="text-xs" data-label="Đối tượng">
-                      {log.entityId && ["ORDER", "PRODUCT", "COMBO"].includes(log.entityType) ? (
+                      {log.entityId && ["ORDER", "PRODUCT"].includes(log.entityType) ? (
                         <Link to={log.entityType === "ORDER" ? `/seller/orders/${log.entityId}`
-                          : `/seller/${log.entityType === "PRODUCT" ? "products" : "combos"}/${log.entityId}/edit`}>
+                          : `/seller/products/${log.entityId}/edit`}>
                           Xem {AUDIT_ENTITY_LABELS[log.entityType].toLocaleLowerCase("vi-VN")}
                         </Link>
                       ) : <span>{AUDIT_ENTITY_LABELS[log.entityType] ?? "Đối tượng khác"}</span>}

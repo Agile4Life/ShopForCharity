@@ -6,8 +6,8 @@ import { useAuth } from "../features/auth/auth-context";
 
 // Reveal individual surfaces, rather than hiding entire long pages or tables.
 const revealSelector = [
-  "[data-reveal]", ".section-heading", ".catalog-toolbar", ".shop-status-strip",
-  ".product-card", ".combo-card", ".combo-intro", ".combo-coming-soon",
+  "[data-reveal]", ".section-heading",
+  ".product-card",
   ".workshop-steps > li", ".detail-media", ".detail-info", ".card",
   ".cart-item-card", ".cart-summary-card",
 ].join(", ");
@@ -97,7 +97,6 @@ const sellerLinks = [
   ["/seller/orders", "Đơn hàng"],
   ["/seller/chat", "Tin nhắn"],
   ["/seller/products", "Sản phẩm"],
-  ["/seller/combos", "Combo"],
   ["/seller/settings", "Cài đặt"],
   ["/seller/logs", "Nhật ký"],
 ] as const;

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useRef } from "react";
 import { ArrowUpRight, ChevronDown, ShoppingBag, User, LogOut, Menu, X } from "lucide-react";
@@ -76,9 +76,6 @@ export function Navbar() {
             <NavLink to="/" end className="nav-link">
               Gian hàng
             </NavLink>
-            <Link to="/#combos" className="nav-link">
-              Combo
-            </Link>
             <NavLink to="/account/orders" className="nav-link">
               Đơn hàng của tôi
             </NavLink>
@@ -162,9 +159,6 @@ export function Navbar() {
             <NavLink to="/" end onClick={() => setOpen(false)}>
               Gian hàng
             </NavLink>
-            <Link to="/#combos" onClick={() => setOpen(false)}>
-              Combo
-            </Link>
             <NavLink to="/account/orders">Đơn hàng của tôi</NavLink>
             <NavLink to="/cart">Giỏ đồ ({totalQuantity})</NavLink>
             {isAuthenticated ? (

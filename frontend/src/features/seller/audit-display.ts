@@ -18,10 +18,6 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   PRODUCT_UPDATED: "Cập nhật sản phẩm",
   PRODUCT_ACTIVATED: "Mở bán sản phẩm",
   PRODUCT_ARCHIVED: "Ẩn sản phẩm",
-  COMBO_CREATED: "Tạo combo",
-  COMBO_UPDATED: "Cập nhật combo",
-  COMBO_ACTIVATED: "Mở bán combo",
-  COMBO_ARCHIVED: "Ẩn combo",
   PICKUP_POINT_CHANGED: "Cập nhật điểm nhận",
   PAYMENT_SETTINGS_VERSION_CREATED: "Cập nhật thiết lập thanh toán",
   SHOP_SETTINGS_UPDATED: "Cập nhật cửa hàng",
@@ -36,7 +32,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
 };
 
 export const AUDIT_ENTITY_LABELS: Record<string, string> = {
-  ORDER: "Đơn hàng", PRODUCT: "Sản phẩm", COMBO: "Combo",
+  ORDER: "Đơn hàng", PRODUCT: "Sản phẩm",
   PICKUP_POINT: "Điểm nhận", PAYMENT_SETTINGS: "Thiết lập thanh toán", SHOP: "Cửa hàng",
 };
 

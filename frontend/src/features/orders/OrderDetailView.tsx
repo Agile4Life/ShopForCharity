@@ -113,7 +113,7 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
               <table className="items-table">
                 <thead>
                   <tr>
-                    <th>Món / Combo</th>
+                    <th>Sản phẩm</th>
                     <th className="text-right">Đơn giá</th>
                     <th className="text-center">Số lượng</th>
                     <th className="text-right">Thành tiền</th>
@@ -124,9 +124,6 @@ export const OrderDetailView: React.FC<OrderDetailViewProps> = ({
                     <tr key={item.id}>
                       <td>
                         <strong>{item.nameSnapshot}</strong>
-                        <span className="badge badge-gray text-xs ml-2">
-                          {item.kind === "COMBO" ? "Combo" : "Món"}
-                        </span>
                       </td>
                       <td className="text-right" data-label="Đơn giá">
                         {item.unitPrice.toLocaleString("vi-VN")} đ

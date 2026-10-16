@@ -33,11 +33,6 @@ const ProductDetailPage = lazyPage(() =>
     default: module.ProductDetailPage,
   })),
 );
-const ComboDetailPage = lazyPage(() =>
-  import("./features/catalog/ComboDetailPage").then((module) => ({
-    default: module.ComboDetailPage,
-  })),
-);
 
 // Cart & Checkout
 const CartPage = lazyPage(() =>
@@ -129,16 +124,6 @@ const SellerProductEditPage = lazyPage(() =>
     default: module.SellerProductEditPage,
   })),
 );
-const SellerCombosPage = lazyPage(() =>
-  import("./features/seller/SellerCombosPage").then((module) => ({
-    default: module.SellerCombosPage,
-  })),
-);
-const SellerComboEditPage = lazyPage(() =>
-  import("./features/seller/SellerComboEditPage").then((module) => ({
-    default: module.SellerComboEditPage,
-  })),
-);
 const SellerSettingsPage = lazyPage(() =>
   import("./features/seller/SellerSettingsPage").then((module) => ({
     default: module.SellerSettingsPage,
@@ -180,10 +165,6 @@ export const App: React.FC = () => {
                       <Route
                         path="/products/:slug"
                         element={<ProductDetailPage />}
-                      />
-                      <Route
-                        path="/combos/:slug"
-                        element={<ComboDetailPage />}
                       />
 
                       {/* Cart & Checkout */}
@@ -285,30 +266,6 @@ export const App: React.FC = () => {
                         element={
                           <SellerRoute>
                             <SellerProductEditPage />
-                          </SellerRoute>
-                        }
-                      />
-                      <Route
-                        path="/seller/combos"
-                        element={
-                          <SellerRoute>
-                            <SellerCombosPage />
-                          </SellerRoute>
-                        }
-                      />
-                      <Route
-                        path="/seller/combos/new"
-                        element={
-                          <SellerRoute>
-                            <SellerComboEditPage />
-                          </SellerRoute>
-                        }
-                      />
-                      <Route
-                        path="/seller/combos/:id/edit"
-                        element={
-                          <SellerRoute>
-                            <SellerComboEditPage />
                           </SellerRoute>
                         }
                       />

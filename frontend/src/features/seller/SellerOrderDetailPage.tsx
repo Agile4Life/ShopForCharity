@@ -258,7 +258,7 @@ export const SellerOrderDetailPage: React.FC = () => {
             <table className="items-table">
               <thead>
                 <tr>
-                  <th>Tên món / Combo</th>
+                  <th>Tên sản phẩm</th>
                   <th className="text-right">Đơn giá</th>
                   <th className="text-center">Số lượng</th>
                   <th className="text-right">Thành tiền</th>
@@ -269,9 +269,6 @@ export const SellerOrderDetailPage: React.FC = () => {
                   <tr key={item.id}>
                     <td>
                       <strong>{item.nameSnapshot}</strong>
-                      <span className="badge badge-gray text-xs ml-2">
-                        {item.kind === "COMBO" ? "Combo" : "Món"}
-                      </span>
                     </td>
                     <td className="text-right" data-label="Đơn giá">
                       {item.unitPrice.toLocaleString("vi-VN")} đ
