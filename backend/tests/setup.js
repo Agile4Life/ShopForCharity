@@ -6,7 +6,6 @@ process.env.GOOGLE_SHEETS_SPREADSHEET_ID = '';
 process.env.GOOGLE_SHEETS_TAB_NAME = '';
 process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL = '';
 process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY = '';
-process.env.GOOGLE_SHEETS_WEBHOOK_SECRET = '';
 process.env.IDEMPOTENCY_ENCRYPTION_KEY = Buffer.alloc(32, 1).toString('base64');
 process.env.GUEST_SESSION_SIGNING_KEY = Buffer.alloc(32, 2).toString('base64');
 process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173';

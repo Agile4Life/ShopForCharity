@@ -19,7 +19,6 @@ export const config = {
     from: process.env.ORDER_EMAIL_FROM || '',
   },
   sheets: {
-    webhookSecret: process.env.GOOGLE_SHEETS_WEBHOOK_SECRET || '',
     spreadsheetId: process.env.GOOGLE_SHEETS_SPREADSHEET_ID || '',
     tabName: process.env.GOOGLE_SHEETS_TAB_NAME || '',
     clientEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || '',

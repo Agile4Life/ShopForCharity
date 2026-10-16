@@ -36,3 +36,10 @@ test('CSRF protection blocks cookie mutating requests with invalid origin', asyn
   assert.equal(res.status, 403);
   assert.equal(res.body.code, 'CSRF_ORIGIN_REJECTED');
 });
+
+test('removed Sheet import endpoint cannot update app data even with a webhook token', async () => {
+  const response = await request(app).post('/api/v1/integrations/sheets/sync')
+    .set('Authorization', 'Bearer obsolete-webhook-token').send({ bootstrap: true, orderIds: ['old-order'] });
+  assert.equal(response.status, 404);
+  assert.equal(response.body.code, 'NOT_FOUND');
+});

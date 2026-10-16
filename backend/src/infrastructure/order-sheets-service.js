@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { importPKCS8, SignJWT } from 'jose';
 import { config } from '../config.js';
 import { query } from '../common/db.js';
@@ -133,6 +134,13 @@ function buildRange(tabName, cellRange) {
   return `'${escaped}'!${cellRange}`;
 }
 
+function sheetRowFingerprint(row) {
+  return createHash('sha256').update(JSON.stringify([
+    String(row[0] || ''), String(row[1] || ''),
+    toSafeNumber(row[3]), toSafeNumber(row[4]), toSafeNumber(row[5]),
+  ])).digest('hex');
+}
+
 export class OrderSheetsService {
   constructor(settings = config, fetcher = (...args) => fetch(...args), dbQuery = query) {
     this.settings = settings;
@@ -250,7 +258,7 @@ export class OrderSheetsService {
     return title;
   }
 
-  findMatchingRowIndex(existingRows, rowValues, claimedRows = new Set()) {
+  findMatchingRowIndex(existingRows, rowValues, claimedFingerprints = []) {
     const matchesOrder = (r) =>
       Array.isArray(r) &&
       !isTotalRow(r) &&
@@ -260,9 +268,11 @@ export class OrderSheetsService {
       toSafeNumber(r[4]) === Number(rowValues[4]) &&
       toSafeNumber(r[5]) === Number(rowValues[5]);
 
-    // Match legacy exports only when their row has not been claimed by another order.
+    let alreadyExported = claimedFingerprints.filter((value) => value === sheetRowFingerprint(rowValues)).length;
     for (let i = existingRows.length - 1; i >= 1; i--) {
-      if (!claimedRows.has(i) && matchesOrder(existingRows[i])) return i;
+      if (!matchesOrder(existingRows[i])) continue;
+      if (alreadyExported > 0) { alreadyExported--; continue; }
+      return i;
     }
     return -1;
   }
@@ -290,67 +300,12 @@ export class OrderSheetsService {
       .filter((metadata) => metadata?.location?.dimensionRange?.sheetId === sheetId);
   }
 
-  async markExported(accessToken, spreadsheetId, sheetId, rowIndex, orderId) {
-    const response = await this.fetcher(`${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requests: [{ createDeveloperMetadata: { developerMetadata: {
-        metadataKey: ORDER_METADATA_KEY,
-        metadataValue: String(orderId),
-        visibility: 'DOCUMENT',
-        location: { dimensionRange: {
-          sheetId, dimension: 'ROWS', startIndex: rowIndex, endIndex: rowIndex + 1,
-        } },
-      } } }] }),
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!response.ok) throw new Error(`GOOGLE_SHEETS_METADATA_WRITE_HTTP_${response.status}`);
-  }
-
-  async readImportRow(orderId) {
-    return (await this.readImportRows([orderId])).get(orderId) || null;
-  }
-
-  async readImportRows(orderIds) {
-    const accessToken = await this.getAccessToken();
-    const { sheetId } = await this.getSheetMeta(accessToken);
-    const spreadsheetId = encodeURIComponent(this.sheetsConfig.spreadsheetId.trim());
-    const metadata = await this.getExportMetadata(accessToken, spreadsheetId, sheetId);
-    const selected = new Map();
-    for (const orderId of new Set(orderIds)) {
-      const matches = metadata.filter((entry) => entry.metadataValue === orderId);
-      if (matches.length !== 1) continue;
-      const entry = matches[0];
-      if (entry.location.dimensionRange.startIndex < 1 || !Number.isInteger(entry.metadataId)) continue;
-      selected.set(entry.metadataId, { orderId, rowNumber: entry.location.dimensionRange.startIndex + 1 });
-    }
-    const rows = new Map();
-    if (!selected.size) return rows;
-    const response = await this.fetcher(
-      `${SHEETS_API_BASE}/${spreadsheetId}/values:batchGetByDataFilter`,
-      {
-        method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dataFilters: [...selected.keys()].map((metadataId) => ({ developerMetadataLookup: { metadataId } })),
-          majorDimension: 'ROWS',
-          valueRenderOption: 'UNFORMATTED_VALUE',
-        }),
-        signal: AbortSignal.timeout(8000),
-      }
+  async recordExport(spreadsheetId, tabName, orderId, rowValues) {
+    await this.dbQuery(
+      `INSERT INTO shop.order_sheet_exports (spreadsheet_id, tab_name, order_id, row_fingerprint)
+       VALUES ($1,$2,$3,$4) ON CONFLICT (spreadsheet_id, tab_name, order_id) DO NOTHING`,
+      [spreadsheetId, tabName, orderId, sheetRowFingerprint(rowValues)]
     );
-    if (!response.ok) throw new Error(`GOOGLE_SHEETS_READ_HTTP_${response.status}`);
-    const data = await response.json();
-    const ambiguous = new Set();
-    for (const range of data.valueRanges || []) {
-      for (const filter of range.dataFilters || []) {
-        const match = selected.get(filter.developerMetadataLookup?.metadataId);
-        if (!match) continue;
-        if (rows.has(match.orderId)) ambiguous.add(match.orderId);
-        rows.set(match.orderId, { rowNumber: match.rowNumber, values: (range.valueRange?.values?.[0] || []).slice(0, 10) });
-      }
-    }
-    for (const orderId of ambiguous) rows.delete(orderId);
-    return rows;
   }
 
   /**
@@ -477,6 +432,16 @@ export class OrderSheetsService {
 
     if (!isConfirmedLifecycle) return false;
 
+    const destination = this.sheetsConfig.spreadsheetId.trim();
+    const accessToken = await this.getAccessToken();
+    const { title: tabName, sheetId } = await this.getSheetMeta(accessToken);
+    const spreadsheetId = encodeURIComponent(destination);
+    const exports = await this.dbQuery(
+      `SELECT order_id, row_fingerprint FROM shop.order_sheet_exports
+       WHERE spreadsheet_id=$1 AND tab_name=$2`, [destination, tabName]
+    );
+    if (exports.rows.some((entry) => entry.order_id === order.id)) return true;
+
     const itemsRes = await this.dbQuery(
       `SELECT name_snapshot, quantity, unit_price, line_total
        FROM shop.order_items
@@ -486,13 +451,13 @@ export class OrderSheetsService {
     );
 
     const rowValues = formatOrderSheetRow(order, itemsRes.rows);
-    const accessToken = await this.getAccessToken();
-    const { title: tabName, sheetId } = await this.getSheetMeta(accessToken);
-    const spreadsheetId = encodeURIComponent(this.sheetsConfig.spreadsheetId.trim());
-
     const metadata = await this.getExportMetadata(accessToken, spreadsheetId, sheetId);
-    if (metadata.some((entry) => entry.metadataValue === String(order.id))) return true;
-    const claimedRows = new Set(metadata.map((entry) => entry.location.dimensionRange.startIndex));
+    // Read old metadata for compatibility, but never create or modify Google metadata.
+    if (metadata.some((entry) => entry.metadataValue === String(order.id))) {
+      await this.recordExport(destination, tabName, order.id, rowValues);
+      return true;
+    }
+    const claimedFingerprints = exports.rows.map((entry) => entry.row_fingerprint);
 
     const readRange = encodeURIComponent(buildRange(tabName, 'A:J'));
     const getRes = await this.fetcher(
@@ -533,20 +498,20 @@ export class OrderSheetsService {
       if (!putRes.ok) {
         throw new Error(`GOOGLE_SHEETS_INIT_HTTP_${putRes.status}`);
       }
-      await this.markExported(accessToken, spreadsheetId, sheetId, 1, order.id);
+      await this.recordExport(destination, tabName, order.id, rowValues);
       return true;
     }
 
-    const rowIndex = this.findMatchingRowIndex(existingRows, rowValues, claimedRows);
+    const rowIndex = this.findMatchingRowIndex(existingRows, rowValues, claimedFingerprints);
     if (rowIndex >= 0) {
       // Claim legacy rows without touching their cells.
-      await this.markExported(accessToken, spreadsheetId, sheetId, rowIndex, order.id);
+      await this.recordExport(destination, tabName, order.id, rowValues);
       return true;
     }
 
     if (order.status === 'CANCELLED') return false;
 
-    const rowNumber = await this.appendRowAboveTotal(
+    await this.appendRowAboveTotal(
       accessToken,
       spreadsheetId,
       tabName,
@@ -554,7 +519,7 @@ export class OrderSheetsService {
       existingRows,
       rowValues
     );
-    await this.markExported(accessToken, spreadsheetId, sheetId, rowNumber - 1, order.id);
+    await this.recordExport(destination, tabName, order.id, rowValues);
     return true;
   }
 

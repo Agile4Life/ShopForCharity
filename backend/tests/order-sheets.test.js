@@ -85,6 +85,7 @@ test('OrderSheetsService keeps TỔNG CỘNG at the bottom and inserts new order
 
   const sheetData = [];
   const exportMetadata = [];
+  const exportReceipts = new Map();
   let metadataReadFails = false;
   let insertDimensionCalls = 0;
 
@@ -131,7 +132,7 @@ test('OrderSheetsService keeps TỔNG CỘNG at the bottom and inserts new order
     if (options.method === 'POST' && url.endsWith(':batchUpdate')) {
       const payload = JSON.parse(options.body);
       const created = payload.requests?.[0]?.createDeveloperMetadata?.developerMetadata;
-      if (created) exportMetadata.push(created);
+      assert.equal(created, undefined, 'Never write Google metadata');
       const insertReq = payload.requests?.[0]?.insertDimension;
       if (insertReq) {
         insertDimensionCalls++;
@@ -192,7 +193,12 @@ test('OrderSheetsService keeps TỔNG CỘNG at the bottom and inserts new order
 
   let currentItems = [{ name_snapshot: 'Hoa Kẽm Nhung', quantity: 1, unit_price: 35000, line_total: 35000 }];
 
-  const mockDbQuery = async (sql) => {
+  const mockDbQuery = async (sql, params) => {
+    if (sql.includes('FROM shop.order_sheet_exports')) return { rows: [...exportReceipts.values()] };
+    if (sql.includes('INSERT INTO shop.order_sheet_exports')) {
+      exportReceipts.set(params[2], { order_id: params[2], row_fingerprint: params[3] });
+      return { rows: [] };
+    }
     if (sql.includes('FROM shop.orders')) {
       return { rows: [currentOrder] };
     }
@@ -282,22 +288,20 @@ test('OrderSheetsService keeps TỔNG CỘNG at the bottom and inserts new order
   currentOrder = { ...firstOrder, id: '33333333-3333-3333-3333-333333333333' };
   await Promise.all([restarted.syncOrder(currentOrder.id), restarted.syncOrder(currentOrder.id)]);
   assert.equal(sheetData.length, 5);
-  assert.equal(exportMetadata.find((entry) => entry.metadataValue === currentOrder.id)
-    .location.dimensionRange.startIndex, 3);
+  assert.equal(exportReceipts.has(currentOrder.id), true);
   assert.deepEqual(sheetData[2], manualRow);
   assert.equal(sheetData[4][3], 8);
   assert.equal(sheetData[4][4], 11);
   assert.equal(sheetData[4][5], 75123);
 
   // Legacy exports gain only an identity; their manually edited notes stay intact.
-  exportMetadata.splice(exportMetadata.findIndex((entry) => entry.metadataValue === currentOrder.id), 1);
+  exportReceipts.delete(currentOrder.id);
   sheetData[3] = formatOrderSheetRow(currentOrder, currentItems);
   sheetData[3][9] = 'Legacy manual note';
   const legacyRow = [...sheetData[3]];
   assert.equal(await restarted.syncOrder(currentOrder.id), true);
   assert.deepEqual(sheetData[3].slice(0, 10), legacyRow);
-  assert.equal(exportMetadata.find((entry) => entry.metadataValue === currentOrder.id)
-    .location.dimensionRange.startIndex, 3);
+  assert.equal(exportReceipts.has(currentOrder.id), true);
 
   // Without a total row, adding an order never rewrites the previous last row.
   sheetData.pop();
