@@ -10,9 +10,26 @@ Backend ghi nhận đơn đã xuất trong bảng riêng `shop.order_sheet_expor
 PostgreSQL, không thêm cột và không tạo/cập nhật metadata Google. Metadata cũ chỉ
 được đọc để nhận diện các đơn đã xuất trước nâng cấp.
 
-Đơn mới được chèn trước dòng TỔNG CỘNG. Dòng tổng được tính lại từ dữ liệu hiện tại
-trên Sheet khi backend thêm đơn mới, gồm cả đơn nhập tay. Sửa tay đơn thuần không
-kích hoạt backend tính lại tổng tĩnh; dùng công thức Sheet nếu cần tổng cập nhật ngay.
+Đơn mới được chèn trước dòng TỔNG CỘNG. Ba ô D:F của dòng tổng dùng công thức
+Google Sheets, tự cập nhật số lượng và tổng tiền khi nhập thêm, sửa hoặc xóa đơn
+thủ công, kể cả đơn bên dưới dòng tổng. Công thức bỏ qua đơn có trạng thái
+`Đã hủy đơn` và dòng tổng. Nhập D:F bằng giá trị số (có thể định dạng tiền tệ),
+không nhập chuỗi văn bản như `35.000đ`. Giữ công thức ở ba ô tổng D:F khi sửa Sheet.
+
+Sheet cũ được đổi tổng tĩnh sang công thức khi backend xuất đơn mới hoặc khi chạy
+`syncAllConfirmedOrders()`, kể cả khi mọi đơn web đã xuất từ trước. Chỉ ba ô tổng
+D:F được cập nhật; các ô khác của dòng tổng và dữ liệu đơn đã xuất được giữ nguyên.
+Sau khi triển khai bản sửa, cần thực hiện một trong hai thao tác này một lần cho
+Sheet cũ; từ đó thao tác nhập tay không cần gọi backend để tính lại tổng.
+
+Có thể chạy đồng bộ một lần từ root repository với cấu hình backend đã sẵn sàng
+(bao gồm migration V11 và quyền truy cập Google Sheets):
+
+```powershell
+node --input-type=module -e "import { getOrderSheetsService } from './backend/src/infrastructure/order-sheets-service.js'; import { pool } from './backend/src/common/db.js'; try { console.log(await getOrderSheetsService().syncAllConfirmedOrders()); } finally { await pool.end(); }"
+```
+
+Lệnh này cũng xuất các đơn đã xác nhận chưa có biên nhận, như luồng đồng bộ thông thường.
 
 ## Áp dụng
 

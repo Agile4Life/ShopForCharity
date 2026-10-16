@@ -30,9 +30,21 @@ test('durable export receipts preserve manual edits, distinguish identical order
       if (options.method === 'GET') return { ok: true, json: async () => ({ values: structuredClone(sheet) }) };
       const body = JSON.parse(options.body);
       if (url.endsWith(':batchUpdate')) {
-        assert.ok(body.requests.every((entry) => entry.insertDimension), 'Do not write Google metadata');
-        const range = body.requests[0].insertDimension.range;
-        sheet.splice(range.startIndex, 0, []);
+        for (const request of body.requests) {
+          assert.equal(request.createDeveloperMetadata, undefined, 'Do not write Google metadata');
+          if (request.insertDimension) {
+            sheet.splice(request.insertDimension.range.startIndex, 0, []);
+          } else {
+            const { start, rows } = request.updateCells;
+            rows.forEach((row, offset) => {
+              sheet[start.rowIndex + offset] ||= [];
+              row.values.forEach(({ userEnteredValue: value }, column) => {
+                sheet[start.rowIndex + offset][start.columnIndex + column] =
+                  value.formulaValue ?? value.numberValue ?? value.stringValue;
+              });
+            });
+          }
+        }
       } else {
         const start = Number(decodeURIComponent(url).match(/A(\d+):J/)[1]) - 1;
         body.values.forEach((row, index) => { sheet[start + index] = row; });

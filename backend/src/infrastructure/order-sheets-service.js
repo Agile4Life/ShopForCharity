@@ -128,6 +128,33 @@ export function buildTotalRow(dataRows = []) {
   ];
 }
 
+export function buildTotalFormulas() {
+  // Split around the formula's own row to avoid circular references. INDIRECT
+  // keeps both ranges open to manual row insertions, including below the total.
+  return ['D', 'E', 'F'].map((column) => {
+    const sum = (start, end) => `SUMIFS(INDIRECT("${column}"&${start}&":${column}"&${end}),INDIRECT("H"&${start}&":H"&${end}),"<>Đã hủy đơn",INDIRECT("A"&${start}&":A"&${end}),"<>${TOTAL_ROW_LABEL}",INDIRECT("A"&${start}&":A"&${end}),"<>TOTAL",INDIRECT("A"&${start}&":A"&${end}),"<>TỔNG")`;
+    return `=${sum('1', '(ROW()-1)')}+IF(ROW()<ROWS(A:A),${sum('(ROW()+1)', 'ROWS(A:A)')},0)`;
+  });
+}
+
+function cellsUpdate(sheetId, rowIndex, columnIndex, rows) {
+  return { updateCells: {
+    start: { sheetId, rowIndex, columnIndex },
+    rows: rows.map((row) => ({ values: row.map((value) => ({
+      userEnteredValue: typeof value === 'number' ? { numberValue: value } : { stringValue: value },
+    })) })),
+    fields: 'userEnteredValue',
+  } };
+}
+
+function totalFormulasUpdate(sheetId, rowIndex) {
+  return { updateCells: {
+    start: { sheetId, rowIndex, columnIndex: 3 },
+    rows: [{ values: buildTotalFormulas().map((formulaValue) => ({ userEnteredValue: { formulaValue } })) }],
+    fields: 'userEnteredValue',
+  } };
+}
+
 function buildRange(tabName, cellRange) {
   if (!tabName) return cellRange;
   const escaped = String(tabName).replace(/'/g, "''");
@@ -308,97 +335,40 @@ export class OrderSheetsService {
     );
   }
 
+  async writeCells(accessToken, spreadsheetId, requests) {
+    const response = await this.fetcher(`${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) throw new Error(`GOOGLE_SHEETS_WRITE_HTTP_${response.status}`);
+  }
+
   /**
    * Inserts a new order row strictly above the TỔNG CỘNG row (inside the Google
    * Sheets Table boundary), pushing TỔNG CỘNG down by 1 row and updating its sums.
    */
-  async appendRowAboveTotal(accessToken, spreadsheetId, tabName, sheetId, existingRows, rowValues) {
-    const N = existingRows.length;
+  async appendRowAboveTotal(accessToken, spreadsheetId, sheetId, existingRows, rowValues) {
     const totalRowIndex = existingRows.findLastIndex((row, index) => index >= 1 && isTotalRow(row));
-    const dataRows = existingRows.slice(1).filter((row) => !isTotalRow(row));
-    const updatedTotalRow = buildTotalRow([...dataRows, rowValues]);
-
+    const orderIndex = totalRowIndex >= 1 ? totalRowIndex : existingRows.length;
+    const totalIndex = orderIndex + 1;
+    const requests = [];
     if (totalRowIndex >= 1) {
-      const totalRowZeroIndex = totalRowIndex;
-      const newOrderRowNumber = totalRowIndex + 1;
-
-      const batchRes = await this.fetcher(
-        `${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            requests: [
-              {
-                insertDimension: {
-                  range: {
-                    sheetId,
-                    dimension: 'ROWS',
-                    startIndex: totalRowZeroIndex,
-                    endIndex: totalRowZeroIndex + 1,
-                  },
-                  inheritFromBefore: totalRowZeroIndex > 1,
-                },
-              },
-            ],
-          }),
-          signal: AbortSignal.timeout(8000),
-        }
-      );
-
-      if (!batchRes.ok) {
-        throw new Error(`GOOGLE_SHEETS_INSERT_ROW_HTTP_${batchRes.status}`);
-      }
-
-      const twoRowRange = encodeURIComponent(
-        buildRange(tabName, `A${newOrderRowNumber}:J${newOrderRowNumber + 1}`)
-      );
-      const putRes = await this.fetcher(
-        `${SHEETS_API_BASE}/${spreadsheetId}/values/${twoRowRange}?valueInputOption=RAW`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            majorDimension: 'ROWS',
-            values: [rowValues, updatedTotalRow],
-          }),
-          signal: AbortSignal.timeout(8000),
-        }
-      );
-
-      if (!putRes.ok) {
-        throw new Error(`GOOGLE_SHEETS_TABLE_APPEND_HTTP_${putRes.status}`);
-      }
-      return newOrderRowNumber;
+      requests.push({ insertDimension: {
+        range: { sheetId, dimension: 'ROWS', startIndex: orderIndex, endIndex: orderIndex + 1 },
+        inheritFromBefore: orderIndex > 1,
+      } });
     }
-
-    const putRange = encodeURIComponent(buildRange(tabName, `A${N + 1}:J${N + 2}`));
-    const putRes = await this.fetcher(
-      `${SHEETS_API_BASE}/${spreadsheetId}/values/${putRange}?valueInputOption=RAW`,
-      {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          majorDimension: 'ROWS',
-          values: [rowValues, updatedTotalRow],
-        }),
-        signal: AbortSignal.timeout(8000),
-      }
-    );
-
-    if (!putRes.ok) {
-      throw new Error(`GOOGLE_SHEETS_APPEND_HTTP_${putRes.status}`);
+    // Insert, write literal order values and install formulas atomically. Only
+    // D:F of an existing summary is updated; its other cells remain sheet-owned.
+    requests.push(cellsUpdate(sheetId, orderIndex, 0, [rowValues]));
+    if (totalRowIndex < 1) {
+      requests.push(cellsUpdate(sheetId, totalIndex, 0, [[TOTAL_ROW_LABEL, '', '', '', '', '', '', '', '', '']]));
     }
-    return N + 1;
+    requests.push(totalFormulasUpdate(sheetId, totalIndex));
+    await this.writeCells(accessToken, spreadsheetId, requests);
+    return orderIndex + 1;
   }
 
   syncOrder(orderId) {
@@ -461,7 +431,7 @@ export class OrderSheetsService {
 
     const readRange = encodeURIComponent(buildRange(tabName, 'A:J'));
     const getRes = await this.fetcher(
-      `${SHEETS_API_BASE}/${spreadsheetId}/values/${readRange}`,
+      `${SHEETS_API_BASE}/${spreadsheetId}/values/${readRange}?valueRenderOption=UNFORMATTED_VALUE`,
       {
         method: 'GET',
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -478,26 +448,11 @@ export class OrderSheetsService {
 
     if (existingRows.length === 0) {
       if (order.status === 'CANCELLED') return false;
-      const totalRow = buildTotalRow([rowValues]);
-      const initRange = encodeURIComponent(buildRange(tabName, 'A1:J3'));
-      const putRes = await this.fetcher(
-        `${SHEETS_API_BASE}/${spreadsheetId}/values/${initRange}?valueInputOption=RAW`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            majorDimension: 'ROWS',
-            values: [ORDER_SHEET_HEADERS, rowValues, totalRow],
-          }),
-          signal: AbortSignal.timeout(8000),
-        }
-      );
-      if (!putRes.ok) {
-        throw new Error(`GOOGLE_SHEETS_INIT_HTTP_${putRes.status}`);
-      }
+      await this.writeCells(accessToken, spreadsheetId, [
+        cellsUpdate(sheetId, 0, 0, [ORDER_SHEET_HEADERS, rowValues,
+          [TOTAL_ROW_LABEL, '', '', '', '', '', '', '', '', '']]),
+        totalFormulasUpdate(sheetId, 2),
+      ]);
       await this.recordExport(destination, tabName, order.id, rowValues);
       return true;
     }
@@ -514,7 +469,6 @@ export class OrderSheetsService {
     await this.appendRowAboveTotal(
       accessToken,
       spreadsheetId,
-      tabName,
       sheetId,
       existingRows,
       rowValues
@@ -539,7 +493,7 @@ export class OrderSheetsService {
     if (!this.isConfigured()) return { synced: 0, configured: false };
 
     const accessToken = await this.getAccessToken();
-    const { title: tabName } = await this.getSheetMeta(accessToken);
+    const { title: tabName, sheetId } = await this.getSheetMeta(accessToken);
     const spreadsheetId = encodeURIComponent(this.sheetsConfig.spreadsheetId.trim());
 
     const ordersRes = await this.dbQuery(
@@ -556,10 +510,10 @@ export class OrderSheetsService {
       if (await this.syncOrder(order.id)) synced++;
     }
 
-    // Read sheet-owned values for reporting; never rebuild or clear existing rows.
+    // Read sheet-owned values for reporting and upgrade only the summary formulas.
     const readRange = encodeURIComponent(buildRange(tabName, 'A:J'));
     const response = await this.fetcher(
-      `${SHEETS_API_BASE}/${spreadsheetId}/values/${readRange}`,
+      `${SHEETS_API_BASE}/${spreadsheetId}/values/${readRange}?valueRenderOption=UNFORMATTED_VALUE`,
       {
         method: 'GET',
         headers: { Authorization: `Bearer ${accessToken}` },
@@ -568,7 +522,13 @@ export class OrderSheetsService {
     );
     if (!response.ok) throw new Error(`GOOGLE_SHEETS_READ_HTTP_${response.status}`);
     const sheetData = await response.json();
-    const totalRow = buildTotalRow((sheetData.values || []).slice(1));
+    const rows = sheetData.values || [];
+    const totalRowIndex = rows.findLastIndex((row, index) => index >= 1 && isTotalRow(row));
+    if (totalRowIndex >= 1) {
+      // Upgrade static totals even when all web orders already have receipts.
+      await this.writeCells(accessToken, spreadsheetId, [totalFormulasUpdate(sheetId, totalRowIndex)]);
+    }
+    const totalRow = buildTotalRow(rows.slice(1));
 
     return {
       synced,
