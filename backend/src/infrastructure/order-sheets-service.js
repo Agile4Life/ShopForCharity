@@ -132,8 +132,8 @@ export function buildTotalFormulas() {
   // Split around the formula's own row to avoid circular references. INDIRECT
   // keeps both ranges open to manual row insertions, including below the total.
   return ['D', 'E', 'F'].map((column) => {
-    const sum = (start, end) => `SUMIFS(INDIRECT("${column}"&${start}&":${column}"&${end}),INDIRECT("H"&${start}&":H"&${end}),"<>Đã hủy đơn",INDIRECT("A"&${start}&":A"&${end}),"<>${TOTAL_ROW_LABEL}",INDIRECT("A"&${start}&":A"&${end}),"<>TOTAL",INDIRECT("A"&${start}&":A"&${end}),"<>TỔNG")`;
-    return `=${sum('1', '(ROW()-1)')}+IF(ROW()<ROWS(A:A),${sum('(ROW()+1)', 'ROWS(A:A)')},0)`;
+    const sum = (start, end) => `SUMIFS(INDIRECT("${column}"&${start}&":${column}"&${end});INDIRECT("H"&${start}&":H"&${end});"<>Đã hủy đơn";INDIRECT("A"&${start}&":A"&${end});"<>${TOTAL_ROW_LABEL}";INDIRECT("A"&${start}&":A"&${end});"<>TOTAL";INDIRECT("A"&${start}&":A"&${end});"<>TỔNG")`;
+    return `=${sum('1', '(ROW()-1)')}+IF(ROW()<ROWS(A:A);${sum('(ROW()+1)', 'ROWS(A:A)')};0)`;
   });
 }
 
@@ -267,9 +267,9 @@ export class OrderSheetsService {
 
     const meta = await response.json();
     const sheets = meta?.sheets || [];
-    const matched = configuredTab
+    const matched = (configuredTab
       ? sheets.find((s) => s?.properties?.title === configuredTab)
-      : sheets[0];
+      : sheets[0]) || sheets[0];
 
     const title = matched?.properties?.title || configuredTab;
     const sheetId = matched?.properties?.sheetId ?? 0;

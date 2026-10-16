@@ -396,7 +396,7 @@ test('exports literal buyer data and live totals in one batch; failed writes lea
     // when manual orders are inserted or the summary is the final sheet row.
     assert.ok(formula.includes(`INDIRECT("${column}"&1&":${column}"&(ROW()-1))`));
     assert.ok(formula.includes(`INDIRECT("${column}"&(ROW()+1)&":${column}"&ROWS(A:A))`));
-    assert.ok(formula.includes('IF(ROW()<ROWS(A:A),'));
+    assert.ok(formula.includes('IF(ROW()<ROWS(A:A);'));
     assert.ok(formula.includes('"<>Đã hủy đơn"'));
     assert.ok(formula.includes(`"<>${TOTAL_ROW_LABEL}"`));
   }
