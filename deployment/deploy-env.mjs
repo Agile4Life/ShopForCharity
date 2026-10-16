@@ -10,6 +10,7 @@ const runtimeKeys = [
   'RESEND_API_KEY', 'ORDER_EMAIL_FROM',
   'GOOGLE_SHEETS_SPREADSHEET_ID', 'GOOGLE_SHEETS_TAB_NAME',
   'GOOGLE_SERVICE_ACCOUNT_EMAIL', 'GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY',
+  'GOOGLE_SHEETS_WEBHOOK_SECRET',
 ];
 
 export function createDeployEnv(backend, frontend, previous = {}, origin = 'https://www.goiamtraoem.shop') {

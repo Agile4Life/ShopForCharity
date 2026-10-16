@@ -55,6 +55,13 @@ test('order email credentials export to backend only', () => {
   assert.equal(env.VITE_RESEND_API_KEY, undefined);
 });
 
+test('Sheets webhook secret is retained for backend and excluded from public frontend variables', () => {
+  const env = createDeployEnv({ ...backend, GOOGLE_SHEETS_WEBHOOK_SECRET: 'test-sheet-secret' },
+    { ...frontend, VITE_GOOGLE_SHEETS_WEBHOOK_SECRET: 'must-not-export' });
+  assert.equal(env.GOOGLE_SHEETS_WEBHOOK_SECRET, 'test-sheet-secret');
+  assert.equal(env.VITE_GOOGLE_SHEETS_WEBHOOK_SECRET, undefined);
+});
+
 test('CORS allows exact Vercel deployment origins without enabling wildcard or localhost', () => {
   const origins = allowedOrigins({ VERCEL: '1', CORS_ALLOWED_ORIGINS: 'https://goiamchoem.vercel.app', VERCEL_URL: 'goiamchoem-preview-team.vercel.app', VERCEL_PROJECT_PRODUCTION_URL: 'goiamchoem.vercel.app' });
   assert.deepEqual(origins, ['https://goiamchoem.vercel.app', 'https://goiamchoem-preview-team.vercel.app']);

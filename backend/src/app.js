@@ -19,6 +19,7 @@ import { inventoryRouter } from './inventory/inventory-controller.js';
 import { assetRouter } from './infrastructure/asset-controller.js';
 import { sellerReadRouter } from './audit/seller-read-controller.js';
 import { chatRouter } from './chat/chat-controller.js';
+import { createSheetSyncRouter } from './infrastructure/sheet-sync-controller.js';
 
 import { getOrderService } from './order/order-service.js';
 import { getAssetService } from './infrastructure/asset-service.js';
@@ -93,6 +94,7 @@ app.get('/api/v1/cron/cleanup', requireCron, async (req, res, next) => {
 
 // API v1 routes
 const v1 = express.Router();
+v1.use(createSheetSyncRouter());
 v1.use(shopRouter);
 v1.use(catalogRouter);
 v1.use('/me', identityRouter);

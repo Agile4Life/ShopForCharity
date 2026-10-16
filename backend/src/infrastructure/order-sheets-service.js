@@ -20,6 +20,8 @@ export const ORDER_SHEET_HEADERS = [
   'Ghi chú',
 ];
 
+export const ORDER_METADATA_KEY = 'shop_for_charity_order_id';
+
 export const TOTAL_ROW_LABEL = 'TỔNG CỘNG';
 
 const PAYMENT_STATUS_LABELS = {
@@ -131,15 +133,6 @@ function buildRange(tabName, cellRange) {
   return `'${escaped}'!${cellRange}`;
 }
 
-function normalizeExistingRow(row = []) {
-  return ORDER_SHEET_HEADERS.map((_, idx) => {
-    if (idx === 3 || idx === 4 || idx === 5) {
-      return toSafeNumber(row[idx]);
-    }
-    return String(row[idx] ?? '');
-  });
-}
-
 export class OrderSheetsService {
   constructor(settings = config, fetcher = (...args) => fetch(...args), dbQuery = query) {
     this.settings = settings;
@@ -149,7 +142,7 @@ export class OrderSheetsService {
     this.resolvedSheetMeta = null;
     this.privateKeyPromise = null;
     this.cachedKeyPem = null;
-    this.orderRowMap = new Map();
+    this.syncQueue = Promise.resolve();
   }
 
   get sheetsConfig() {
@@ -257,7 +250,7 @@ export class OrderSheetsService {
     return title;
   }
 
-  findMatchingRowIndex(existingRows, rowValues, orderId) {
+  findMatchingRowIndex(existingRows, rowValues, claimedRows = new Set()) {
     const matchesOrder = (r) =>
       Array.isArray(r) &&
       !isTotalRow(r) &&
@@ -267,17 +260,78 @@ export class OrderSheetsService {
       toSafeNumber(r[4]) === Number(rowValues[4]) &&
       toSafeNumber(r[5]) === Number(rowValues[5]);
 
-    const cachedRowNumber = this.orderRowMap.get(orderId);
-    if (cachedRowNumber && cachedRowNumber >= 2 && matchesOrder(existingRows[cachedRowNumber - 1])) {
-      return cachedRowNumber - 1;
-    }
-
+    // Match legacy exports only when their row has not been claimed by another order.
     for (let i = existingRows.length - 1; i >= 1; i--) {
-      if (matchesOrder(existingRows[i])) {
-        return i;
-      }
+      if (!claimedRows.has(i) && matchesOrder(existingRows[i])) return i;
     }
     return -1;
+  }
+
+  async getExportMetadata(accessToken, spreadsheetId, sheetId) {
+    const response = await this.fetcher(
+      `${SHEETS_API_BASE}/${spreadsheetId}/developerMetadata:search`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dataFilters: [{ developerMetadataLookup: {
+            metadataKey: ORDER_METADATA_KEY,
+            locationType: 'ROW',
+            visibility: 'DOCUMENT',
+          } }],
+        }),
+        signal: AbortSignal.timeout(8000),
+      }
+    );
+    if (!response.ok) throw new Error(`GOOGLE_SHEETS_METADATA_READ_HTTP_${response.status}`);
+    const data = await response.json();
+    return (data.matchedDeveloperMetadata || [])
+      .map((match) => match.developerMetadata)
+      .filter((metadata) => metadata?.location?.dimensionRange?.sheetId === sheetId);
+  }
+
+  async markExported(accessToken, spreadsheetId, sheetId, rowIndex, orderId) {
+    const response = await this.fetcher(`${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests: [{ createDeveloperMetadata: { developerMetadata: {
+        metadataKey: ORDER_METADATA_KEY,
+        metadataValue: String(orderId),
+        visibility: 'DOCUMENT',
+        location: { dimensionRange: {
+          sheetId, dimension: 'ROWS', startIndex: rowIndex, endIndex: rowIndex + 1,
+        } },
+      } } }] }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) throw new Error(`GOOGLE_SHEETS_METADATA_WRITE_HTTP_${response.status}`);
+  }
+
+  async readImportRow(orderId) {
+    const accessToken = await this.getAccessToken();
+    const { sheetId } = await this.getSheetMeta(accessToken);
+    const spreadsheetId = encodeURIComponent(this.sheetsConfig.spreadsheetId.trim());
+    const metadata = await this.getExportMetadata(accessToken, spreadsheetId, sheetId);
+    const matches = metadata.filter((entry) => entry.metadataValue === orderId);
+    if (matches.length !== 1) return null;
+    const rowIndex = matches[0].location.dimensionRange.startIndex;
+    if (rowIndex < 1) return null;
+    const response = await this.fetcher(
+      `${SHEETS_API_BASE}/${spreadsheetId}/values:batchGetByDataFilter`,
+      {
+        method: 'POST', headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dataFilters: [{ developerMetadataLookup: { metadataId: matches[0].metadataId } }],
+          valueRenderOption: 'UNFORMATTED_VALUE',
+        }),
+        signal: AbortSignal.timeout(8000),
+      }
+    );
+    if (!response.ok) throw new Error(`GOOGLE_SHEETS_READ_HTTP_${response.status}`);
+    const data = await response.json();
+    const ranges = data.valueRanges || [];
+    if (ranges.length !== 1) return null;
+    return { rowNumber: rowIndex + 1, values: (ranges[0].valueRange?.values?.[0] || []).slice(0, 10) };
   }
 
   /**
@@ -286,13 +340,13 @@ export class OrderSheetsService {
    */
   async appendRowAboveTotal(accessToken, spreadsheetId, tabName, sheetId, existingRows, rowValues) {
     const N = existingRows.length;
-    const hasTotalAtBottom = N >= 2 && isTotalRow(existingRows[N - 1]);
-    const dataRows = existingRows.slice(1, hasTotalAtBottom ? N - 1 : N);
+    const totalRowIndex = existingRows.findLastIndex((row, index) => index >= 1 && isTotalRow(row));
+    const dataRows = existingRows.slice(1).filter((row) => !isTotalRow(row));
     const updatedTotalRow = buildTotalRow([...dataRows, rowValues]);
 
-    if (hasTotalAtBottom) {
-      const totalRowZeroIndex = N - 1; // 0-based index of TỔNG CỘNG row
-      const newOrderRowNumber = N; // 1-based row number where new order will sit (above TỔNG CỘNG)
+    if (totalRowIndex >= 1) {
+      const totalRowZeroIndex = totalRowIndex;
+      const newOrderRowNumber = totalRowIndex + 1;
 
       const batchRes = await this.fetcher(
         `${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`,
@@ -350,55 +404,7 @@ export class OrderSheetsService {
       return newOrderRowNumber;
     }
 
-    if (N >= 2) {
-      await this.fetcher(`${SHEETS_API_BASE}/${spreadsheetId}:batchUpdate`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          requests: [
-            {
-              insertDimension: {
-                range: {
-                  sheetId,
-                  dimension: 'ROWS',
-                  startIndex: N - 1,
-                  endIndex: N + 1,
-                },
-                inheritFromBefore: N > 2,
-              },
-            },
-          ],
-        }),
-        signal: AbortSignal.timeout(8000),
-      });
-
-      const previousLastRow = normalizeExistingRow(existingRows[N - 1]);
-      const threeRowRange = encodeURIComponent(buildRange(tabName, `A${N}:J${N + 2}`));
-      const putRes = await this.fetcher(
-        `${SHEETS_API_BASE}/${spreadsheetId}/values/${threeRowRange}?valueInputOption=RAW`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            majorDimension: 'ROWS',
-            values: [previousLastRow, rowValues, updatedTotalRow],
-          }),
-          signal: AbortSignal.timeout(8000),
-        }
-      );
-      if (!putRes.ok) {
-        throw new Error(`GOOGLE_SHEETS_APPEND_HTTP_${putRes.status}`);
-      }
-      return N + 1;
-    }
-
-    const putRange = encodeURIComponent(buildRange(tabName, 'A2:J3'));
+    const putRange = encodeURIComponent(buildRange(tabName, `A${N + 1}:J${N + 2}`));
     const putRes = await this.fetcher(
       `${SHEETS_API_BASE}/${spreadsheetId}/values/${putRange}?valueInputOption=RAW`,
       {
@@ -418,10 +424,17 @@ export class OrderSheetsService {
     if (!putRes.ok) {
       throw new Error(`GOOGLE_SHEETS_APPEND_HTTP_${putRes.status}`);
     }
-    return 2;
+    return N + 1;
   }
 
-  async syncOrder(orderId) {
+  syncOrder(orderId) {
+    // Serialize writes within this service so simultaneous lifecycle events do not duplicate rows.
+    const pending = this.syncQueue.then(() => this.exportOrderOnce(orderId));
+    this.syncQueue = pending.catch(() => {});
+    return pending;
+  }
+
+  async exportOrderOnce(orderId) {
     if (!this.isConfigured()) return false;
 
     const orderRes = await this.dbQuery(
@@ -457,6 +470,10 @@ export class OrderSheetsService {
     const accessToken = await this.getAccessToken();
     const { title: tabName, sheetId } = await this.getSheetMeta(accessToken);
     const spreadsheetId = encodeURIComponent(this.sheetsConfig.spreadsheetId.trim());
+
+    const metadata = await this.getExportMetadata(accessToken, spreadsheetId, sheetId);
+    if (metadata.some((entry) => entry.metadataValue === String(order.id))) return true;
+    const claimedRows = new Set(metadata.map((entry) => entry.location.dimensionRange.startIndex));
 
     const readRange = encodeURIComponent(buildRange(tabName, 'A:J'));
     const getRes = await this.fetcher(
@@ -497,62 +514,20 @@ export class OrderSheetsService {
       if (!putRes.ok) {
         throw new Error(`GOOGLE_SHEETS_INIT_HTTP_${putRes.status}`);
       }
-      this.orderRowMap.set(order.id, 2);
+      await this.markExported(accessToken, spreadsheetId, sheetId, 1, order.id);
       return true;
     }
 
-    const rowIndex = this.findMatchingRowIndex(existingRows, rowValues, order.id);
+    const rowIndex = this.findMatchingRowIndex(existingRows, rowValues, claimedRows);
     if (rowIndex >= 0) {
-      const rowNumber = rowIndex + 1;
-      const updateRange = encodeURIComponent(buildRange(tabName, `A${rowNumber}:J${rowNumber}`));
-      const updateRes = await this.fetcher(
-        `${SHEETS_API_BASE}/${spreadsheetId}/values/${updateRange}?valueInputOption=RAW`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            majorDimension: 'ROWS',
-            values: [rowValues],
-          }),
-          signal: AbortSignal.timeout(8000),
-        }
-      );
-      if (!updateRes.ok) {
-        throw new Error(`GOOGLE_SHEETS_UPDATE_HTTP_${updateRes.status}`);
-      }
-
-      existingRows[rowIndex] = rowValues;
-      const N = existingRows.length;
-      if (N >= 2 && isTotalRow(existingRows[N - 1])) {
-        const updatedTotalRow = buildTotalRow(existingRows.slice(1, N - 1));
-        const totalRange = encodeURIComponent(buildRange(tabName, `A${N}:J${N}`));
-        await this.fetcher(
-          `${SHEETS_API_BASE}/${spreadsheetId}/values/${totalRange}?valueInputOption=RAW`,
-          {
-            method: 'PUT',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              majorDimension: 'ROWS',
-              values: [updatedTotalRow],
-            }),
-            signal: AbortSignal.timeout(8000),
-          }
-        );
-      }
-
-      this.orderRowMap.set(order.id, rowNumber);
+      // Claim legacy rows without touching their cells.
+      await this.markExported(accessToken, spreadsheetId, sheetId, rowIndex, order.id);
       return true;
     }
 
     if (order.status === 'CANCELLED') return false;
 
-    const insertedRowNumber = await this.appendRowAboveTotal(
+    const rowNumber = await this.appendRowAboveTotal(
       accessToken,
       spreadsheetId,
       tabName,
@@ -560,7 +535,7 @@ export class OrderSheetsService {
       existingRows,
       rowValues
     );
-    this.orderRowMap.set(order.id, insertedRowNumber);
+    await this.markExported(accessToken, spreadsheetId, sheetId, rowNumber - 1, order.id);
     return true;
   }
 
@@ -592,64 +567,27 @@ export class OrderSheetsService {
       [this.settings.shopId]
     );
 
-    const orderRows = [];
-    this.orderRowMap.clear();
-
+    let synced = 0;
     for (const order of ordersRes.rows) {
-      const itemsRes = await this.dbQuery(
-        `SELECT name_snapshot, quantity, unit_price, line_total
-         FROM shop.order_items
-         WHERE order_id = $1
-         ORDER BY created_at ASC, id ASC`,
-        [order.id]
-      );
-      orderRows.push(formatOrderSheetRow(order, itemsRes.rows));
-      this.orderRowMap.set(order.id, orderRows.length + 1);
+      if (await this.syncOrder(order.id)) synced++;
     }
 
-    const totalRow = buildTotalRow(orderRows);
-    const rowsToWrite = [ORDER_SHEET_HEADERS, ...orderRows, totalRow];
-
-    const writeRange = encodeURIComponent(buildRange(tabName, `A1:J${rowsToWrite.length}`));
-    const putRes = await this.fetcher(
-      `${SHEETS_API_BASE}/${spreadsheetId}/values/${writeRange}?valueInputOption=RAW`,
+    // Read sheet-owned values for reporting; never rebuild or clear existing rows.
+    const readRange = encodeURIComponent(buildRange(tabName, 'A:J'));
+    const response = await this.fetcher(
+      `${SHEETS_API_BASE}/${spreadsheetId}/values/${readRange}`,
       {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          majorDimension: 'ROWS',
-          values: rowsToWrite,
-        }),
+        method: 'GET',
+        headers: { Authorization: `Bearer ${accessToken}` },
         signal: AbortSignal.timeout(8000),
       }
     );
-
-    if (!putRes.ok) {
-      throw new Error(`GOOGLE_SHEETS_BULK_WRITE_HTTP_${putRes.status}`);
-    }
-
-    // Clear any trailing rows right below TỔNG CỘNG if the sheet previously had more rows
-    const trailingRange = encodeURIComponent(
-      buildRange(tabName, `A${rowsToWrite.length + 1}:J${rowsToWrite.length + 10}`)
-    );
-    await this.fetcher(
-      `${SHEETS_API_BASE}/${spreadsheetId}/values/${trailingRange}:clear`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: '{}',
-        signal: AbortSignal.timeout(8000),
-      }
-    );
+    if (!response.ok) throw new Error(`GOOGLE_SHEETS_READ_HTTP_${response.status}`);
+    const sheetData = await response.json();
+    const totalRow = buildTotalRow((sheetData.values || []).slice(1));
 
     return {
-      synced: ordersRes.rows.length,
+      synced,
       configured: true,
       tabName,
       totals: {
