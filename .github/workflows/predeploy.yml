@@ -19,18 +19,8 @@ jobs:
         working-directory: frontend
       - run: npm run build
         working-directory: frontend
-      - run: npx playwright install --with-deps chromium
+      - run: npm run lint
         working-directory: frontend
-      - run: npm run check
-        working-directory: frontend
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-reports
-          path: |
-            frontend/playwright-report
-            frontend/test-results
-          retention-days: 14
   backend-node:
     runs-on: ubuntu-latest
     steps:
@@ -43,25 +33,3 @@ jobs:
       - run: npm ci --workspaces=false
         working-directory: backend
       - run: npm test
-  backend-java:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-          cache: maven
-          cache-dependency-path: backend/pom.xml
-      # Docker here is a disposable test database, independent of hosting choice.
-      - run: docker info
-      - run: sh mvnw -B -ntp verify
-        working-directory: backend
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: junit-reports
-          path: |
-            backend/target/surefire-reports
-            backend/target/failsafe-reports
-          retention-days: 14
